@@ -1,3 +1,5 @@
+# WARNING: ORYNT_SEED_DEMO=1 creates demo accounts with a PUBLICLY DOCUMENTED password (demo-password-123). On a public URL anyone can sign in:
+# acceptable only as an open simulator-only sandbox. Remove ORYNT_SEED_DEMO (and register your own owner) for anything non-public.
 # UNTESTED template. Review the provider's current free-tier terms before use. Needs owner approval; do not deploy automatically.
 services:
   - type: web

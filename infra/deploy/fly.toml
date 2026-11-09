@@ -1,3 +1,4 @@
+# WARNING: ORYNT_SEED_DEMO=1 creates demo accounts with a PUBLICLY DOCUMENTED password. Open simulator-only sandbox at best; remove for anything non-public.
 # UNTESTED template. `fly launch --no-deploy` then review. Needs owner approval.
 app = "orynt-demo-change-me"
 [build]
