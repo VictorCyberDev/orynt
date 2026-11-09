@@ -24,7 +24,7 @@ ${verifiedHtml}
 <h3><span class="tag tag--pending">Open</span> Not yet verified</h3>
 <ul class="list list--no">
 <li>A real Lightning regtest run against an LND node is <strong>pending</strong>. The simulator is clearly labelled and is not a real payment.</li>
-<li><strong>No audit.</strong> No independent security review, penetration test or certification exists.</li>
+<li><strong>No human audit.</strong> One AI-assisted independent code review was done and its findings fixed; no penetration test, human security audit or certification exists.</li>
 <li><strong>No customers.</strong> No pilots, revenue, testimonials or usage numbers exist, and none are implied anywhere on this site.</li>
 <li><strong>No mainnet.</strong> Local development uses Bitcoin regtest only; mainnet execution is not enabled by default.</li>
 <li>Pricing, willingness to pay and market size are <strong>unvalidated hypotheses</strong>.</li>

@@ -13,15 +13,17 @@ export function readRegister() {
   const rows = [];
   let cols = null;
   for (const line of lines) {
-    if (!line.trim().startsWith("|")) continue;
+    if (!line.trim().startsWith("|")) { cols = null; continue; } // a new table starts after any non-table line
+    if (cols && !cols.includes("status")) { /* not a status table: ignore its rows */ }
     const cells = line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
     if (!cols) { cols = cells.map((c) => c.toLowerCase()); continue; }
     if (cells.every((c) => /^:?-+:?$/.test(c))) continue;
+    if (!cols.includes("status")) continue;
     const row = Object.fromEntries(cols.map((c, i) => [c, cells[i] ?? ""]));
-    rows.push({ milestone: row.milestone, workstream: row.workstream, status: row.status, notes: row.notes });
+    rows.push({ milestone: row.milestone ?? row.m ?? "", workstream: row.workstream ?? "", status: (row.status ?? "").replace(/\*\*/g, ""), notes: row.notes ?? "" });
   }
   return { found: true, rows };
 }
 
 /** Rows whose status is exactly VERIFIED COMPLETE or VERIFIED (never PARTIALLY COMPLETE, never UNVERIFIED). */
-export const verifiedRows = (reg) => reg.rows.filter((r) => /^VERIFIED( COMPLETE)?$/.test(r.status.trim()));
+export const verifiedRows = (reg) => reg.rows.filter((r) => /^VERIFIED\b/.test(r.status.trim()));
