@@ -77,7 +77,7 @@ Rating key: 1-6 low, 8-12 medium, 15-25 high.
 2. M1, M2, M7, K2, K3 (16 each)
 3. P1, P4, T3, T6, R1, K1, S1 (15 each)
 
-Actions by 2026-12-07: write counsel brief; run register verification (T6); start census; pre-register thresholds; second reviewer for scorecards.
+Actions by 2026-11-20: write counsel brief; run register verification (T6); start census; pre-register thresholds; second reviewer for scorecards.
 
 ## 8. Risk review log (empty)
 

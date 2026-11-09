@@ -61,4 +61,4 @@ if (seen.has(event.id)) return res.sendStatus(200);                             
 Targets must be https (private/loopback/metadata addresses are refused outside development; DNS is pinned to the vetted address).
 
 ## Limits
-Rate limit 600 req/min per principal (15/min on sign-in/registration, 60/min on public endpoints), 256 KB bodies. API versioning: `/v1` (additive changes only within v1).
+Rate limits are per client IP (default 600 req/min, configurable with `ORYNT_RATE_LIMIT_PER_MIN`; 15/min on sign-in/registration, 60/min on public endpoints; set `ORYNT_TRUST_PROXY=1` behind a trusted reverse proxy). Bodies ≤ 256 KB. API versioning: `/v1` (additive changes only within v1).

@@ -21,7 +21,7 @@ Rules:
 3. The demo may show features only if EXECUTION-REGISTER lists them as VERIFIED; otherwise label "designed".
 4. Use the hackathon audience as a recruiting pool for **interviews**, not as evidence.
 
-Hackathon date: not recorded in the repo reviewed. This plan **assumes submission on Monday 2026-12-07 (ASSUMPTION; replace D0 with the real date and shift all dates by the same offset)**. Day 90 after D0 is Sunday 2027-03-07.
+Hackathon deadline: **2026-11-20 20:00 UTC (21:00 WAT)** — verified against the Dakar rules page on 2026-11-09 (`docs/hackathon/rules-checklist.md`). D0 = that date (Friday). Day 90 after D0 is Thursday 2027-02-18.
 
 ## 2. Decision framework (evaluated at day 90, with checkpoints at day 30, 45 and 60)
 
@@ -61,39 +61,36 @@ Before concluding, complete the disconfirming-evidence review (section 6).
 
 ## 4. Timeline
 
-All dates are 2026-2027. **D0 = 2026-12-07 is an assumption** for hackathon submission. Weeks begin on Monday.
+All dates are 2026-2027. **D0 = 2026-11-20** (hackathon submission deadline). Post-hackathon weeks run D0-relative, not Monday-aligned.
 
-### 4.1 Pre-hackathon (2026-11-09 to 2026-12-06): use the forcing function without confusing it for validation
+### 4.1 Pre-deadline (2026-11-09 to 2026-11-20): use the forcing function without confusing it for validation
 
-| Week (Mon) | Business/validation work | Product/technical dependency |
+| Window | Business/validation work | Product/technical dependency |
 |---|---|---|
-| 2026-11-09 | Ratify thresholds in this file; finalise screener and consent script; start counted census (A1); shortlist counsel; read competitor matrix and update whitespace scores | Execution register: run and record verification commands for the demo path; label anything unverified as "designed" |
-| 2026-11-16 | Send first 10 interview invitations (cold-first) using drafts after consent text is checked; book interviews; start landing page copy (honest limits) | Decide core licence (affects grants, pricing) |
-| 2026-11-23 | Run first 4-6 interviews (no product pitch); second-score scorecards; log disconfirming evidence | Hackathon feature freeze plan |
-| 2026-11-30 | Finish 8+ interviews if possible; adjust segment quotas; write counsel brief with architecture facts | Demo hardening; regtest-only; simulator labelled |
-| 2026-12-07 (D0) | Hackathon submission. Publish honest limits page with demo. No traction claims | Demo |
+| 2026-11-09 to 11-15 | Ratify thresholds in this file; finalise screener and consent script; start counted census (A1); shortlist counsel; read the competitor matrix and update whitespace scores | Execution register: run and record verification commands for the demo path; resolve the Dakar eligibility and wallet-requirement questions with organisers |
+| 2026-11-16 to 2026-11-20 | Send first interview invitations (cold-first) once consent text is checked; draft the honest-limits landing copy | Decide core licence (affects grants, pricing); feature freeze; demo hardening; regtest-only; simulator labelled; submit by the deadline |
 
-Pre-hackathon success is not scored against GO thresholds, but interviews done count toward row 1 if they meet criteria.
+Pre-deadline work is not scored against GO thresholds, but interviews done count toward row 1 if they meet the criteria.
 
 ### 4.2 Post-hackathon 90-day validation plan
 
 | Day | Date range | Focus | Deliverables | Gate |
 |---|---|---|---|---|
-| 0-6 | 2026-12-07 to 12-13 | Debrief; separate hackathon contacts; thank-yous; launch landing page CTA test | Landing page live with honest limits; hackathon contact list tagged | Threshold ratification confirmed |
-| 7-13 | 2026-12-14 to 12-20 | Interview sprint 1 (target cumulative 10) | Scorecard rows; first aggregate | |
-| 14-20 | 2026-12-21 to 12-27 | Holiday lull: census + counsel engagement + docs | Census v1 (A1 counted); counsel engagement letter | |
-| 21-27 | 2026-12-28 to 2027-01-03 | Documentation, regtest quickstart for pilots | Quickstart verified against register | |
-| 28-34 | 2027-01-04 to 01-10 | Interview sprint 2 (target cumulative 14) | Day-30 checkpoint on 2027-01-06: interviews >= 8 | **Checkpoint D30** |
-| 35-41 | 2027-01-11 to 01-17 | Stage-0/1 qualification with interested orgs; ROI worksheets | 5 worksheets started | |
-| 42-48 | 2027-01-18 to 01-24 | Interview sprint 3 (target cumulative 18); begin stage-2 trials | Day-45 checkpoint on 2027-01-21: incidents among first 10 qualified | **Checkpoint D45** |
-| 49-55 | 2027-01-25 to 01-31 | Stage-2 trials (regtest) with up to 3 orgs; counsel questions X1/NG1 answered or chased | Trial logs | |
-| 56-62 | 2027-02-01 to 02-07 | Pricing experiments E3-E6; reach 20 interviews | Day-60 checkpoint on 2027-02-05: scorecard aggregate; segment decision | **Checkpoint D60** |
-| 63-69 | 2027-02-08 to 02-14 | Paid concierge / LOI conversations; funding applications if eligible (see [`go-to-market-and-partnerships.md`](go-to-market-and-partnerships.md)) | Commitments logged | |
-| 70-76 | 2027-02-15 to 02-21 | Gap-fill: segments under-sampled; independent review scoping | Day-75 on 2027-02-20: any must-have at NO-GO? Decide whether to use the single extension | **Checkpoint D75** |
-| 77-83 | 2027-02-22 to 02-28 | Final trials; metrics compiled; disconfirming-evidence review by an outside reader | Draft decision memo | |
-| 84-90 | 2027-03-01 to 03-07 | Decision week | Decision memo; log in change log; communicate decision | **Decision D90 on 2027-03-07** (Sunday; hold the review the preceding Friday 2027-03-05) |
+| 0-6 | 2026-11-20 to 2026-11-26 | Debrief; separate hackathon contacts; thank-yous; launch landing page CTA test | Landing page live with honest limits; hackathon contact list tagged | Threshold ratification confirmed |
+| 7-13 | 2026-11-27 to 2026-12-03 | Interview sprint 1 (target cumulative 10) | Scorecard rows; first aggregate |  |
+| 14-20 | 2026-12-04 to 2026-12-10 | Holiday lull: census + counsel engagement + docs | Census v1 (A1 counted); counsel engagement letter |  |
+| 21-27 | 2026-12-11 to 2026-12-17 | Documentation, regtest quickstart for pilots | Quickstart verified against register |  |
+| 28-34 | 2026-12-18 to 2026-12-24 | Interview sprint 2 (target cumulative 14) | Day-30 checkpoint on 2026-12-20: interviews >= 8 | **Checkpoint D30** |
+| 35-41 | 2026-12-25 to 2026-12-31 | Stage-0/1 qualification with interested orgs; ROI worksheets | 5 worksheets started |  |
+| 42-48 | 2027-01-01 to 2027-01-07 | Interview sprint 3 (target cumulative 18); begin stage-2 trials | Day-45 checkpoint on 2027-01-04: incidents among first 10 qualified | **Checkpoint D45** |
+| 49-55 | 2027-01-08 to 2027-01-14 | Stage-2 trials (regtest) with up to 3 orgs; counsel questions X1/NG1 answered or chased | Trial logs |  |
+| 56-62 | 2027-01-15 to 2027-01-21 | Pricing experiments E3-E6; reach 20 interviews | Day-60 checkpoint on 2027-01-19: scorecard aggregate; segment decision | **Checkpoint D60** |
+| 63-69 | 2027-01-22 to 2027-01-28 | Paid concierge / LOI conversations; funding applications if eligible (see [`go-to-market-and-partnerships.md`](go-to-market-and-partnerships.md)) | Commitments logged |  |
+| 70-76 | 2027-01-29 to 2027-02-04 | Gap-fill: segments under-sampled; independent review scoping | Day-75 on 2027-02-03: any must-have at NO-GO? Decide whether to use the single extension | **Checkpoint D75** |
+| 77-83 | 2027-02-05 to 2027-02-11 | Final trials; metrics compiled; disconfirming-evidence review by an outside reader | Draft decision memo |  |
+| 84-90 | 2027-02-12 to 2027-02-18 | Decision week | Decision memo; log in change log; communicate decision | **Decision D90 on 2027-02-18** (Thursday) |
 
-If using the one 30-day extension: new decision date is D120 = 2027-04-06 (Tuesday); no further extension.
+If using the one 30-day extension: new decision date is D120 = 2027-03-20 (Saturday); no further extension.
 
 ## 5. Decision outcomes and what happens next
 

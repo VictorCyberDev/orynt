@@ -41,6 +41,7 @@ Nothing is VERIFIED without a command and evidence path. Environment: Linux x86_
 | `pnpm demo:full:sim` | all assertions pass — **SIMULATED**, `docs/evidence/demo-simulator-*.md` |
 | `pnpm restore:rehearsal` | PASSED (counts equal; 9 audit chains re-verified on restored copy) |
 | `pnpm audit --prod --audit-level=high` | no known vulnerabilities |
+| **Clean clone of the pushed branch** into an empty dir (`git clone` → `pnpm install --frozen-lockfile` → `lint` → `typecheck` → `build:all` → `test` → `test:integration`) | all exit 0; integration 55 pass / 8 skipped (verified at commit 78990af) |
 | `pnpm demo:full` / `pnpm test:real-lightning` | **NOT RUN** (needs regtest) |
 | Docker build/compose | **NOT RUN** (no daemon) |
 | CI workflow | written, **never run on GitHub** |

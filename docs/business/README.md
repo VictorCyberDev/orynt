@@ -21,7 +21,7 @@ Status: DRAFT v0.1, 2026-11-09. Orynt is a provisional name (no trademark or dom
 | 9 | [`legal-regulatory-register.md`](legal-regulatory-register.md) | Questions for counsel by jurisdiction; no conclusions |
 | 10 | [`security-due-diligence.md`](security-due-diligence.md) | Buyer security questions and honest status |
 | 11 | [`risk-register.md`](risk-register.md) | Product, technical, market, regulatory, key-person and supply-chain risks |
-| 12 | [`go-no-go-framework.md`](go-no-go-framework.md) | Thresholds, dated timeline to 2027-03-07, hackathon vs company |
+| 12 | [`go-no-go-framework.md`](go-no-go-framework.md) | Thresholds, dated timeline to 2027-02-18, hackathon vs company |
 
 ## Conventions used across these files
 
@@ -30,7 +30,7 @@ Status: DRAFT v0.1, 2026-11-09. Orynt is a provisional name (no trademark or dom
 - **designed / planned / not done**: capability status; "built" requires VERIFIED in the execution register.
 - **Empty tables** (interview results, counsel log, risk log, due-diligence log) are empty on purpose. Do not populate them with illustrative data.
 - Regulatory citations are context for counsel and **must be verified by counsel**; no licence exemption is concluded anywhere.
-- All dates assume today is 2026-11-09; the hackathon date is not recorded in the repo, so D0 = 2026-12-07 is an assumption to be replaced.
+- All dates assume today is 2026-11-09; D0 = 2026-11-20 is the verified Dakar submission deadline (20:00 UTC).
 
 ## Open decisions for the founder
 
