@@ -23,5 +23,6 @@ describe("orynt-verify CLI (the built, standalone bundle)", () => {
   it("exit 1 for the wrong trust key (forged issuer)", () => expect(run([join(dir, "real.json"), "--trust-key", "ab".repeat(32)]).status).toBe(1));
   it("exit 4 for simulator receipts, and 1 with --require-real", () => { expect(run([join(dir, "sim.json"), "--trust-key", sim.issuer.publicKey]).status).toBe(4); expect(run([join(dir, "sim.json"), "--trust-key", sim.issuer.publicKey, "--require-real"]).status).toBe(1); });
   it("replay ledger rejects the second presentation", () => { const seen = join(dir, "seen.txt"); const a = run([join(dir, "real.json"), "--trust-key", real.issuer.publicKey, "--seen-file", seen]); const b = run([join(dir, "real.json"), "--trust-key", real.issuer.publicKey, "--seen-file", seen]); expect(a.status).toBe(0); expect(b.status).toBe(1); expect(b.stdout).toMatch(/replay/); });
+  it("replay ledger also covers simulator receipts", () => { const seen = join(dir, "seen-sim.txt"); run([join(dir, "sim.json"), "--trust-key", sim.issuer.publicKey, "--seen-file", seen]); expect(run([join(dir, "sim.json"), "--trust-key", sim.issuer.publicKey, "--seen-file", seen]).status).toBe(1); });
   it("exit 2 on unreadable input", () => expect(run([join(dir, "nope.json")]).status).toBe(2));
 });

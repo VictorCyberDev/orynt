@@ -119,16 +119,16 @@
             });
           }
           if (shown) {
-            showStatus("err", "Please check the highlighted fields.", "Nothing was sent.");
+            showStatus("err", "Please check the highlighted fields.", "Your request was not accepted yet.");
           } else if (res.status === 429) {
-            showStatus("err", "Too many requests.", "Please wait a minute and try again. Nothing was sent.");
+            showStatus("err", "Too many requests.", "Please wait a minute and try again.");
           } else {
-            showStatus("err", "Sorry, we could not send your request.", "Nothing was stored. Please try again later; the service may be unavailable. (HTTP " + res.status + (problem.request_id ? ", request " + problem.request_id : "") + ")");
+            showStatus("err", "Sorry, we could not send your request.", "Please try again later; the service may be unavailable. (HTTP " + res.status + (problem.request_id ? ", request " + problem.request_id : "") + ")");
           }
         });
       })
       .catch(function () {
-        showStatus("err", "Could not reach the server.", "Check your connection and try again. Nothing was sent.");
+        showStatus("err", "Could not reach the server.", "Check your connection and try again. We could not confirm that your request was sent.");
       })
       .then(function () {
         button.disabled = false;

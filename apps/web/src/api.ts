@@ -25,7 +25,6 @@ export function useAsync<T>(fn: () => Promise<T>, deps: DependencyList = []): { 
     set((s) => ({ ...s, loading: true, error: null }));
     fn().then((data) => live && set({ data, error: null, loading: false }), (e) => live && set({ data: null, error: errorText(e), loading: false }));
     return () => { live = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, tick]);
   const reload = useCallback(() => setTick((n) => n + 1), []);
   return { ...state, reload };

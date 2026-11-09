@@ -70,5 +70,5 @@ else {
     for (const l of report.cannotProve) process.stdout.write(`  - ${l}\n`);
   }
 }
-if (seenFile && (report.verdict === "VERIFIED" || report.verdict === "INTEGRITY_ONLY") && report.summary) appendFileSync(seenFile, report.summary.receiptId + "\n");
+if (seenFile && report.verdict !== "REJECTED" && report.summary) appendFileSync(seenFile, report.summary.receiptId + "\n");
 process.exit(report.verdict === "VERIFIED" ? 0 : report.verdict === "REJECTED" ? 1 : report.verdict === "INTEGRITY_ONLY" ? 3 : 4);

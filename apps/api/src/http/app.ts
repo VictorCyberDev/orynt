@@ -53,6 +53,12 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   const log = { info: (o: object, m?: string) => app.log.info(o, m), warn: (o: object, m?: string) => app.log.warn(o, m), error: (o: object, m?: string) => app.log.error(o, m) };
   const deps: Deps = { pool, config, issuerPublicKey, issuerKeyId, log };
 
+  // Tolerate an empty body sent with a JSON content-type (common with curl and SDKs on body-less POSTs); malformed JSON is still a 400.
+  app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
+    const text = String(body);
+    if (text.trim() === "") return done(null, undefined);
+    try { done(null, JSON.parse(text)); } catch { const err = new Error("Request body is not valid JSON.") as Error & { statusCode: number }; err.statusCode = 400; done(err, undefined); }
+  });
   await app.register(cookie);
   await app.register(rateLimit, { global: true, max: 600, timeWindow: "1 minute", keyGenerator: (req) => (req.headers.authorization?.slice(0, 40) ?? req.ip) });
 

@@ -1,0 +1,51 @@
+{
+  "mode": "simulator",
+  "simulated": true,
+  "startedAt": "2026-11-09T15:17:07.526Z",
+  "commit": "22151d14246c2dbaf7d07848e02c5191f4fa2dd7",
+  "wallet": {
+    "kind": "simulator",
+    "network": "regtest",
+    "node_pubkey": null,
+    "capabilities": {
+      "can_send": "true",
+      "can_lookup": "true",
+      "can_read_info": "true",
+      "notes": [
+        "Simulator: no real funds move."
+      ],
+      "discovered_at": "2026-11-09T15:17:09.677Z"
+    }
+  },
+  "A": {
+    "ref": "PO-0001",
+    "payment_hash": "be6a9459beaad64655ae58ffe256b9c3db85dec32292e3d90ac9995d0525db80",
+    "state": "SIMULATED_SETTLED",
+    "preimage": "b599a7864bd7040654e7e233cd2abbd24c558fd797753da27abdc876cdde8628"
+  },
+  "B": {
+    "payment_hash": "b366715033bed7a1d19920a74e951dff73379667946f909c61c7a361908d5582",
+    "first_response": "UNKNOWN",
+    "duplicate_refused": "send_blocked_unresolved",
+    "final": "SIMULATED_SETTLED"
+  },
+  "receipts": {
+    "A": "/home/user/orynt/docs/evidence/receipt-simulator-2026-11-09T15-17-09-683Z-A.json",
+    "B": "/home/user/orynt/docs/evidence/receipt-simulator-2026-11-09T15-17-09-683Z-B.json"
+  },
+  "verifier": {
+    "A": 4,
+    "B": 4,
+    "tampered": 1,
+    "no_trust_root": 4,
+    "replay": 1
+  },
+  "audit": {
+    "ok": true,
+    "streams": 3,
+    "entries": 28,
+    "broken": [],
+    "note": "Hash chains detect edits and deletions. They do not stop someone with database administrator rights AND the ability to recompute every hash; only signed checkpoints stored elsewhere (receipts) can expose that."
+  },
+  "finishedAt": "2026-11-09T15:17:10.822Z"
+}

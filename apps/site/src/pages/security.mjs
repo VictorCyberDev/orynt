@@ -1,6 +1,11 @@
+import { existsSync, readdirSync } from "node:fs";
 import { table, tag } from "../helpers.mjs";
+import { REGISTER_PATH } from "../register.mjs";
 import { ctaBand, pageHero, section } from "../components.mjs";
 import { repoPath } from "../site.config.mjs";
+
+const secDocs = REGISTER_PATH.replace("EXECUTION-REGISTER.md", "security");
+const secDocsEmpty = !existsSync(secDocs) || readdirSync(secDocs).length === 0;
 
 const glance = [
   ["Independent audit, penetration test or certification", "None. No SOC 2, ISO 27001, penetration test, code review by an outside party, or bug bounty exists.", tag("Not done", "danger")],
@@ -34,7 +39,7 @@ ${section({
   id: "threats",
   tint: true,
   title: "Threat model, in summary.",
-  intro: `This is a plain-language summary drawn from the product brief and the due-diligence notes. It is <strong>not</strong> a formal threat model; a dedicated security document set does not exist yet.`,
+  intro: `This is a plain-language summary drawn from the product brief and the due-diligence notes. It is <strong>not</strong> a formal threat model; it is not a substitute for a reviewed security document set.`,
   body: `<div class="grid grid--2">
 <article class="card">
 <h3>What the design tries to prevent</h3>
@@ -146,7 +151,7 @@ ${section({
 <li>${repoPath("docs/business/legal-regulatory-register.md")} — open questions for counsel</li>
 <li>${repoPath("docs/research/differentiation-review.md")} — a candid look at where Orynt is, and is not, different</li>
 </ul>
-<p class="small muted" style="margin-top:16px">${tag("Note", "neutral")} The repository&rsquo;s <code>docs/security/</code> folder is empty today, so there is no formal threat-model document to link.</p>`,
+${secDocsEmpty ? `<p class="small muted" style="margin-top:16px">${tag("Note", "neutral")} The repository&rsquo;s <code>docs/security/</code> folder was empty when this site was built, so there is no formal threat-model document to link.</p>` : `<p class="small muted" style="margin-top:16px">More security documents: ${repoPath("docs/security")}.</p>`}`,
 })}
 
 ${ctaBand({ title: "Security questions for a pilot?", text: "Ask them. If we cannot answer honestly, we will say so, and that goes on our to-do list." })}

@@ -28,7 +28,7 @@ function bytesToWords(bytes: Uint8Array): number[] {
 }
 function intToWords(n: number, len: number): number[] {
   const w: number[] = [];
-  for (let i = 0; i < len; i++) w.unshift(n % 32), (n = Math.floor(n / 32));
+  for (let i = 0; i < len; i++) { w.unshift(n % 32); n = Math.floor(n / 32); }
   return w;
 }
 function amountPart(msat: bigint | null): string {

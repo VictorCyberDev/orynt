@@ -285,3 +285,5 @@ textarea.input { min-height: 140px; resize: vertical; }
 .chip-state--danger { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger); }
 .notfound { min-height: 50vh; display: grid; align-content: center; }
 @media (min-width: 900px) { .steps-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.card > ul + p, .card > p + p { margin-top: var(--s-3); }
