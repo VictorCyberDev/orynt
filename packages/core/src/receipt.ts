@@ -123,6 +123,7 @@ export const RECEIPT_LIMITATIONS: string[] = [
   "Does not prove the absence of other, conflicting payments for the same obligation outside Orynt.",
   "Is not legal evidence of a contract and is not an escrow: no funds were held back or conditionally released.",
   "The issuer attestation proves only that the holder of the issuer key signed this record; trust in that key is the verifier's decision.",
+  "A preimage proves the node that issued the invoice released it. If the payer also controls that node (self-payment, or a fake wallet endpoint), the receipt proves nothing to a third party about who was really paid; payee binding and wallet trust are the workspace's claims.",
   "The audit segment is tamper-evident, not immutable: whoever controls the issuer database and key could have produced an alternative history.",
 ];
 

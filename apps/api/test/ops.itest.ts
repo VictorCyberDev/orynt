@@ -101,9 +101,11 @@ describe("migrations", () => {
     const e = await createEnv();
     try {
       expect(await pendingMigrations(e.pool)).toEqual([]);
+      expect(await migrateDown(e.pool, 1)).toEqual(["002"]);
+      expect((await e.pool.query("SELECT to_regclass('public.memberships_approval_key_uq') AS t")).rows[0].t).toBeNull();
       expect(await migrateDown(e.pool, 1)).toEqual(["001"]);
       expect((await e.pool.query("SELECT to_regclass('public.payout_obligations') AS t")).rows[0].t).toBeNull();
-      expect(await migrateUp(e.pool)).toEqual(["001"]);
+      expect(await migrateUp(e.pool)).toEqual(["001", "002"]);
       expect((await e.pool.query("SELECT to_regclass('public.payout_obligations') AS t")).rows[0].t).not.toBeNull();
       await e.pool.query("UPDATE schema_migrations SET checksum='tampered' WHERE version='001'");
       await expect(migrateUp(e.pool)).rejects.toThrow(/checksum drift/);

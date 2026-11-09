@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests --dir src",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "dev": "tsx watch src/server.ts",
+    "dev": "ORYNT_ENV=development tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "build": "node build.mjs",
     "db:migrate": "tsx src/db/cli.ts up",

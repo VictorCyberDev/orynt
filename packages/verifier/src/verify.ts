@@ -1,5 +1,5 @@
 import {
-  ReceiptSchema, decodeInvoice, hexToBytes, sha256Hex, intentDigest, revisionHash, verifyApproval, verifyChainSegment,
+  GENESIS_HASH, ReceiptSchema, decodeInvoice, hexToBytes, sha256Hex, intentDigest, revisionHash, verifyApproval, verifyChainSegment,
   verifyCheckpoint, verifyReceiptAttestation, timingSafeEqualStr, type Receipt, type AuditEntry,
 } from "@orynt/core";
 
@@ -122,6 +122,7 @@ export function verifyReceipt(input: unknown, opts: VerifyOptions = {}): Report 
   add("intent.digest", timingSafeEqualStr(idg, r.intent.digest), "intent digest recomputed from binding");
 
   // 5. approvals ---------------------------------------------------------------------------------------
+  add("attempts.present", r.attempts.length > 0, "at least one recorded execution attempt");
   const firstAttempt = r.attempts.length ? Math.min(...r.attempts.map((a) => ts(a.started_at))) : NaN;
   const seenUsers = new Set<string>();
   const seenKeys = new Set<string>();
@@ -131,7 +132,7 @@ export function verifyReceipt(input: unknown, opts: VerifyOptions = {}): Report 
     const bindOk = a.payload.intent_digest === r.intent.digest && a.payload.workspace_id === r.workspace.id && a.payload.approver_user_id === a.approver.user_id;
     const dup = seenUsers.has(a.approver.user_id) || seenKeys.has(a.public_key);
     const distinctMaker = !r.policy.require_distinct_maker || a.approver.user_id !== r.agreement.created_by.user_id;
-    const before = Number.isNaN(firstAttempt) || ts(a.payload.signed_at) <= firstAttempt;
+    const before = !Number.isNaN(firstAttempt) && ts(a.payload.signed_at) <= firstAttempt + skew; // tolerate the same clock skew the server tolerates when it accepts the signature
     const ok = sigOk && bindOk && !dup && distinctMaker && before;
     add(`approval.${a.approver.user_id}`, ok, ok ? `${a.approver.name} (${a.approver.role}) signed this exact intent before execution` :
       `invalid approval by ${a.approver.name}: ${[!sigOk && "bad signature", !bindOk && "not bound to this intent", dup && "duplicate approver", !distinctMaker && "maker approved own payment", !before && "signed after dispatch"].filter(Boolean).join(", ")}`);
@@ -166,9 +167,12 @@ export function verifyReceipt(input: unknown, opts: VerifyOptions = {}): Report 
   add("audit.chain", chain.ok, chain.ok ? `${seg.length} audit entries link correctly` : `chain broken at seq ${chain.brokenAtSeq}: ${chain.error}`);
   const head = seg[seg.length - 1];
   add("audit.head", !!head && head.hash === r.audit.checkpoint.head_hash && head.seq === r.audit.checkpoint.seq, "checkpoint head equals the last entry in the segment");
+  const expectedStream = `obligation:${r.agreement.obligation_id}`;
+  add("audit.binding", seg.length > 0 && r.audit.checkpoint.stream === expectedStream && r.audit.checkpoint.workspace_id === r.workspace.id && seg.every((e) => e.stream === expectedStream && e.workspace_id === r.workspace.id), "audit segment and checkpoint belong to this obligation and workspace");
+  add("audit.genesis", seg.length > 0 && seg[0]!.seq === 1 && seg[0]!.prev_hash === GENESIS_HASH, "segment starts at the beginning of the obligation's history (no truncated head)");
   add("audit.checkpoint_signature", verifyCheckpoint(r.issuer.public_key, r.audit.checkpoint, r.audit.checkpoint_signature), "checkpoint signed by the issuer key");
   const settledEntry = seg.find((e) => e.type === "payment.settled" && e.subject === `obligation:${r.agreement.obligation_id}` && (e.data as { payment_hash?: string }).payment_hash === r.agreement.payment_hash);
-  add("audit.contains_settlement", !!settledEntry || r.environment === "SIMULATOR", "audit segment records this settlement");
+  add("audit.contains_settlement", !!settledEntry, "audit segment records this settlement");
 
   // 9. claimant expectations & replay -----------------------------------------------------------------------
   const x = opts.expect;

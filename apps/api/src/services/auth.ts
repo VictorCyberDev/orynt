@@ -57,7 +57,8 @@ export async function login(d: Deps, email: string, password: string, ua?: strin
   if (u.disabled_at) throw fail();
   if (u.locked_until && new Date(u.locked_until) > new Date()) throw new OryntError("rate_limited", 429, "Too many failed sign-in attempts. Try again in a few minutes.");
   if (!ok) {
-    await d.pool.query("UPDATE users SET failed_logins = failed_logins + 1, locked_until = CASE WHEN failed_logins + 1 >= 5 THEN now() + interval '15 minutes' ELSE locked_until END WHERE id=$1", [u.id]);
+    // an expired lock starts a fresh count (otherwise one typo after expiry would re-lock an approver indefinitely)
+    await d.pool.query("UPDATE users SET failed_logins = CASE WHEN locked_until IS NOT NULL AND locked_until <= now() THEN 1 ELSE failed_logins + 1 END, locked_until = CASE WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until <= now() THEN 1 ELSE failed_logins + 1 END) >= 5 THEN now() + interval '15 minutes' ELSE CASE WHEN locked_until <= now() THEN NULL ELSE locked_until END END WHERE id=$1", [u.id]);
     throw fail();
   }
   await d.pool.query("UPDATE users SET failed_logins=0, locked_until=NULL WHERE id=$1", [u.id]);
@@ -78,7 +79,11 @@ export async function principalFromSession(d: Deps, token: string): Promise<Prin
 
 export async function principalFromApiKey(d: Deps, key: string): Promise<Principal | null> {
   if (!key.startsWith("orynt_")) return null;
-  const r = (await d.pool.query("UPDATE api_keys SET last_used_at=now() WHERE key_hash=$1 AND revoked_at IS NULL RETURNING id, org_id, role, name, created_by", [sha(key)])).rows[0];
+  // a key is only as alive as the person who created it: they must still be an active member of the workspace and not disabled
+  const r = (await d.pool.query(
+    `UPDATE api_keys k SET last_used_at=now() FROM memberships m, users u
+     WHERE k.key_hash=$1 AND k.revoked_at IS NULL AND m.user_id=k.created_by AND m.org_id=k.org_id AND m.status='active' AND u.id=k.created_by AND u.disabled_at IS NULL
+     RETURNING k.id, k.org_id, k.role, k.name, k.created_by`, [sha(key)])).rows[0];
   if (!r) return null;
   return { orgId: r.org_id, role: r.role, auth: "api_key", actor: { kind: "apikey", id: r.id, name: `API key “${r.name}”`, role: r.role } };
 }
@@ -105,10 +110,15 @@ export const keyProofMessage = (orgId: string, pub: string) => `orynt.register-k
 export async function registerApprovalKey(d: Deps, p: Principal, publicKey: string, proof: string) {
   if (p.actor.kind !== "user") throw new OryntError("forbidden", 403, "Approval keys belong to people, not API keys.");
   if (!verifyMessage(publicKey, "orynt.key-registration.v1", keyProofMessage(p.orgId, publicKey), proof)) throw new OryntError("validation_failed", 422, "Proof of possession of the private key is invalid.");
-  await withTx(d.pool, async (tx) => {
-    await tx.query("UPDATE memberships SET approval_public_key=$3, approval_key_registered_at=now() WHERE user_id=$1 AND org_id=$2", [p.actor.userId, p.orgId, publicKey]);
-    await appendAudit(tx, p.orgId, "org", `user:${p.actor.id}`, "member.approval_key_registered", `user:${p.actor.id}`, { public_key: publicKey });
-  });
+  try {
+    await withTx(d.pool, async (tx) => {
+      await tx.query("UPDATE memberships SET approval_public_key=$3, approval_key_registered_at=now() WHERE user_id=$1 AND org_id=$2", [p.actor.userId, p.orgId, publicKey]);
+      await appendAudit(tx, p.orgId, "org", `user:${p.actor.id}`, "member.approval_key_registered", `user:${p.actor.id}`, { public_key: publicKey });
+    });
+  } catch (e) {
+    if ((e as { code?: string }).code === "23505") throw new OryntError("conflict", 409, "That approval key is already registered to another member of this workspace. Each approver needs their own key.");
+    throw e;
+  }
 }
 
 // ---- team ---------------------------------------------------------------------------------------------------------------
@@ -149,6 +159,9 @@ export async function updateMember(d: Deps, p: Principal, membershipId: string, 
 // ---- API keys -----------------------------------------------------------------------------------------------------------
 export async function createApiKey(d: Deps, p: Principal, input: { name: string; role: "operator" | "developer" | "viewer" }) {
   if (p.actor.kind !== "user") throw new OryntError("forbidden", 403, "API keys cannot mint API keys.");
+  // no privilege escalation: a key may hold only permissions its creator holds right now
+  const mine = new Set<string>(permissionsFor(p.role));
+  if (!permissionsFor(input.role).every((perm) => mine.has(perm))) throw new OryntError("forbidden", 403, `Your role (${p.role}) cannot create a key with role ${input.role}: it would grant permissions you don't hold.`);
   const secret = "orynt_" + randomBytes(24).toString("base64url");
   const r = (await d.pool.query("INSERT INTO api_keys(org_id,name,prefix,key_hash,role,created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *", [p.orgId, input.name, secret.slice(0, 12), sha(secret), input.role, p.actor.userId])).rows[0];
   await d.pool.query("SELECT 1");

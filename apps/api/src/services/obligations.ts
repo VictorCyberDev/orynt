@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
-  APPROVER_ROLES, Bolt11Error, OryntError, decodeInvoice, evaluatePolicy, revisionHash, PolicyRulesSchema, verifyApproval, hashCanonical,
+  APPROVER_ROLES, Bolt11Error, toMsat, OryntError, decodeInvoice, evaluatePolicy, revisionHash, PolicyRulesSchema, verifyApproval, hashCanonical,
   type ApprovalPayload, type Network, type PolicyRules,
 } from "@orynt/core";
 import { withTx, type Tx } from "../db/pool";
@@ -67,7 +67,8 @@ export async function createObligation(d: Deps, ctx: Ctx, i: { counterparty_id?:
       cpId = ex?.id ?? (await tx.query("INSERT INTO counterparties(org_id,name) VALUES ($1,$2) RETURNING id", [ctx.orgId, name])).rows[0].id;
     }
     const id = randomUUID();
-    const input: RevInput = { counterpartyId: cpId!, amountMsat: BigInt(i.amount_msat), memo: i.memo.trim(), externalRef: i.external_ref.trim(), invoice: i.invoice.trim(), walletConnectionId: i.wallet_connection_id ?? null };
+    let amt: bigint; try { amt = toMsat(i.amount_msat); } catch { throw new OryntError("validation_failed", 422, "Amount is not a valid number of millisatoshis."); }
+    const input: RevInput = { counterpartyId: cpId!, amountMsat: amt, memo: i.memo.trim(), externalRef: i.external_ref.trim(), invoice: i.invoice.trim(), walletConnectionId: i.wallet_connection_id ?? null };
     const v = await validateRevision(tx, d, ctx.orgId, input, id);
     const seq = (await tx.query("INSERT INTO org_counters(org_id,name,value) VALUES ($1,'obligation',1) ON CONFLICT (org_id,name) DO UPDATE SET value=org_counters.value+1 RETURNING value", [ctx.orgId])).rows[0].value;
     await tx.query("INSERT INTO payout_obligations(id,org_id,seq,state,wallet_connection_id,created_by) VALUES ($1,$2,$3,'DRAFT',$4,$5)", [id, ctx.orgId, seq, v.conn.id, ctx.actor.userId ?? (await systemUser(tx, ctx))]);
@@ -94,7 +95,7 @@ export async function reviseObligation(d: Deps, ctx: Ctx, id: string, patch: { a
       throw new OryntError("invalid_state", 409, "Terms can no longer be changed: this payment may already have been sent.");
     const cur = (await tx.query("SELECT * FROM obligation_revisions WHERE obligation_id=$1 AND revision=$2", [id, o.current_revision])).rows[0];
     const input: RevInput = {
-      counterpartyId: patch.counterparty_id ?? cur.counterparty_id, amountMsat: patch.amount_msat !== undefined ? BigInt(patch.amount_msat) : cur.amount_msat,
+      counterpartyId: patch.counterparty_id ?? cur.counterparty_id, amountMsat: patch.amount_msat !== undefined ? (() => { try { return toMsat(patch.amount_msat); } catch { throw new OryntError("validation_failed", 422, "Amount is not a valid number of millisatoshis."); } })() : cur.amount_msat,
       memo: (patch.memo ?? cur.memo).trim(), externalRef: (patch.external_ref ?? cur.external_ref).trim(), invoice: (patch.invoice ?? cur.invoice).trim(),
       walletConnectionId: patch.wallet_connection_id ?? o.wallet_connection_id,
     };
@@ -156,7 +157,7 @@ export async function approveObligation(d: Deps, ctx: Ctx, id: string, body: { i
     const m = (await tx.query("SELECT * FROM memberships WHERE org_id=$1 AND user_id=$2 AND status='active'", [ctx.orgId, ctx.actor.userId])).rows[0];
     if (!m || !(APPROVER_ROLES as readonly string[]).includes(m.role)) throw new OryntError("forbidden", 403, "Your role cannot approve payments.");
     if (!m.approval_public_key) throw new OryntError("approval_invalid", 422, "Set up your approval key first (Settings → Approval key).");
-    if (rules.requireDistinctMaker && o.created_by === ctx.actor.userId) throw new OryntError("policy_violation", 403, "Policy requires someone other than the creator to approve.");
+    if (rules.requireDistinctMaker && rev.created_by === ctx.actor.userId) throw new OryntError("policy_violation", 403, "Policy requires someone other than the person who wrote these terms (the creator or whoever last revised them) to approve.");
     const skew = Math.abs(Date.now() - Date.parse(body.signed_at));
     if (Number.isNaN(skew) || skew > 5 * 60_000) throw new OryntError("approval_invalid", 422, "The approval timestamp is too far from server time (clock skew). Check your device clock.");
     if (rev.invoice_expires_at.getTime() <= Date.now()) throw new OryntError("invoice_expired", 422, "The invoice has expired; revise the payout with a fresh invoice.");

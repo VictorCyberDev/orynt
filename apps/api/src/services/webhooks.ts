@@ -27,14 +27,17 @@ export function signPayload(secret: string, timestamp: number, body: string): st
 
 const BACKOFF_S = [5, 30, 120, 600, 3600, 6 * 3600];
 
+/** POST with a HARD overall deadline (a socket idle timeout is not a deadline: a slow-drip receiver could otherwise hold us forever). */
 async function post(url: URL, address: string, family: 4 | 6, headers: Record<string, string>, body: string): Promise<number> {
   const lib = url.protocol === "https:" ? https : http;
   return new Promise((resolve, reject) => {
-    const req = lib.request({ method: "POST", hostname: url.hostname, port: url.port, path: url.pathname + url.search, headers: { ...headers, "content-length": Buffer.byteLength(body) }, timeout: 8000,
+    const deadline = setTimeout(() => req.destroy(new Error("delivery deadline exceeded (10s)")), 10_000);
+    const req = lib.request({ method: "POST", hostname: url.hostname.replace(/^\[|\]$/g, ""), port: url.port, path: url.pathname + url.search, headers: { ...headers, "content-length": Buffer.byteLength(body) },
       // pin the connection to the address we vetted (defeats DNS rebinding between check and use)
-      lookup: (_h, _o, cb) => (cb as (e: null, a: string, f: number) => void)(null, address, family) }, (res) => { res.resume(); res.on("end", () => resolve(res.statusCode ?? 0)); });
-    req.on("timeout", () => req.destroy(new Error("timeout")));
-    req.on("error", reject);
+      lookup: (_h, _o, cb) => (cb as (e: null, a: string, f: number) => void)(null, address, family) }, (res) => {
+      clearTimeout(deadline); const code = res.statusCode ?? 0; res.destroy(); resolve(code); // the status is all we need; never read the body
+    });
+    req.on("error", (e) => { clearTimeout(deadline); reject(e); });
     req.end(body);
   });
 }
@@ -48,7 +51,7 @@ export async function pumpWebhooks(d: Deps, limit = 20): Promise<number> {
     const due = (await c.query(
       `SELECT wd.*, we.url, we.secret_ciphertext, we.id AS eid FROM webhook_deliveries wd JOIN webhook_endpoints we ON we.id = wd.endpoint_id
        WHERE wd.status='pending' AND wd.next_attempt_at <= now() ORDER BY wd.next_attempt_at LIMIT $1 FOR UPDATE OF wd SKIP LOCKED`, [limit])).rows;
-    for (const w of due) {
+    await Promise.all(due.map(async (w) => {
       const body = JSON.stringify(w.payload);
       const ts = Math.floor(Date.now() / 1000);
       let code = 0, err: string | null = null;
@@ -66,7 +69,7 @@ export async function pumpWebhooks(d: Deps, limit = 20): Promise<number> {
       );
       inc("orynt_webhook_deliveries_total", { result: ok ? "ok" : "error" });
       n++;
-    }
+    }));
     await c.query("COMMIT");
   } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }
   return n;

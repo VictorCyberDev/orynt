@@ -18,11 +18,13 @@ export interface Config {
   logLevel: string;
   sendTimeoutSeconds: number;
   rateLimitPerMinute: number;
+  trustProxy: boolean;
   reconcileInitialDelaySeconds: number;
 }
 
 export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
-  const env = (e["ORYNT_ENV"] ?? "development") as Env;
+  if (!e["ORYNT_ENV"]) throw new Error("ORYNT_ENV must be set explicitly (development | test | production). Refusing to guess: the development defaults use publicly known keys.");
+  const env = e["ORYNT_ENV"] as Env;
   if (!["development", "test", "production"].includes(env)) throw new Error("ORYNT_ENV must be development|test|production");
   const prod = env === "production";
   let secretHex = e["ORYNT_SECRET_KEY"];
@@ -49,6 +51,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     allowedOrigins: (e["ORYNT_ALLOWED_ORIGINS"] ?? "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8787").split(",").map((s) => s.trim()).filter(Boolean),
     allowPrivateWebhookTargets: !prod,
     logLevel: e["LOG_LEVEL"] ?? (env === "test" ? "silent" : "info"),
+    trustProxy: e["ORYNT_TRUST_PROXY"] === "1",
     rateLimitPerMinute: Number(e["ORYNT_RATE_LIMIT_PER_MIN"] ?? 600),
     sendTimeoutSeconds: Number(e["ORYNT_SEND_TIMEOUT_SECONDS"] ?? 30),
     reconcileInitialDelaySeconds: Number(e["ORYNT_RECONCILE_INITIAL_DELAY_SECONDS"] ?? 10),

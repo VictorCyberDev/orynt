@@ -11,7 +11,7 @@
 pnpm install
 pnpm db:start                 # local PostgreSQL 16 (pg_ctlcluster) — or set DATABASE_URL to any PostgreSQL
 pnpm build:all
-ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start
+ORYNT_ENV=development ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start   # ORYNT_ENV is mandatory: the server refuses to guess
 # → http://127.0.0.1:8787/       marketing site
 # → http://127.0.0.1:8787/app    operations app  (demo-owner@orynt.local / demo-password-123; also demo-operator, demo-approver1/2, demo-viewer)
 ```

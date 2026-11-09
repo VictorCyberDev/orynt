@@ -48,7 +48,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
       redact: { paths: ["req.headers.authorization", "req.headers.cookie", "res.headers['set-cookie']", "*.macaroon_hex", "*.password", "*.temporary_password", "*.tls_cert_pem", "*.secret", "*.signing_secret"], censor: "[redacted]" },
     },
     genReqId: (req) => { const h = req.headers["x-request-id"]; return typeof h === "string" && /^[A-Za-z0-9._-]{8,64}$/.test(h) ? h : randomUUID(); },
-    trustProxy: false, bodyLimit: 256 * 1024,
+    trustProxy: config.trustProxy, bodyLimit: 256 * 1024,
   });
   const log = { info: (o: object, m?: string) => app.log.info(o, m), warn: (o: object, m?: string) => app.log.warn(o, m), error: (o: object, m?: string) => app.log.error(o, m) };
   const deps: Deps = { pool, config, issuerPublicKey, issuerKeyId, log };
@@ -60,7 +60,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     try { done(null, JSON.parse(text)); } catch { const err = new Error("Request body is not valid JSON.") as Error & { statusCode: number }; err.statusCode = 400; done(err, undefined); }
   });
   await app.register(cookie);
-  await app.register(rateLimit, { global: true, max: config.rateLimitPerMinute, timeWindow: "1 minute", keyGenerator: (req) => (req.headers.authorization?.slice(0, 40) ?? req.ip) });
+  await app.register(rateLimit, { global: true, max: config.rateLimitPerMinute, timeWindow: "1 minute", keyGenerator: (req) => req.ip });
 
   app.setSerializerCompiler(() => (data) => JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
   app.addHook("onSend", async (req, reply) => {
@@ -68,6 +68,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     reply.header("x-content-type-options", "nosniff");
     reply.header("cache-control", "no-store");
     reply.header("referrer-policy", "no-referrer");
+    if (config.cookieSecure) reply.header("strict-transport-security", "max-age=15552000; includeSubDomains");
   });
 
   const problem = (reply: FastifyReply, req: FastifyRequest, status: number, code: ProblemCode, detail: string, extra: Partial<Problem> = {}) =>

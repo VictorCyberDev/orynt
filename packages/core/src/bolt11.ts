@@ -139,6 +139,7 @@ export function decodeInvoice(invoice: string): DecodedInvoice {
   let descriptionHash: string | null = null;
   let expiry = 3600;
   let cltv = 18;
+  let seenX = false, seenC = false;
 
   let i = 7;
   while (i < dataWords.length) {
@@ -169,9 +170,13 @@ export function decodeInvoice(invoice: string): DecodedInvoice {
         if (len === 52 && descriptionHash === null) descriptionHash = bytesToHex(wordsToBytes(f, false));
         break;
       case 6: // x — expiry
+        if (seenX) throw new Bolt11Error("duplicate expiry field"); seenX = true;
+        if (len > 7) throw new Bolt11Error("expiry field too long");
         expiry = wordsToInt(f);
         break;
       case 24: // c — min_final_cltv_expiry_delta
+        if (seenC) throw new Bolt11Error("duplicate min_final_cltv_expiry field"); seenC = true;
+        if (len > 7) throw new Bolt11Error("cltv field too long");
         cltv = wordsToInt(f);
         break;
       default:

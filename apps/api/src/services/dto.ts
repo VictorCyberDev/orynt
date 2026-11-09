@@ -74,7 +74,7 @@ export async function obligationDto(q: Q, orgId: string, id: string, role: Role 
   if (!o) return null;
   const rev = (await q.query("SELECT * FROM obligation_revisions WHERE obligation_id=$1 AND revision=$2", [id, o.current_revision])).rows[0];
   const cp = (await q.query("SELECT * FROM counterparties WHERE id=$1", [rev.counterparty_id])).rows[0];
-  const maker = (await q.query("SELECT id,name FROM users WHERE id=$1", [o.created_by])).rows[0];
+  const maker = (await q.query("SELECT id,name FROM users WHERE id=$1", [rev.created_by])).rows[0]; // author of the current revision
   const b = o.policy_id ? await bindingFor(q, o, rev) : null;
   const apps = await validApprovals(q, o, rev, b?.digest ?? null);
   const conn = o.wallet_connection_id ? (await q.query("SELECT * FROM wallet_connections WHERE id=$1", [o.wallet_connection_id])).rows[0] : null;

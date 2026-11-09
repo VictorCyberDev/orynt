@@ -21,7 +21,7 @@ export async function issueReceipt(d: Deps, ctx: Ctx, paymentId: string): Promis
     const cp = (await tx.query("SELECT * FROM counterparties WHERE id=$1", [rev.counterparty_id])).rows[0];
     const conn = (await tx.query("SELECT * FROM wallet_connections WHERE id=$1", [it.wallet_connection_id])).rows[0];
     const org = (await tx.query("SELECT id,name FROM organizations WHERE id=$1", [ctx.orgId])).rows[0];
-    const maker = (await tx.query("SELECT id,name FROM users WHERE id=$1", [o.created_by])).rows[0];
+    const maker = (await tx.query("SELECT id,name FROM users WHERE id=$1", [rev.created_by])).rows[0]; // author of the approved revision
     const b = await bindingFor(tx, o, rev);
     if (!b || b.digest !== it.intent_digest) throw new OryntError("internal", 500, "Stored intent does not match recomputed binding; refusing to issue a receipt.");
     const rules = PolicyRulesSchema.parse(b.pol.rules);

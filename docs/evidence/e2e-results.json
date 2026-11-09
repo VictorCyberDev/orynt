@@ -1,5 +1,5 @@
 {
-  "ran_at": "2026-11-09T15:13:11.185Z",
+  "ran_at": "2026-11-09T15:28:39.962Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
   "total": 100,
   "failed": 0,

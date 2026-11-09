@@ -14,5 +14,5 @@ for t in organizations users payout_obligations obligation_revisions approvals p
   [ "$a" = "$b" ] && echo "  ✔ $t: $a rows" || { echo "  ✘ $t differs ($a vs $b)"; exit 1; }
 done
 pnpm --filter @orynt/api build >/dev/null
-DATABASE_URL="$TARGET" node apps/api/dist/tools/verify-audit.mjs
+ORYNT_ENV=development DATABASE_URL="$TARGET" node apps/api/dist/tools/verify-audit.mjs
 echo "restore rehearsal PASSED"

@@ -6,7 +6,7 @@ Base URL (local): `http://127.0.0.1:8787`. Full contract: [`docs/api/openapi.jso
 ```bash
 pnpm install && pnpm db:start
 pnpm build:all
-ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start      # labelled demo workspace on the SIMULATOR wallet
+ORYNT_ENV=development ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start      # labelled demo workspace on the SIMULATOR wallet
 # sign in at http://127.0.0.1:8787/app  as demo-owner@orynt.local / demo-password-123
 ```
 ## 2. Get an API key

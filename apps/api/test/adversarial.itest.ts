@@ -277,7 +277,7 @@ describe("approvals", () => {
     const so = (await w.c.call("POST", `/v1/obligations/${own.id}/submit`, w.owner)).body;
     const selfApprove = await w.c.approve(w.owner, so);
     expect(selfApprove.status).toBe(403);
-    expect(selfApprove.body.detail).toMatch(/other than the creator/);
+    expect(selfApprove.body.detail).toMatch(/someone other than the person who wrote/);
   });
   it("approver loses their role AFTER approving → execution refused (revoked role)", async () => {
     const { ob } = await toApproved(w, "200000000"); // two approvers

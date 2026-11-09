@@ -35,12 +35,16 @@ async function probe(d: Deps, row: ConnectionRow) {
 export async function createConnection(d: Deps, ctx: Ctx, input: { label: string; kind: "lnd" | "simulator"; lnd?: { rest_url: string; macaroon_hex: string; tls_cert_pem?: string } }) {
   if (input.kind === "simulator" && d.config.env === "production") throw new OryntError("validation_failed", 422, "The simulator is not available in production.");
   if (input.kind === "lnd" && !input.lnd) throw new OryntError("validation_failed", 422, "LND connection details are required.");
+  if (input.kind === "lnd") {
+    // vet the wallet URL like a webhook target: https required and private/metadata addresses refused outside development (macaroons must not cross cleartext or reach internal services)
+    try { await vetWebhookTarget(input.lnd!.rest_url, d.config.allowPrivateWebhookTargets); } catch (e) { throw new OryntError("validation_failed", 422, `Wallet address rejected: ${(e as Error).message}.`); }
+  }
   const id = (await d.pool.query("SELECT gen_random_uuid() AS id")).rows[0].id as string;
   const userId = ctx.actor.userId ?? (await d.pool.query("SELECT created_by FROM api_keys WHERE id=$1", [ctx.actor.id])).rows[0]?.created_by;
   const blob = input.kind === "lnd" ? seal(d.config.secretKey, JSON.stringify(input.lnd), id) : null;
   const tmp: ConnectionRow = { id, org_id: ctx.orgId, provider_kind: input.kind, network: "regtest", config_ciphertext: blob };
   let info, caps;
-  try { ({ info, caps } = await probe(d, tmp)); } catch (e) { throw new OryntError("wallet_unavailable", 422, `Orynt could not connect to that wallet: ${(e as Error).message}. Nothing was saved.`); }
+  try { ({ info, caps } = await probe(d, tmp)); } catch (e) { throw new OryntError("wallet_unavailable", 422, d.config.env === "production" ? "Orynt could not connect to that wallet or its credential was rejected. Nothing was saved." : `Orynt could not connect to that wallet: ${(e as Error).message}. Nothing was saved.`); }
   // network and node identity come from the NODE, never from the user's claim
   if (info.network === "mainnet" && !d.config.allowMainnet) throw new OryntError("mainnet_disabled", 422, "This wallet is on mainnet, which is disabled on this server. Use a regtest or signet wallet.");
   await withTx(d.pool, async (tx) => {

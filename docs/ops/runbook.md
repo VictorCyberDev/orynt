@@ -1,7 +1,7 @@
 # Operations runbook
 
 ## Start / stop
-`pnpm db:start` · `pnpm build:all` · `ORYNT_SEED_DEMO=1 pnpm start` (demo) or set production env (`docs/ops/production-readiness.md`). Graceful stop on SIGTERM. Health: `GET /health/live`, `GET /health/ready` (database + migrations). Metrics (Prometheus text, loopback or bearer `ORYNT_METRICS_TOKEN`): `GET /metrics`.
+`pnpm db:start` · `pnpm build:all` · `ORYNT_ENV=development ORYNT_SEED_DEMO=1 pnpm start` (demo; `ORYNT_ENV` is mandatory — unset fails closed) or set production env (`docs/ops/production-readiness.md`). Graceful stop on SIGTERM. Health: `GET /health/live`, `GET /health/ready` (database + migrations). Metrics (Prometheus text, loopback or bearer `ORYNT_METRICS_TOKEN`): `GET /metrics`.
 
 ## Alerts you should wire (metrics exist; no alerting stack is shipped)
 | Condition | Metric | Meaning |

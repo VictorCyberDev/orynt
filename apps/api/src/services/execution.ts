@@ -46,7 +46,7 @@ async function gate(tx: Tx, d: Deps, ctx: Ctx, o: Record<string, any>, rev: Reco
   if (remaining < rules.minInvoiceRemainingSeconds * 1000) throw new OryntError("invoice_expired", 409, remaining <= 0 ? "The invoice has expired." : "The invoice expires too soon to send safely.");
   const pol = evaluatePolicy(rules, { amountMsat: rev.amount_msat, network: rev.network as Network, dispatchedLast24hMsat: await dispatchedLast24h(tx, ctx.orgId, o.id) });
   if (pol.violations.length) throw new OryntError("policy_violation", 422, pol.violations.map((v) => v.message).join(" "));
-  const apps = (await validApprovals(tx, o, rev, b.digest)).filter((a) => a.valid && Date.now() - new Date(a.row.signed_at).getTime() <= rules.approvalMaxAgeSeconds * 1000 && (!rules.requireDistinctMaker || a.row.approver_user_id !== o.created_by));
+  const apps = (await validApprovals(tx, o, rev, b.digest)).filter((a) => a.valid && Date.now() - new Date(a.row.signed_at).getTime() <= rules.approvalMaxAgeSeconds * 1000 && (!rules.requireDistinctMaker || a.row.approver_user_id !== rev.created_by));
   if (apps.length < pol.requiredApprovals) throw new OryntError("approval_insufficient", 409, "Not enough current, valid approvals (an approval may have been revoked, expired, or the approver lost their role).", { valid: apps.length, required: pol.requiredApprovals });
   return { conn, b, rules };
 }
@@ -71,6 +71,8 @@ export async function executeObligation(d: Deps, ctx: Ctx, obligationId: string,
   try {
     await withTx(d.pool, async (tx) => {
       const o = await lockObligation(tx, ctx.orgId, obligationId);
+      // serialise reservations per workspace so rolling-window limits cannot be raced by concurrent executes on different obligations
+      await tx.query("SELECT pg_advisory_xact_lock(hashtext($1))", [ctx.orgId]);
       if (o.state !== fromState) {
         const blocked = (MONEY_MAY_HAVE_MOVED as readonly string[]).includes(o.state) || o.state === "EXECUTION_RESERVED";
         // NB: never touch the pool from inside a transaction callback (pool starvation under concurrency); the caller records the block afterwards.

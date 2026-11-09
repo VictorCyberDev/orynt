@@ -3,7 +3,7 @@ import { formatMsat, type Role, APPROVER_ROLES } from "@orynt/core";
 
 export async function overview(d: Deps, orgId: string, userId: string | undefined, role: Role) {
   const q = (s: string, p: unknown[]) => d.pool.query(s, p);
-  const base = `SELECT o.id, o.seq, o.state, o.updated_at, o.state_changed_at, o.created_by, o.required_approvals, r.amount_msat, r.invoice_expires_at, cp.name AS cpname
+  const base = `SELECT o.id, o.seq, o.state, o.updated_at, o.state_changed_at, r.created_by, o.required_approvals, r.amount_msat, r.invoice_expires_at, cp.name AS cpname
     FROM payout_obligations o JOIN obligation_revisions r ON r.obligation_id=o.id AND r.revision=o.current_revision JOIN counterparties cp ON cp.id=r.counterparty_id WHERE o.org_id=$1`;
   const att: Array<{ kind: string; obligation_id: string | null; ref: string | null; title: string; detail: string; since: string }> = [];
   const ref = (n: bigint | number) => `PO-${String(n).padStart(4, "0")}`;
@@ -13,7 +13,7 @@ export async function overview(d: Deps, orgId: string, userId: string | undefine
   const failed = (await q(base + ` AND o.state='DEFINITIVELY_FAILED' ORDER BY o.state_changed_at DESC LIMIT 10`, [orgId])).rows;
   for (const r of failed) att.push({ kind: "failed_payment", obligation_id: r.id, ref: ref(r.seq), title: `${ref(r.seq)} · ${r.cpname}: failed, proven not paid`, detail: `${formatMsat(r.amount_msat)} — retry or create a fresh invoice.`, since: isoMs(r.state_changed_at) });
   if ((APPROVER_ROLES as readonly string[]).includes(role)) {
-    const mine = (await q(base + ` AND o.state='AWAITING_APPROVAL' AND o.created_by <> COALESCE($2::uuid, '00000000-0000-0000-0000-000000000000') AND NOT EXISTS (SELECT 1 FROM approvals a WHERE a.obligation_id=o.id AND a.revision=o.current_revision AND a.approver_user_id=$2::uuid) ORDER BY o.state_changed_at`, [orgId, userId ?? null])).rows;
+    const mine = (await q(base + ` AND o.state='AWAITING_APPROVAL' AND r.created_by <> COALESCE($2::uuid, '00000000-0000-0000-0000-000000000000') AND NOT EXISTS (SELECT 1 FROM approvals a WHERE a.obligation_id=o.id AND a.revision=o.current_revision AND a.approver_user_id=$2::uuid) ORDER BY o.state_changed_at`, [orgId, userId ?? null])).rows;
     for (const r of mine) att.push({ kind: "approval_needed", obligation_id: r.id, ref: ref(r.seq), title: `${ref(r.seq)} · ${r.cpname}: needs your approval`, detail: `${formatMsat(r.amount_msat)} — review the exact amount and recipient, then sign.`, since: isoMs(r.state_changed_at) });
   }
   const ready = (await q(base + ` AND o.state='APPROVED' ORDER BY o.state_changed_at`, [orgId])).rows;
