@@ -146,7 +146,7 @@ The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a 
 | Thu 11-12 | Name decision deadline (A3); `demo-full` stages S0-S6 |
 | Fri 11-13 | Gate G1; stages S7-S9 |
 | Sat 11-14 | Gates G2, G3; record footage |
-| Sun 11-15 | README, threat model, register update; commit uncommitted work that works |
+| Sun 11-15 | README check, register update; commit what works (including this folder) |
 | Mon 11-16 | Gate G4: main vs fallback cut; fix verifier build and missing scripts |
 | Tue 11-17 | Edit video, captions, deck PDF |
 | Wed 11-18 | Fresh-clone test; Devpost form complete as draft; links verified |
@@ -166,4 +166,4 @@ The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a 
 - Organisers' answers to every question in `rules-checklist.md` section 8
 - Real-network behaviour of the LND adapter (never executed); exact LND error strings (`AlreadyExistsError` etc.) across versions
 - Free-tier terms of any host at the time you deploy (read on 2026-11-09 only)
-- Whether the web console and site build and run (uncommitted at time of writing)
+- Whether `pnpm build:all`, the Docker image and the deploy templates work on a clean machine (the register reports builds and E2E on the build sandbox only)
