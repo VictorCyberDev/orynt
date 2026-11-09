@@ -75,6 +75,10 @@ export interface TransitionEvidence {
   preimageVerified?: boolean;
   /** provider reported a terminal failure (not merely a timeout or expiry) */
   providerReportedTerminalFailure?: boolean;
+  /** the request provably never reached the wallet (e.g. TCP connection refused before any byte was written) */
+  notSentProven?: boolean;
+  /** an authorised human confirmed non-dispatch after a fresh NOT_FOUND lookup and invoice expiry */
+  operatorConfirmedNotSent?: boolean;
 }
 
 /** Throws unless `from -> to` is a legal, evidence-backed transition. */
@@ -87,8 +91,8 @@ export function assertTransition(from: State, to: State, ev: TransitionEvidence 
   if (to === "SIMULATED_SETTLED" && ev.providerKind !== "simulator") {
     throw new TransitionError(from, to, "SIMULATED_SETTLED is reserved for the simulator provider");
   }
-  if (to === "DEFINITIVELY_FAILED" && !ev.providerReportedTerminalFailure) {
-    throw new TransitionError(from, to, "DEFINITIVELY_FAILED requires provider-reported terminal failure evidence");
+  if (to === "DEFINITIVELY_FAILED" && !(ev.providerReportedTerminalFailure || ev.notSentProven || ev.operatorConfirmedNotSent)) {
+    throw new TransitionError(from, to, "DEFINITIVELY_FAILED requires provider-reported failure or proof the request was never sent");
   }
 }
 

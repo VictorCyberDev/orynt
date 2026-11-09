@@ -59,7 +59,7 @@ describe("state machine", () => {
     expect(() => assertTransition("RECONCILING", "SETTLED", { providerKind: "lnd", preimageVerified: true })).not.toThrow();
     expect(() => assertTransition("RECONCILING", "SIMULATED_SETTLED", { providerKind: "lnd", preimageVerified: true })).toThrow(TransitionError);
   });
-  it("DEFINITIVELY_FAILED requires provider-reported terminal failure (not expiry/timeout)", () => {
+  it("DEFINITIVELY_FAILED requires provider-reported failure or proof of non-dispatch (not expiry/timeout)", () => {
     expect(() => assertTransition("RECONCILING", "DEFINITIVELY_FAILED", {})).toThrow(TransitionError);
     expect(() => assertTransition("RECONCILING", "DEFINITIVELY_FAILED", { providerReportedTerminalFailure: true })).not.toThrow();
   });
@@ -134,7 +134,7 @@ describe("audit chain", () => {
     const out: AuditEntry[] = [];
     let prev = GENESIS_HASH;
     for (let i = 1; i <= n; i++) {
-      const e = makeEntry(prev, { seq: i, workspace_id: "w", at: "2026-11-09T00:00:00Z", actor: "system:test", type: "t", subject: "s", data: { i } });
+      const e = makeEntry(prev, { seq: i, workspace_id: "w", stream: "org", at: "2026-11-09T00:00:00Z", actor: "system:test", type: "t", subject: "s", data: { i } });
       out.push(e);
       prev = e.hash;
     }

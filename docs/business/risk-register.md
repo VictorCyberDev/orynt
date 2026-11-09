@@ -64,7 +64,7 @@ Rating key: 1-6 low, 8-12 medium, 15-25 high.
 
 | ID | Risk | L | I | Score | Early warning | Mitigation | Owner |
 |---|---|---|---|---|---|---|---|
-| S1 | Malicious or vulnerable npm/Node/Rust dependency | 3 | 5 | 15 | Audit alerts | Pin versions, lockfiles, minimise dependencies, review of crypto-related packages | Founder |
+| S1 | Malicious or vulnerable third-party package dependency (any package registry) | 3 | 5 | 15 | Audit alerts | Pin versions, lockfiles, minimise dependencies, review of crypto-related packages | Founder |
 | S2 | Compromised release artefacts for bitcoind/lnd | 2 | 5 | 10 | Checksum mismatch | Checksum verification (done for download per register note, not executed); verify signatures | Founder |
 | S3 | Upstream breaking changes (LND, PostgreSQL, SDK deps) | 3 | 3 | 9 | CI failures | Version pinning; adapter tests | Founder |
 | S4 | CI/CD or repository account compromise | 2 | 5 | 10 | Unexpected pushes | 2FA, branch protection, signed commits (planned) | Founder |

@@ -11,6 +11,7 @@ export const RECEIPT_SCHEMA_ID = "orynt.receipt/1" as const;
 export const AuditEntrySchema = z.object({
   seq: z.number().int().nonnegative(),
   workspace_id: z.string(),
+  stream: z.string(),
   at: iso,
   actor: z.string(),
   type: z.string(),
@@ -106,7 +107,7 @@ export const ReceiptSchema = z.object({
   }),
   audit: z.object({
     segment: z.array(AuditEntrySchema),
-    checkpoint: z.object({ workspace_id: z.string(), seq: z.number().int(), head_hash: hex(32), at: iso }),
+    checkpoint: z.object({ workspace_id: z.string(), stream: z.string(), seq: z.number().int(), head_hash: hex(32), at: iso }),
     checkpoint_signature: hex(64),
   }),
   limitations: z.array(z.string()),

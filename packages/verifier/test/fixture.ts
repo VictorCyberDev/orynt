@@ -33,14 +33,14 @@ export function buildFixture(o: { simulator?: boolean; approvals?: number; amoun
   const entries: AuditEntry[] = [];
   let prev = GENESIS_HASH;
   const push = (type: string, data: Record<string, unknown>, secs: number) => {
-    const e = makeEntry(prev, { seq: entries.length + 1, workspace_id: wsId, at: t(secs), actor: "system:test", type, subject: `obligation:${oblId}`, data });
+    const e = makeEntry(prev, { seq: entries.length + 1, workspace_id: wsId, stream: `obligation:${oblId}`, at: t(secs), actor: "system:test", type, subject: `obligation:${oblId}`, data });
     entries.push(e); prev = e.hash;
   };
   push("obligation.created", {}, 10);
   push("obligation.approved", { intent_digest: digest }, 110);
   push("payment.dispatching", { payment_hash: paymentHash }, 200);
   push("payment.settled", { payment_hash: paymentHash }, 210);
-  const cp = { workspace_id: wsId, seq: entries.length, head_hash: prev, at: t(300) };
+  const cp = { workspace_id: wsId, stream: `obligation:${oblId}`, seq: entries.length, head_hash: prev, at: t(300) };
   const body: ReceiptBody = {
     schema: "orynt.receipt/1", receipt_id: crypto.randomUUID(), issued_at: t(300),
     issuer: { key_id: "orynt-test-1", public_key: issuer.publicKey }, network: "regtest",

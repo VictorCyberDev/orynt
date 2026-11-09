@@ -10,6 +10,8 @@ export const GENESIS_HASH = "0".repeat(64);
 export interface AuditEntryBody {
   seq: number;
   workspace_id: string;
+  /** independent hash chain: `org` for workspace events or `obligation:<id>` */
+  stream: string;
   at: string;
   actor: string; // "user:<id>" | "apikey:<id>" | "system:<component>"
   type: string;
@@ -50,6 +52,7 @@ export function verifyChainSegment(entries: AuditEntry[], expectedPrev?: string)
 
 export interface Checkpoint {
   workspace_id: string;
+  stream: string;
   seq: number;
   head_hash: string;
   at: string;
