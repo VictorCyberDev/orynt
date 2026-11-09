@@ -52,7 +52,15 @@ importers:
 
   packages/sdk: {}
 
-  packages/verifier: {}
+  packages/verifier:
+    dependencies:
+      '@orynt/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
 
   packages/wallets:
     dependencies:

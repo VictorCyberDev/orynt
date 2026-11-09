@@ -17,5 +17,11 @@
   },
   "bin": {
     "orynt-verify": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@orynt/core": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
