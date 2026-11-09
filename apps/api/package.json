@@ -1,0 +1,18 @@
+{
+  "type": "module",
+  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "private": true,
+  "name": "@orynt/api",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests --dir src",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "node build.mjs",
+    "db:migrate": "tsx src/db/cli.ts up",
+    "db:down": "tsx src/db/cli.ts down",
+    "db:seed": "tsx src/seed.ts"
+  }
+}
