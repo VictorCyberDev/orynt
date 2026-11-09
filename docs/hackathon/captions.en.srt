@@ -52,22 +52,22 @@ amount, node and expiry.
 
 12
 00:00:47,000 --> 00:00:54,000
-At 150,000 sats this needs two approvers under
-the workspace policy.
+The default policy needs one approver for
+30,000 sats, and two above 100,000.
 
 13
 00:00:54,000 --> 00:01:00,000
-The maker tries to approve it themselves.
+The maker cannot approve their own payout.
 Refused.
 
 14
-00:01:00,000 --> 00:01:04,858
-Two approvers each sign the exact payment with
+00:01:00,000 --> 00:01:04,755
+The approver signs the exact payment with
 their own key.
 
 15
-00:01:04,858 --> 00:01:09,000
-Change any field and those signatures stop
+00:01:04,755 --> 00:01:09,000
+Change any field and the signature stops
 matching.
 
 16

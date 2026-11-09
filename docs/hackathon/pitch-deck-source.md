@@ -1,7 +1,7 @@
 # Orynt pitch deck: slide-by-slide source
 
 Status: draft source — video/deck unrendered; real-regtest evidence pending. **DECK: UNRENDERED** (no .pptx, .pdf or images exist). **Devpost status: NOT SUBMITTED.**
-Written 2026-11-09. 12 slides, 16:9, about 6 to 7 minutes spoken (the 3-minute video is a separate artifact, `video-script-3min.md`). The Overview accepts "text or video" as the presentation; this deck can be exported to PDF as the text presentation.
+Reconciled 2026-11-09 with the committed branch (HEAD `78990af`). 12 slides, 16:9, about 6 to 7 minutes spoken (the 3-minute video is a separate artifact, `video-script-3min.md`). The Overview accepts "text or video" as the presentation; this deck can be exported to PDF as the text presentation.
 
 ## 0. Build notes
 
@@ -9,7 +9,7 @@ Written 2026-11-09. 12 slides, 16:9, about 6 to 7 minutes spoken (the 3-minute v
 - **Design.** Use the brand tokens in `packages/ui/tokens.css`: Ink `#0f1b2d`, Paper `#f6f4ee`, Teal `#0e7c73` (primary), Cobalt `#2f5fd0`, Sand `#e7e0cf`; state colours: uncertain/UNKNOWN indigo `#3a47a8`, proven failure red `#a3301f`, settled green `#17663f`, simulator purple `#6b3fa0`. Fonts: Fraunces (titles), Inter (body), JetBrains Mono (code). Logo/mark files: `packages/ui/brand/` (SVG and PNG). One idea per slide, at most 6 short bullets, 28 pt minimum body text, contrast at least 4.5:1.
 - **Persistent footer on every slide:** `Working title. Regtest / test coins only. Not a launched product.`
 - **Rendering options (none has been run):** build by hand in Google Slides or PowerPoint; or write the bullets below as Marp markdown and export with `npx @marp-team/marp-cli deck.md --pdf` (Marp not evaluated here). Export a PDF and also paste the text into Devpost if "text" is chosen.
-- **Rule for every number on a slide:** it must come from the repository (test counts, defaults) or be labelled "assumption". Test counts: 41 integration (32 adversarial + 2 flow + 7 ops), 24 core, 18 verifier, 1 contract, as run on 2026-11-09. Update if the suite changes.
+- **Rule for every number on a slide:** it must come from the repository (test counts, defaults) or be labelled "assumption". Test counts (`docs/EXECUTION-REGISTER.md`, 2026-11-09): integration 55 pass + 8 skipped (adversarial 32, security-regression 13, ops 7, load 1, flow 2; the 8 skipped are real-LND), unit core 24, verifier 26, contract 1; browser E2E 100/100. Update if the suite changes.
 
 ---
 
@@ -63,21 +63,21 @@ Written 2026-11-09. 12 slides, 16:9, about 6 to 7 minutes spoken (the 3-minute v
 
 ## Slide 8. Demo evidence (choose A or B)
 
-**[A] On slide:** "What I ran" with the real transcript excerpt from `docs/evidence/<timestamp>/`: network regtest, 150,000-sat payment through two approvals, injected lost response, 409, reconciliation, receipt `VERIFIED`, tampered `REJECTED`. Commit hash, LND and Bitcoin Core versions. `[PLACEHOLDER: only after scripts/demo-full has been run on the owner's machine]`
-**[B] On slide:** "What I ran": 41 integration tests on real PostgreSQL with a labelled simulator; the real LND adapter exists and **has not been run against a node**. List the test titles for duplicate-send, lost-response and tamper cases.
+**[A] On slide:** "What I ran" with the real transcript excerpt from `docs/evidence/<timestamp>/`: network regtest, 30,000-sat payment approved by a different person than its author, injected lost response, 409, reconciliation from LND's record, real process kill and recovery, receipt `VERIFIED`, tampered `REJECTED`. Commit hash, LND and Bitcoin Core versions (`infra/regtest/versions.env`). `[PLACEHOLDER: only after pnpm demo:full has been run on the owner's machine; evidence file docs/evidence/demo-real-regtest-<stamp>.md]`
+**[B] On slide:** "What I ran": `pnpm demo:full:sim` (all assertions pass, stamped SIMULATED, `docs/evidence/demo-simulator-*.md`) and 55 integration tests on real PostgreSQL with a labelled simulator; the real LND adapter exists, its 8 acceptance tests are skipped, and it **has not been run against a node**. List the test titles for duplicate-send, lost-response and tamper cases.
 **Visual:** terminal screenshot (real) or test output (B), with a disclosure badge.
 **Speaker notes (A):** "This is regtest. The fault in the middle is injected by the demo; the payment before it is real regtest. Here is the receipt and the check." **(B):** "I could not run a real node in time. Every payment in my tests goes through a simulator that is labelled everywhere and cannot produce a real-looking result. The Lightning adapter is written but unproven; that is the first thing I would run next." (about 45 s)
 
 ## Slide 9. Security by design, and what is missing
 
-**On slide:** Done: non-custodial; least-privilege roles; wallet permissions discovered, fee capped, single path; secrets encrypted at rest; validated inputs; CSRF/origin checks; tenant isolation; SSRF guard on webhooks; append-only hash-chained audit. Missing: threat-model document, external review, MFA/SSO, hardware-backed approval keys (the console key lives in the browser), vetting of the LND URL for public hosting, a mature BOLT11 library (own codec checked against spec vectors).
+**On slide:** Done: non-custodial; least-privilege roles; wallet permissions discovered, fee capped, single path; secrets encrypted at rest; validated inputs; CSRF/origin checks; tenant isolation; SSRF guard on webhooks and LND URLs; append-only hash-chained audit. Missing: a human audit or pen test (the threat model rests on one independent AI review: 15 findings fixed with regression tests), MFA/SSO, hardware-backed approval keys (the console key lives in the browser), the approval screen signing a server-supplied digest, "REAL" receipts from a fake LND endpoint, LND behaviour unverified on a real node, a mature BOLT11 library (own codec checked against spec vectors).
 **Visual:** two columns, "Done and tested" and "Not done", equal visual weight.
 **Speaker notes:** "Security by design here means a small attack surface and refusing by default. But I'm listing what I haven't done with the same weight as what I have, because a payment tool that overclaims is worse than none." (about 45 s)
 **Evidence:** `evaluation-matrix.md` C2 table.
 
 ## Slide 10. How it is built
 
-**On slide:** TypeScript monorepo; Fastify + PostgreSQL; Zod contract generating OpenAPI 3.1 and a typed SDK; LND REST adapter and labelled simulator behind one provider interface; standalone verifier; deterministic fault injection; 41 integration + 43 unit tests (2026-11-09). Web console in progress.
+**On slide:** TypeScript monorepo; Fastify + PostgreSQL; Zod contract generating OpenAPI 3.1 and a typed SDK; LND REST adapter and labelled simulator behind one provider interface; standalone verifier; deterministic fault injection; 55 integration + 51 unit tests (2026-11-09), browser E2E 100/100, operations console and marketing site served by the API. Docker and deploy templates exist but are unverified.
 **Visual:** package map: `core`, `contract`, `wallets`, `verifier`, `sdk`, `ui`, `apps/api`, `apps/web`.
 **Speaker notes:** "Contract-first: one set of schemas validates requests, generates the API document and types the SDK. The wallet interface has four methods, so adding another wallet type means implementing four methods and passing the same adversarial tests." (about 30 s)
 

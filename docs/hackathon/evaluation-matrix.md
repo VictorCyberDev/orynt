@@ -1,7 +1,7 @@
 # Orynt: judging-criteria evaluation matrix (Dakar Bitcoin Hack 2026)
 
 Status: draft source — video/deck unrendered; real-regtest evidence pending. **Devpost status: NOT SUBMITTED.**
-Written 2026-11-09 against working tree at HEAD `2f099bc` plus uncommitted files (see section 5). Deadline 2026-11-20 20:00 UTC (21:00 WAT).
+Reconciled 2026-11-09 with the committed branch (HEAD `78990af`); authoritative status table is `docs/EXECUTION-REGISTER.md`. Deadline 2026-11-20 20:00 UTC (21:00 WAT).
 
 Purpose: map every judging criterion found in `docs/hackathon/rules-checklist.md` (Rules tab `R`, Overview `O`) to concrete Orynt features, file paths and test names, say how a judge can verify each in under 5 minutes, and list weak spots honestly. Weights are **not published** anywhere (checklist section 4), so nothing here is a score prediction.
 
@@ -9,11 +9,11 @@ Purpose: map every judging criterion found in `docs/hackathon/rules-checklist.md
 
 | Label | Meaning |
 |---|---|
-| `SIM-TESTED` | Passes in the integration suite on real PostgreSQL with the **labelled simulator** wallet. I ran `pnpm test:integration` on 2026-11-09 at 15:01 UTC in the build sandbox: 3 files, **41 passed** (adversarial 32, flow 2, ops 7). `ops.itest.ts` is uncommitted. |
-| `UNIT` | Passes as a unit test. I ran `core` (24 passed), `verifier` (18 passed) and `contract` (1 passed) on 2026-11-09. |
+| `SIM-TESTED` | Passes in the integration suite on real PostgreSQL with the **labelled simulator** wallet. `docs/EXECUTION-REGISTER.md` (2026-11-09): **55 passed, 8 skipped** (adversarial 32, security-regression 13, ops 7, load 1, flow 2; the 8 skipped are the real-LND tests in `lnd.itest.ts`). I re-ran an earlier 41-test state myself at 15:01 UTC. Browser E2E `node apps/web/e2e/run.cjs`: 100/100 (also simulator wallet). |
+| `UNIT` | Passes as a unit test. Register: core 24, verifier 26 (incl. built-CLI exit codes 0/1/2/3/4 and replay ledger), contract 1. |
 | `CODE-ONLY` | Implemented; no test exercises it against the real counterpart. |
-| `PENDING-REAL` | Needs a real regtest run. **To be verified by running `scripts/demo-full` on the owner's machine.** The script and `infra/regtest/*` do not exist yet. |
-| `IN-PROGRESS` | Present in the working tree, uncommitted, not verified by me. |
+| `PENDING-REAL` | Needs a real regtest run. **To be verified by running `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full` on the owner's machine.** The scripts exist (`infra/regtest/*`, `scripts/demo-full.ts`) but have never been executed against real nodes: the build sandbox refused to run the downloaded binaries. `pnpm test:real-lightning` (`apps/api/test/lnd.itest.ts`) is 8 tests, all skipped. |
+| `IN-PROGRESS` | Present in the working tree, uncommitted, not verified by me (currently only screenshot refreshes). |
 | `NOT-BUILT` | Does not exist. |
 
 Counts come from `grep` of `it(` blocks plus the runs above. "Pass" means the run output I saw, not a claim about other machines.
@@ -36,7 +36,7 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 - **Judge check (2 min).** Read the brief's "The problem" and `icp-and-segments.md` sections 1-2; note the explicit "hypothesis" labels. The interview plan is `docs/business/interview-guide.md` (includes at least 4 interviewees based in Africa).
 - **Weak spots (be upfront).**
   - **No reach estimate** and no African user evidence. Do not invent one. The honest substitute is the measurement plan in `docs/business/metrics-and-privacy.md` and the 20-interview plan.
-  - BOLT11 invoices only. No LNURL/Lightning address, no mobile-money or USSD integration, no fiat off-ramp. Nothing Africa-specific is built apart from an unreviewed French UI string table in the console (`apps/web/src/i18n.tsx`, `IN-PROGRESS`, marked "unreviewed" in its own comment).
+  - BOLT11 invoices only. No LNURL/Lightning address, no mobile-money or USSD integration, no fiat off-ramp. Nothing Africa-specific is built apart from an unreviewed French UI string table in the console (`apps/web/src/i18n.tsx`, marked "unreviewed" in its own comment).
   - Legal/regulatory questions for Nigeria, Senegal/UEMOA, Kenya and South Africa are all `NOT STARTED` (`docs/business/legal-regulatory-register.md`).
 
 ### C2. Security by Design (`O` criterion 2; `R` "Security by design")
@@ -45,7 +45,7 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 
 | `O` element | What exists | Where | Evidence |
 |---|---|---|---|
-| Threat model | **Missing.** `docs/security/` is empty at time of writing; a code comment in `apps/web/src/keys.ts` points to `docs/security/threat-model.md`, which does not exist yet | n/a | `NOT-BUILT`. REQUIRED before submission |
+| Threat model | STRIDE analysis plus an independent **AI** code-review disposition: 15 findings fixed with regression tests, open items listed. Not a human audit or pen test | `docs/security/threat-model.md` | Document exists; fixes covered by `apps/api/test/security.itest.ts` (13 tests) |
 | Least privilege | Fail-closed role matrix; operators cannot approve; API keys can never approve (DB `CHECK` on `api_keys.role`) | `packages/core/src/roles.ts`; `apps/api/src/db/migrations/001_init.up.sql` | `UNIT` "roles > fails closed"; `SIM-TESTED` "operators, viewers, API keys and the maker cannot approve" |
 | Least-privilege wallet credential | Capabilities are discovered, not assumed; LND `checkpermissions` for `offchain:write`/`offchain:read`; stale (>24 h) or send-incapable connections block execution; routing fee capped at 1% of amount (min 1000 msat); `max_parts: 1` | `packages/wallets/src/lnd.ts` (`discoverCapabilities`, `sendPayment`); `apps/api/src/services/execution.ts` (`gate`, `FEE_LIMIT_PPM`) | `SIM-TESTED` "no wallet connected → clear refusal; read-only wallet credential → blocked; stale capability list → blocked"; real LND behaviour `PENDING-REAL` |
 | Safe secret handling | Wallet credentials and webhook secrets sealed with AES-256-GCM, additional data bound to the row; secrets never returned by the API; production refuses to start without `ORYNT_SECRET_KEY` and `ORYNT_ISSUER_KEY` | `apps/api/src/lib/box.ts`; `apps/api/src/config.ts` | `SIM-TESTED` "secrets are never returned: connections redact credentials", "webhook secrets are stored encrypted and never listed". **Dev defaults are derived from public constants in source; never use them for funds** |
@@ -59,11 +59,12 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 
 - **Judge check (3 min).** Open `packages/core/src/states.ts` (illegal transitions are rejected before the DB sees them), then `apps/api/src/services/execution.ts` `gate()` (every precondition re-derived at execution time), then run `pnpm test:integration -t "approvals"`.
 - **Weak spots.**
-  - **No threat-model document yet** and no external review, penetration test or audit (`docs/business/security-due-diligence.md` is explicit).
+  - **No human security audit or penetration test** (the threat model says so; the review was an independent AI agent). Open items it lists: the approval UI signs the server-supplied digest without recomputing it from displayed terms; approval key in `localStorage` and replaceable without step-up; `unverifiedPayeeNeedsAdmin` not re-checked at execution; verifier approver keys not anchored to a registry.
+  - **A tenant can register a fake LND-compatible server plus a self-held preimage and obtain a "REAL" receipt** (threat model, open item). Receipts carry this limitation; a preimage proves nothing about a payee the payer controls.
   - **Custom BOLT11 decoder/encoder** (`packages/core/src/bolt11.ts`, `bolt11-encode.ts`), not a mature library. Mitigation: checked against BOLT 11 spec vectors (`packages/core/test/bolt11.test.ts`, 8 tests) and LND validates the invoice again when paying. The criterion says "prefer proven libraries", so say this plainly.
-  - **Approval key is not hardware-backed.** In the in-progress console it lives in browser `localStorage` (`apps/web/src/keys.ts`, comment: "a stolen browser profile could sign"). The server only stores public keys; it never sees the private key.
+  - **Approval key is not hardware-backed.** In the console it lives in browser `localStorage` (`apps/web/src/keys.ts`, comment: "a stolen browser profile could sign"). The server only stores public keys; it never sees the private key.
   - **Enforcement is application-level.** Anyone holding the wallet macaroon outside Orynt bypasses approvals. The LND credential should be a baked macaroon limited to `info:read offchain:read offchain:write`.
-  - **LND `rest_url` is not SSRF-vetted** (`vetWebhookTarget` is only called for webhooks; `services/admin.ts` `createConnection` does not use it). Acceptable for self-hosting by a trusted operator; unsafe for an open multi-tenant public deployment. See `deployment-plan.md`.
+  - LND `rest_url` is now SSRF-vetted at connection time (`services/admin.ts` calls `vetWebhookTarget`; private addresses allowed only outside production). Fixed by the security review. Still: the simulator/failpoints cannot run in production, so a *public* instance cannot demo payments (`deployment-plan.md`).
   - Audit log is tamper-**evident**, not immutable (a DB admin can rewrite rows).
   - No MFA, no SSO.
 
@@ -74,11 +75,11 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 - **What exists.**
   - Plain-language errors and next-step explanations are in the core, not just the UI: `packages/core/src/states.ts` `stateActions()` returns a human reason for every disabled action (e.g. "Sending again is blocked: the first attempt may already have paid. Orynt must check the wallet's own record first."); the API returns RFC 9457 `problem+json` with `detail` and a `known/unknown` explanation on unresolved payments.
   - Design tokens encode a UX decision: uncertain = indigo, proven failure = red, never red for "unknown" (`packages/ui/tokens.css`).
-  - Web console: `apps/web/src/pages/*` (Overview, Payouts, NewPayout, PayoutDetail, Approvals, Incidents, Connections, Activity, Team, Developers, Settings, Guide, VerifyReceipt, Auth) and English/French string tables. `IN-PROGRESS`, uncommitted, **not built or run by me**.
-- **Judge check.** When the console is committed: open it in browser dev tools at 360x800 and throttle to "Slow 4G"; look at `PayoutDetail` for an UNKNOWN payout. **Not yet verified.**
+  - Web console (`apps/web/src/pages/*`: Overview, Payouts, NewPayout, PayoutDetail, Approvals, Incidents, Connections, Activity, Team, Developers, Settings, Guide, VerifyReceipt, Auth) and English/French string tables. Register M5: `node apps/web/e2e/run.cjs` passes **100/100** checks (sign-in redirect, approval incl. key setup, send, receipt, a11y via axe, overflow) at 375, 768 and 1440 px; screenshots in `docs/evidence/screenshots/`. Simulator wallet; automated only.
+- **Judge check (3 min).** Start the seeded simulator server (`ORYNT_ENV=development ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start` after `pnpm build:all`), open `/app/`, sign in as `demo-owner@orynt.local` / `demo-password-123`, look at the UNKNOWN payout; or open `docs/evidence/screenshots/375/` and `1440/05-payout-unknown-signature-moment.png`. Throttled-network behaviour is not measured.
 - **Weak spots (this is the weakest criterion).**
-  - No measurement exists: no payload sizes, no Lighthouse run, no contrast audit, no test on a real phone. Do not claim "optimised for low bandwidth".
-  - `test:e2e` in `package.json` points to `apps/web/e2e/run.mjs`; the file being written is `run.cjs` (Playwright at 375/768/1440 px with axe, uncommitted). Its results are unverified by me.
+  - No payload-size or Lighthouse measurement, no manual screen-reader or human usability test, no test on a real phone (the register says "no manual screen-reader or human usability testing"). Automated axe and viewport checks only. Do not claim "optimised for low bandwidth".
+  - `pnpm test:e2e` still names `apps/web/e2e/run.mjs`; the real file is `run.cjs` (call it directly).
   - French is unreviewed machine-written text (stated in `i18n.tsx`). No Wolof or other local language.
   - Approval signing happens in the browser; no native or installable mobile experience.
 
@@ -90,12 +91,12 @@ These are not scoring criteria; they decide whether the entry can be judged at a
   - End-to-end happy path on real PostgreSQL with the labelled simulator: `apps/api/test/flow.itest.ts` "create → submit → approve → execute → SIMULATED_SETTLED → receipt verifies as VERIFIED_SIMULATED" (`SIM-TESTED`).
   - Real Lightning adapter: `packages/wallets/src/lnd.ts` calls `GET /v1/getinfo`, `POST /v1/macaroon/checkpermissions`, `POST /v2/router/send`, `GET /v2/router/track/{hash}`. Implemented, never run against a node (`PENDING-REAL`).
   - Payee-side regtest helpers for the demo: `packages/wallets/src/lnd-dev.ts` (`lndAddInvoice`, `lndLookupInvoice`, `lndChannelBalance`).
-- **Not yet existing (named in `package.json` but missing on disk):** `infra/regtest/up.sh`, `infra/regtest/down.sh`, `scripts/demo-full.sh`, `apps/api/build.mjs` (`pnpm build`). Partly there, uncommitted: `apps/api/src/seed.ts` (simulator-only demo seed, run via `ORYNT_SEED_DEMO=1`) and `apps/web/e2e/run.cjs` (the `test:e2e` script points to `run.mjs`). No Dockerfile or compose file (Docker daemon unavailable in the build environment).
-- **Judge check (5 min).** `pnpm install && pnpm db:start && pnpm test:integration` (needs Node 22, pnpm 10.28, a local PostgreSQL 16 cluster; the `db:start` script uses `pg_lsclusters`, so on other systems set `DATABASE_URL`/`TEST_ADMIN_DATABASE_URL`). The real-regtest path: `pnpm regtest:up && pnpm demo:full` is **to be added**.
+- **Scripts that now exist.** `pnpm regtest:fetch` (`infra/regtest/fetch.sh`, SHA-256 pinned), `pnpm regtest:up` / `down` (`infra/regtest/up.mjs`, `down.mjs`), `pnpm demo:full` (`scripts/demo-full.ts`, real regtest mode, **never run**), `pnpm demo:full:sim` (labelled SIMULATOR mode, **verified end to end**; evidence `docs/evidence/demo-simulator-2026-11-09T15-28-43-507Z.md`), seed `apps/api/src/seed.ts` (simulator-only, `ORYNT_SEED_DEMO=1`), `pnpm build:all`, `pnpm start`, `Dockerfile`, `infra/docker-compose.yml`, `infra/deploy/{render.yaml,fly.toml}` (the container and deploy files are **UNVERIFIED**: no Docker daemon).
+- **Judge check (5 min).** `pnpm install && pnpm db:start && pnpm demo:full:sim` (the whole story, labelled SIMULATED) and `pnpm test:integration` (needs Node 22, pnpm 10.28, a local PostgreSQL 16 cluster; `db:start` uses `pg_lsclusters`, so elsewhere set `DATABASE_URL`/`TEST_ADMIN_DATABASE_URL`). The real path is `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full`: **to be verified by running it on the owner's machine**.
 - **Weak spots.**
   - The criterion says avoid mockups when integration is possible. Today the wallet in every automated test is a simulator (a mock). The real path is the single most important thing to run before submission.
   - No hosted URL. `R` allows a demo video instead.
-  - Seed data for the real-regtest demo does not exist yet; an uncommitted simulator-only seed (`apps/api/src/seed.ts`) does.
+  - Seed data is simulator-only and labelled "SEED DATA"; the real-regtest demo creates its own demo workspace inside `demo-full`.
 
 ### C5. Clear Pitch & Docs (`O` criterion 5; `R` "A clear pitch")
 
@@ -103,8 +104,8 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 
 - **What exists.** Script, storyboard and captions: `video-script-3min.md`, `captions.en.srt` (UNRENDERED). Deck source: `pitch-deck-source.md` (UNRENDERED). Product brief, competitor matrix, differentiation review, business docs.
 - **Weak spots.**
-  - **Root `README.md` is five lines** and has none of the required sections. REQUIRED before submission. Source material: `devpost-entry.md` (architecture diagram, limitations) and `docs/business/metrics-and-privacy.md` (metrics).
-  - `docs/EXECUTION-REGISTER.md` still shows M0 "IN PROGRESS" with nothing VERIFIED, which contradicts the tests above. Update before judges read it.
+  - Root `README.md` has been expanded (~50 lines: status, two-minute simulator start, scripted story). Check it against the `O` list (setup, architecture diagram, constraints, metrics to track, next iteration) before submission. Source material: `devpost-entry.md` and `docs/business/metrics-and-privacy.md`. `docs/architecture/` and a developer quickstart were added in commit `49219b8` (not re-read here).
+  - `docs/EXECUTION-REGISTER.md` is now the authoritative status table (VERIFIED / PARTIAL / BLOCKED per milestone). Keep it current; it must be updated after the real run.
   - Video not recorded; no real-regtest evidence yet.
 
 ### C6. Originality (`R`: "originality")
@@ -143,7 +144,7 @@ Weak spot: all of the above is proven against the simulator. The LND error mappi
 ### C9. Public repo and open source (`R`: "A public github repo"; `O`: "results are open-source")
 
 - `LICENSE` (Apache-2.0) at the repo root; every `package.json` declares `"license": "Apache-2.0"`. Note `docs/business/pricing-hypotheses.md` says the licence is "not yet decided", so the owner must confirm Apache-2.0 is intended.
-- Repo visibility and remote were not checked by me. Judge check: open the repo logged out; `git log --oneline` shows 8 commits, all dated 2026-11-09, i.e. inside the submission window opened 2026-10-26. Pre-existing-work rules are not stated by the organisers.
+- Repo visibility and remote were not checked by me. Judge check: open the repo logged out; `git log --oneline` shows 15 commits, all dated 2026-11-09, i.e. inside the submission window opened 2026-10-26. Pre-existing-work rules are not stated by the organisers.
 - Disclose AI assistance in the README and Devpost text (the rules are silent; disclosure is the safe default). Commits carry a `Co-Authored-By: Claude` trailer.
 
 ### C10. MVP via internet or demo video (`R`)
@@ -158,39 +159,42 @@ Weak spot: all of the above is proven against the simulator. The LND error mappi
 
 **Tier 0, 2 minutes, nothing installed.** Open: `docs/product/PRODUCT-BRIEF.md` (claims and honest limits), `packages/core/src/states.ts` (state machine), `apps/api/src/services/execution.ts` (execution phases), then scan test titles in `apps/api/test/adversarial.itest.ts`.
 
-**Tier 1, about 5 minutes, Node 22 + pnpm 10.28 + local PostgreSQL 16.** Simulator only. Everything below was run by me today except where noted.
+**Tier 1, about 5 minutes, Node 22 + pnpm 10.28 + local PostgreSQL 16.** Simulator only. Counts are from the register (2026-11-09).
 
 ```bash
 pnpm install
 pnpm db:start                      # script exists; Debian/Ubuntu pg_lsclusters only. Otherwise export DATABASE_URL and TEST_ADMIN_DATABASE_URL
-pnpm test:integration              # 41 tests, about 13 s on the build sandbox (I ran this)
-pnpm --filter @orynt/verifier test # 18 tests incl. single-character tamper sweep (I ran this)
-pnpm --filter @orynt/core test     # 24 tests (I ran this)
-# one scenario at a time (argument forwarding checked on @orynt/contract; not re-run for the DB suite):
+pnpm test:integration              # 55 pass, 8 skipped (real-LND tests need regtest)
+pnpm --filter @orynt/verifier test # 26 tests incl. tamper sweep and built-CLI exit codes
+pnpm --filter @orynt/core test     # 24 tests
+pnpm demo:full:sim                 # whole story, labelled SIMULATED; writes docs/evidence/demo-simulator-*.md
+# one scenario at a time (argument forwarding checked on the API integration suite):
 pnpm --filter @orynt/api test:integration -t "response lost AFTER the wallet accepted"
 pnpm --filter @orynt/api test:integration -t "20 concurrent execute requests"
 ```
 
-**Tier 2, real Lightning on regtest. PENDING.** `pnpm regtest:up && pnpm demo:full` once those scripts exist; to be verified by running `scripts/demo-full` on the owner's machine. Specification in `demo-runbook.md`.
+**Tier 2, real Lightning on regtest. PENDING.** `pnpm regtest:fetch && pnpm regtest:up && pnpm test:real-lightning && pnpm demo:full`; to be verified by running `scripts/demo-full` on the owner's machine. Details in `demo-runbook.md`.
 
 ## 4. Consolidated weak spots, ranked by risk to the score
 
 1. **Gating rules (eligibility, wallet requirement)**: could disqualify regardless of quality.
-2. **No real-network evidence yet**: every payment test uses the simulator. The `O` criterion says avoid mockups.
-3. **UX/mobile/low-bandwidth**: console uncommitted and unmeasured.
+2. **No real-network evidence yet**: every payment test and demo run so far uses the simulator (8 real-LND tests are skipped). The `O` criterion says avoid mockups.
+3. **UX/mobile/low-bandwidth**: automated checks only (E2E 100/100, axe, 3 viewports); no performance measurement or human testing.
 4. **Local impact and reach**: no African user evidence, no reach estimate, BOLT11-only.
-5. **Docs**: README 5 lines; no threat model; stale execution register.
+5. **Docs**: root README must be checked against the required sections; threat model exists but is AI-reviewed only.
 6. **No hosted URL**; video not rendered.
-7. **Security caveats** (custom BOLT11 codec, browser-held approval key, app-level enforcement, unvetted LND URL, no external review).
+7. **Security caveats** (custom BOLT11 codec, browser-held approval key, app-level enforcement, fake-LND "REAL" receipt gap, LND behaviour unverified against a real node, no human audit).
 8. **Name**: "Orynt" has unresolved trademark risk (`docs/brand/name-clearance.md`: a possible identical pending application and near-identical software marks, unverified). Disclose as a working title.
 
-## 5. Defects and gaps found while writing (fix or disclose)
+## 5. Defects and gaps (status after reconciliation with HEAD `78990af`)
 
-| # | Finding | Evidence | Suggested action |
-|---|---|---|---|
-| 1 | Built verifier cannot run: `dist/orynt-verify.mjs` has two shebang lines (the esbuild banner plus the one in `src/cli.ts`), giving `SyntaxError: Invalid or unexpected token` on `node packages/verifier/dist/orynt-verify.mjs --help` | run 2026-11-09 | Remove the shebang from `src/cli.ts` or the banner in `build.mjs`. Until fixed use `pnpm exec tsx packages/verifier/src/cli.ts`, which works |
-| 2 | `pnpm build` will fail at `@orynt/api` (`"build": "node build.mjs"`, file absent) | `apps/api` listing | Add the file or change the script |
-| 3 | `regtest:up`, `regtest:down`, `demo:full` point to missing files; `test:e2e` points to `run.mjs` while the file is `run.cjs`; `db:seed` runs `tsx src/seed.ts` whose seed is simulator-only and designed to run inside the server (`ORYNT_SEED_DEMO=1`) | `package.json` vs disk, 2026-11-09 15:12 UTC | Add, rename or remove before judges run them |
-| 4 | LND `rest_url` not SSRF-vetted | `grep vetWebhookTarget` | Document as self-host-only; vet before any public multi-tenant demo |
-| 5 | Web console, site and `ops.itest.ts` are untracked | `git status` | Commit or exclude consciously before submission |
-| 6 | Failpoint state is process-global, not per workspace | `lib/failpoints.ts` | Only matters for a shared public sandbox |
+| # | Finding | Status |
+|---|---|---|
+| 1 | Built verifier had a double shebang and could not start | **Fixed.** `node packages/verifier/dist/orynt-verify.mjs` works after `pnpm --filter @orynt/verifier build`; CLI exit codes covered by tests |
+| 2 | `pnpm build` failed at `@orynt/api` (no `build.mjs`) | **Fixed.** `apps/api/build.mjs` exists; `pnpm build:all` builds verifier, sdk, web, site, api. Not re-run by me |
+| 3 | `regtest:*`, `demo:full`, `db:seed` pointed to missing files | **Fixed** (files exist). `pnpm test:e2e` still names `run.mjs`; the file is `run.cjs` |
+| 4 | LND `rest_url` not SSRF-vetted | **Fixed** by the security review (regression test in `security.itest.ts`) |
+| 5 | Web console, site, ops tests untracked | **Committed** |
+| 6 | Failpoint state is process-global, not per workspace | Open; irrelevant unless a shared sandbox is hosted (failpoints are refused in production anyway) |
+| 7 | Real LND path never executed; error classification (which errors prove "not sent") rests on documentation | **Open, the main gap** (register M2/M4) |
+| 8 | Fake-LND-endpoint "REAL" receipt | Open, documented in the threat model |

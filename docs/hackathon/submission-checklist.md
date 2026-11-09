@@ -2,7 +2,7 @@
 
 Status: draft source — video/deck unrendered; real-regtest evidence pending.
 **DEVPOST STATUS: NOT SUBMITTED.** (Not verifiable from here: the registration ID 3424410 and the submission state need a Devpost login. Nothing in the repo or in these files claims a submission.)
-Written 2026-11-09. Deadline **Fri 2026-11-20 20:00 UTC = 21:00 WAT (Lagos) = 20:00 GMT (Dakar)** (3:00 PM EST on the Devpost pages; see `rules-checklist.md` section 1). 11 days remain. Internal target: submit by **2026-11-19 20:00 UTC** (24 h of margin; advice, not a rule).
+Reconciled 2026-11-09 with the committed branch (HEAD `78990af`; status table `docs/EXECUTION-REGISTER.md`). Deadline **Fri 2026-11-20 20:00 UTC = 21:00 WAT (Lagos) = 20:00 GMT (Dakar)** (3:00 PM EST on the Devpost pages; see `rules-checklist.md` section 1). 11 days remain. Internal target: submit by **2026-11-19 20:00 UTC** (24 h of margin; advice, not a rule).
 
 Legend: `[ ]` open, `[x]` done. Nothing below is ticked because nothing has been confirmed by the owner. Section A items are decisions only the owner can make; they come first because they can make the rest irrelevant.
 
@@ -53,7 +53,7 @@ The Rules tab (`R`) says participants "should reside in Africa". The Overview (`
 ### A5. Disclosures the rules are silent on (default: disclose)
 
 - [ ] AI-assisted development disclosed in README and Devpost (commits carry `Co-Authored-By: Claude`). Rules do not address AI coding aids
-- [ ] Pre-existing work: all 8 commits are dated 2026-11-09 (after the window opened 2026-10-26). Owner adds any earlier work honestly: `____`
+- [ ] Pre-existing work: all 15 commits are dated 2026-11-09 (after the window opened 2026-10-26). Owner adds any earlier work honestly: `____`
 - [ ] "Working title", "regtest only", "simulator labelled", "not a custodian" present in all materials
 
 ### A6. Hosting decision
@@ -63,11 +63,11 @@ The Rules tab (`R`) says participants "should reside in Africa". The Overview (`
 
 ### A7. Real regtest run: owner and dates
 
-The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a node. Scripts named in `package.json` do not exist yet (`infra/regtest/up.sh`, `scripts/demo-full.sh`).
+The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a node: the build sandbox refused to execute the downloaded `bitcoind`/`lnd`. The scripts now exist but were never executed: `pnpm regtest:fetch`, `pnpm regtest:up`, `pnpm test:real-lightning` (8 tests, skipped), `pnpm demo:full`. The simulator equivalent `pnpm demo:full:sim` passes and is the fallback.
 
 - [ ] Owner machine has `bitcoind` and `lnd` runnable (the build sandbox blocked executing them)
-- [ ] Gate G1 2026-11-13: one real alice-to-bob payment by hand
-- [ ] Gate G2 2026-11-14: `demo-full` passes twice
+- [ ] Gate G1 2026-11-13: `pnpm regtest:fetch && pnpm regtest:up` succeed and `pnpm test:real-lightning` passes (not skipped); fix first-run problems in `infra/regtest/` and `packages/wallets/src/lnd.ts`
+- [ ] Gate G2 2026-11-14: `pnpm demo:full` passes twice (scenarios A-D) and writes `docs/evidence/demo-real-regtest-*.md`
 - [ ] Gate G4 2026-11-16: choose main cut (real) or fallback (simulator); text variants A/B in `devpost-entry.md` follow this decision
 
 ---
@@ -76,20 +76,20 @@ The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a 
 
 ### B1. Evidence
 
-- [ ] Create `infra/regtest/up.sh` and `down.sh` (spec: `demo-runbook.md` 4.1)
-- [ ] Create `scripts/demo-full.sh` (spec: `demo-runbook.md` 4.2, stages S0-S9) with its own real-regtest seeding (the existing `apps/api/src/seed.ts` is simulator-only and uncommitted)
-- [ ] Run it on the owner's machine **twice**; save `docs/evidence/<UTC timestamp>/` (transcript with secrets redacted, `receipt-real.json`, verifier output with exit codes, versions)
-- [ ] Commit one real and one simulator sample receipt so judges can run the verifier without a server
-- [ ] Re-run `pnpm test:integration` and the unit tests on the final commit; paste the counts into the README (last seen 2026-11-09: 41 integration, 24 core, 18 verifier, 1 contract, all passing)
-- [ ] Update `docs/EXECUTION-REGISTER.md` (still says M0 "IN PROGRESS", nothing VERIFIED) with command, exit code and evidence path per milestone
+- [ ] Run `pnpm regtest:fetch && pnpm regtest:up && pnpm test:real-lightning && pnpm demo:full` on the owner's machine **twice**; keep `docs/evidence/demo-real-regtest-<stamp>.{md,json}`, the receipts, versions (`infra/regtest/versions.env`) and a redacted transcript; keep failing runs too
+- [ ] If the real run fails on first contact (likely; LND error classification is unproven), fix it and re-run, or take the simulator fallback (`pnpm demo:full:sim`, already verified) and use Devpost variant B
+- [ ] Commit one real and one simulator sample receipt so judges can run the verifier without a server (simulator samples already exist: `docs/evidence/receipt-simulator-*.json`)
+- [ ] Re-run `pnpm test:integration` and `pnpm test` on the final commit; paste the counts into the README (register, 2026-11-09: integration 55 pass + 8 skipped; unit core 24, verifier 26, contract 1; browser E2E 100/100)
+- [ ] Update `docs/EXECUTION-REGISTER.md` and `docs/evidence/README.md` after the real run (M2 regtest row, M4 LND row, `demo:full`, `test:real-lightning`)
 
 ### B2. Repository and docs
 
-- [ ] Fix the verifier build: `packages/verifier/dist/orynt-verify.mjs` has a double shebang and does not start (`SyntaxError`); or document `pnpm exec tsx packages/verifier/src/cli.ts` everywhere
-- [ ] Fix or remove broken scripts: `pnpm build` (`apps/api/build.mjs` missing), `test:e2e` (script says `run.mjs`, file is `run.cjs`), `db:seed` (works only as a simulator seed inside the server, see `demo-runbook.md` section 5)
-- [ ] Write the **README** (currently 5 lines): setup, architecture diagram (`devpost-entry.md` section 7), constraints, metrics to track (`docs/business/metrics-and-privacy.md`), next iteration, AI disclosure, honest limits, how to run the tests, how to run the demo
-- [ ] Write `docs/security/threat-model.md` (referenced from `apps/web/src/keys.ts`; the directory is empty)
-- [ ] Decide what to do with uncommitted work: `apps/web/src`, `apps/web/e2e`, `apps/site`, `apps/api/src/seed.ts`, the static-serving change in `apps/api/src/http/app.ts`, `apps/api/test/ops.itest.ts`, brand SVGs in `apps/web/public`, `docs/evidence/screenshots`. Commit what works; do not submit half-built UI as finished
+- [ ] Verifier bundle is fixed; confirm `pnpm --filter @orynt/verifier build && node packages/verifier/dist/orynt-verify.mjs --help` works on a clean clone
+- [ ] `pnpm test:e2e` still names `apps/web/e2e/run.mjs`; the file is `run.cjs` (fix the script or document `node apps/web/e2e/run.cjs`)
+- [ ] Check the **README** (now ~50 lines) against the required sections: setup, architecture diagram (`devpost-entry.md` section 7; `docs/architecture/` exists), constraints, metrics to track (`docs/business/metrics-and-privacy.md`), next iteration, AI disclosure, honest limits, how to run tests and the demo
+- [ ] `docs/security/threat-model.md` exists (AI-reviewed only): link it from the README and the Devpost text; do not call it an audit
+- [ ] Docker/compose/`infra/deploy/*` are UNVERIFIED templates: either build once on a machine with Docker and record it, or label them unverified in the README. `infra/deploy/render.yaml` as written sets `ORYNT_SEED_DEMO=1` (public password): do not use unchanged
+- [ ] Working tree clean and committed (`git status`), including `docs/hackathon/*` (all files in this folder are new and uncommitted at the time of writing)
 - [ ] Repository is **public**, visible logged out, default branch contains the code (README currently refers to branch `claude/busy-goodall-ajeb0p`; make sure judges land on it)
 - [ ] No secrets, macaroons, `.env`, `.regtest/` in history (`git log -p | grep -i macaroon`, secret scanner)
 - [ ] Fresh-clone test on a clean machine/VM following only the README (target 2026-11-18)
@@ -104,7 +104,7 @@ The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a 
 
 ### B4. UX checks the Overview asks for (not done)
 
-- [ ] If the console is part of the submission: check at 360x800 viewport and throttled "Slow 4G", record payload sizes and a contrast check; otherwise say it is untested. Do not claim "optimised for low bandwidth" without numbers
+- [ ] The console has automated checks only (E2E 100/100 at 375/768/1440 px, axe, screenshots in `docs/evidence/screenshots/`). Optionally measure payload sizes on throttled "Slow 4G" and do a manual phone test; otherwise say it is untested. Do not claim "optimised for low bandwidth" without numbers
 - [ ] Local-impact paragraph contains no invented figures; reach stated as "not estimated"
 
 ### B5. Devpost form
@@ -125,14 +125,14 @@ The real Lightning path (`packages/wallets/src/lnd.ts`) has never run against a 
 ## C. POST-HACKATHON (not needed to submit)
 
 - [ ] Trademark/domain work per `docs/brand/name-clearance.md` section 5 and 7; pick and clear a final name
-- [ ] Threat model review by an external reviewer; first external review of signing, reservation and reconciliation paths before any real-funds pilot (`docs/business/security-due-diligence.md` 1.3)
+- [ ] Human review of the threat model and a penetration test; first external review of signing, reservation and reconciliation paths before any real-funds pilot (`docs/business/security-due-diligence.md` 1.3)
 - [ ] 20 structured interviews with the plan in `docs/business/interview-guide.md` (at least 4 in Africa); fill the scorecard; apply `docs/business/go-no-go-framework.md` 90 days after
 - [ ] Counsel for Nigeria, Senegal/UEMOA, Kenya, South Africa before any pilot (`docs/business/legal-regulatory-register.md`, all items NOT STARTED)
 - [ ] Run F1 and F2 from `docs/research/differentiation-review.md` section 4 (does LND already refuse a duplicate send for the same hash; BTCPay edit-after-approve behaviour)
-- [ ] Hardware- or passkey-backed approval keys; vet LND `rest_url`; per-workspace failpoints; MFA
+- [ ] Hardware- or passkey-backed approval keys; per-workspace failpoints; MFA; recompute the digest client-side before signing; managed-node allow-list against fake-LND receipts
 - [ ] Additional wallet adapters (NWC), LNURL/Lightning-address payees, mobile-first approval UX, measured low-bandwidth performance, reviewed French and local-language copy
-- [ ] Container image and compose file once Docker is available
-- [ ] Hosting only after the LND URL vetting and single-origin fixes (`deployment-plan.md`)
+- [ ] Build and run the `Dockerfile` / compose file once a Docker daemon is available; verify or delete `infra/deploy/*`
+- [ ] Hosting only per `deployment-plan.md` (production mode cannot run the simulator, so a public instance cannot demo payments)
 
 ---
 

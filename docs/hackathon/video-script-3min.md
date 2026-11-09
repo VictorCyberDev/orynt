@@ -1,7 +1,7 @@
 # Orynt 3-minute demo video: script, storyboard, recording plan
 
 Status: draft source — video/deck unrendered; real-regtest evidence pending. **VIDEO: UNRENDERED. Devpost status: NOT SUBMITTED.**
-Written 2026-11-09. Companion files: `captions.en.srt` (main), `captions.fallback-sim.en.srt` (simulator fallback), `demo-runbook.md` (what the on-screen terminal must show).
+Reconciled 2026-11-09 with the committed branch (HEAD `78990af`); the recording commands are now `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full` (primary) and `pnpm demo:full:sim` (labelled fallback). Companion files: `captions.en.srt` (main), `captions.fallback-sim.en.srt` (simulator fallback), `demo-runbook.md` (what the on-screen terminal must show).
 
 Target length 3:00 (the Overview page suggests a 3-minute demo; no hard limit is stated; keep it at or below 3:00). Language: English. Narrative follows the Overview's "problem → solution → impact → next steps":
 African Bitcoin business payout problem → Orynt authorization (maker/checker, signed approvals) → genuine Lightning payout on regtest → uncertain network response → refused duplicate → reconciliation → receipt verifier (one-character tamper rejected) → next steps / market expansion.
@@ -9,8 +9,8 @@ African Bitcoin business payout problem → Orynt authorization (maker/checker, 
 ## 0. Rules for this video (non-negotiable)
 
 1. **Disclosure on screen.** A persistent badge top-left for the **entire** video: `REGTEST - TEST COINS ONLY` (main cut) or `SIMULATOR - NO REAL PAYMENT` (fallback cut). A full-screen 3-second disclosure card at 0:34.
-2. **Only show what was actually recorded.** Every "real Lightning" shot must come from an actual `pnpm demo:full` run on the owner's machine (to be verified by running `scripts/demo-full` there; the script does not exist yet). If that run does not happen, use the fallback cut and never call it real.
-3. **The lost response is an injected fault** (failpoint `execute.after_provider_response`), and the voice-over says "we inject a fault". The payment behind it is real regtest in the main cut.
+2. **Only show what was actually recorded.** Every "real Lightning" shot must come from an actual `pnpm demo:full` run on the owner's machine (`scripts/demo-full.ts`, written but **never run in real mode**; to be verified by running it on the owner's machine). If that run does not happen, use the fallback cut and never call it real.
+3. **The lost response is an injected fault** (failpoint `execute.after_provider_response`), and the voice-over says "we inject a fault". The payment behind it is real regtest in the main cut. (The demo also performs a real `SIGKILL` of the API process, scenario C; it is not in the 3-minute cut.)
 4. No invented statistics, customers, partners, endorsements or live URL. The problem statement is a hypothesis, labelled as such on screen.
 5. Illustrative chat/spreadsheet visuals in the first 22 seconds are **mock-ups and are labelled "Illustrative"**. Do not show real people's messages or any real wallet balances.
 
@@ -18,15 +18,15 @@ African Bitcoin business payout problem → Orynt authorization (maker/checker, 
 
 | Gate | Date | Condition | If it fails |
 |---|---|---|---|
-| G1 | 2026-11-13 | `pnpm regtest:up` works and one real payment from alice to bob succeeds by hand | Plan the fallback cut (section 7) |
-| G2 | 2026-11-14 | `pnpm demo:full` passes stages S0-S9 (see `demo-runbook.md` 4.2) twice in a row | Record only the stages that pass; label the rest as not shown; or fall back |
-| G3 | 2026-11-14 | Web console: approve and payout-detail screens work end to end against the real LND connection | Use **Variant T** (terminal only) for all shots |
+| G1 | 2026-11-13 | `pnpm regtest:fetch && pnpm regtest:up` work and `pnpm test:real-lightning` no longer skips (the 8 gated adapter tests pass) | Plan the fallback cut (section 7) |
+| G2 | 2026-11-14 | `pnpm demo:full` passes (scenarios A-D, `demo-runbook.md` section 3) twice in a row and writes `docs/evidence/demo-real-regtest-*.md` | Record only the stages that pass; label the rest as not shown; or fall back |
+| G3 | 2026-11-14 | Optional: the web console (`/app/`, E2E 100/100 on the simulator) works against the real LND connection when you start the API yourself and connect alice | Use **Variant T** (terminal only) for all shots |
 | G4 | 2026-11-16 | Final cut decision: main (real regtest) vs fallback (simulator) | Fallback is mandatory if G1 or G2 failed |
 | G5 | 2026-11-18 | Video uploaded as a link that works logged-out; duration checked with `ffprobe` | Re-export |
 
 ## 2. Voice-over, timed (main cut)
 
-Speaking rate about 120 words per minute, 355 words total. `captions.en.srt` is generated from this exact text (37 caption blocks, at most two lines of 46 characters, reading speed at or below 20 characters per second). Re-time the SRT after the real voice-over is recorded.
+Speaking rate about 120 words per minute, 356 words total. `captions.en.srt` is generated from this exact text (37 caption blocks, at most two lines of 46 characters, reading speed at or below 20 characters per second). Re-time the SRT after the real voice-over is recorded.
 
 | # | Time | VO (spoken text) |
 |---|---|---|
@@ -38,9 +38,9 @@ Speaking rate about 120 words per minute, 355 words total. `captions.en.srt` is 
 | 6 | 0:28.0–0:34.0 | It decides who may pay, makes sure a payment is sent once, and keeps the proof. |
 | 7 | 0:34.0–0:40.0 | Everything you will see runs on Bitcoin regtest. These are test coins, not real money. |
 | 8 | 0:40.0–0:47.0 | A maker enters a payout for Bob. Orynt decodes his invoice and binds the amount, node and expiry. |
-| 9 | 0:47.0–0:54.0 | At 150,000 sats this needs two approvers under the workspace policy. |
-| 10 | 0:54.0–1:00.0 | The maker tries to approve it themselves. Refused. |
-| 11 | 1:00.0–1:09.0 | Two approvers each sign the exact payment with their own key. Change any field and those signatures stop matching. |
+| 9 | 0:47.0–0:54.0 | The default policy needs one approver for 30,000 sats, and two above 100,000. |
+| 10 | 0:54.0–1:00.0 | The maker cannot approve their own payout. Refused. |
+| 11 | 1:00.0–1:09.0 | The approver signs the exact payment with their own key. Change any field and the signature stops matching. |
 | 12 | 1:09.0–1:15.0 | Roles are checked again at execution, not just at approval. |
 | 13 | 1:15.0–1:22.0 | Execute. Orynt first reserves a single-use intent in PostgreSQL, then asks Alice's LND node to pay. |
 | 14 | 1:22.0–1:31.0 | The node routes the payment over a regtest channel and returns the preimage. |
@@ -59,20 +59,20 @@ Speaking rate about 120 words per minute, 355 words total. `captions.en.srt` is 
 
 Claim check for each line (all must stay true at recording time):
 - 8: invoice decode and binding of amount, payee node key, expiry: `packages/core/src/bolt11.ts`, `intent.ts`; test "rejects garbage, tampered and wrong-network invoices".
-- 9: `DEFAULT_POLICY_RULES` in `packages/core/src/policy.ts`: up to 100,000 sats one approver, above that two. 150,000 sats = 150,000,000 msat.
-- 10: policy `requireDistinctMaker`; refusal text "Policy requires someone other than the creator to approve." (`services/obligations.ts`); test "operators, viewers, API keys and the maker cannot approve". In the demo the maker is the workspace **owner** (an operator is refused by role instead).
-- 11: approvals sign `intentDigest`; test "changes when ANY bound field changes"; "terms changed after approval → approvals void; old signature cannot be replayed on the new revision".
+- 9: `DEFAULT_POLICY_RULES` in `packages/core/src/policy.ts`: up to 100,000 sats one approver, above that two. `demo-full` pays 30,000 sats (one approver). A two-approver payout (above 100,000 sats) is not in the script; show it in the console or in a test if you want it on screen.
+- 10: policy `requireDistinctMaker`, bound to the author of the **current revision** (test group "maker–checker uses the author of the CURRENT revision" in `security.itest.ts`); refusal text "Policy requires someone other than the creator to approve."; test "operators, viewers, API keys and the maker cannot approve". `demo-full` only asserts "approved by a different person than its creator"; the refusal itself is **not** in the script, so show it as a clearly labelled inset (test output or console on the simulator) or drop the line.
+- 11: the approver (singular in `demo-full`) signs `intentDigest`; test "changes when ANY bound field changes"; "terms changed after approval → approvals void; old signature cannot be replayed on the new revision".
 - 12: test "approver loses their role AFTER approving → execution refused (revoked role)".
 - 13: phases in `services/execution.ts`; **LND call real only in the main cut**.
 - 15: `applyRecord` requires sha256(preimage) = payment hash and amount equality before `SETTLED`.
 - 17-20: tests "response lost AFTER the wallet accepted → UNKNOWN (not FAILED); second send blocked; reconcile proves SETTLED; only one send". For real LND this is `PENDING-REAL`.
-- 22-23: `packages/verifier`; test "rejects when ANY single character of the serialized receipt is changed (sampled across the whole document)".
+- 22-23: `packages/verifier`; test "rejects when ANY single character of the serialized receipt is changed (sampled across the whole document)". `demo-full` changes one character of the memo ("demo 30000 sats" to "demo 30001 sats") and asserts verifier exit 1.
 - 24: "more wallet adapters, mobile-first approvals" are **plans, not features**; "interviews" refers to `docs/business/interview-guide.md` (not yet done). Say "test whether this pain is real", never "we found".
 - 25: matches `PRODUCT-BRIEF.md` honest limits.
 
 ## 3. Storyboard and shot list (16:9, 1920x1080)
 
-Two variants. **Variant W** uses the web console for authorization and payout screens (only if gate G3 passes). **Variant T** is terminal only and is achievable with the planned `demo-full` output. The terminal panes always show the stage banners from `demo-runbook.md` 4.2.
+Two variants. **Variant W** uses the web console (served by the API at `/app/`) for authorization and payout screens (only if gate G3 passes). **Variant T** is terminal only and uses the actual `demo-full` output (scenario banners A, B, D). The terminal panes show the banners described in `demo-runbook.md` section 3.
 
 Global layout: persistent badge top-left (`REGTEST - TEST COINS ONLY`), burned-in lower-third caption bar at the bottom (the **overlay** text below; this is different from the SRT subtitles, which transcribe the voice-over), safe margins 5%.
 
@@ -81,18 +81,18 @@ Global layout: persistent badge top-left (`REGTEST - TEST COINS ONLY`), burned-i
 | S01 | 0:00–0:22 | Motion-graphic cards | Three flat cards slide in: "Chat: 'ok, approved'", "Wallet: Send", "Screenshot: 'proof'". Then a "?" appears over the wallet card at 0:11 and a duplicate card fades in at 0:17. All cards carry a small "Illustrative" tag | `Illustrative. Hypothesis from our research notes, not yet validated with interviews` | 1-4 |
 | S02 | 0:22–0:34 | Diagram (one slide) | Left to right: Operator and approvers → **Orynt** (policy, signed approvals, single-use reservation, reconciler, receipts) → **your wallet** (LND). A dashed box around the wallet reads "funds stay here" | `Orynt does not custody funds` | 5-6 |
 | S03 | 0:34–0:40 | Title card, then back to diagram corner | Full-screen card for 3 s: "REGTEST. Test coins only. Local test chain. No real money." Then the persistent badge stays | `Bitcoin regtest. No real money.` | 7 |
-| S04 | 0:40–0:47 | T: terminal stage S4 output. W: New payout form | Paste/choose Bob's invoice; highlight decoded fields: amount 150,000 sats, payee node key, expiry, network regtest | `Invoice decoded and bound: amount, payee node, expiry` | 8 |
-| S05 | 0:47–0:54 | T: S4 output line `required_approvals=2`. W: payout detail "Approvals 0 of 2" | Zoom on the approvals counter | `Policy: above 100,000 sats needs 2 approvers` | 9 |
-| S06 | 0:54–1:00 | T/W: refusal | The owner (maker) clicks or calls Approve; the refusal message appears: "Policy requires someone other than the creator to approve." | `Maker cannot approve their own payout` | 10 |
-| S07 | 1:00–1:15 | T: S5 output. W: Approve dialog for approver 1 then 2 | Show the intent digest (short form) in the sign dialog; two signatures accepted; state turns APPROVED. At 1:09 overlay text about the execution-time role check (no separate visual) | `Each approver signs the exact payment. Roles re-checked at execution` | 11-12 |
-| S08 | 1:15–1:31 | T: S6 output. W: operator presses "Send payment" | Operator executes with an Idempotency-Key; state chip DISPATCHING then SETTLED; show `environment: REAL_PROVIDER` | `Alice's LND node pays over a regtest channel` | 13-14 |
-| S09 | 1:31–1:45 | T: S6 cross-check lines | Two lines side by side: `sha256(preimage) == payment_hash : true`; bob's `lndLookupInvoice` state `SETTLED` | `Preimage matches the invoice. Bob's node confirms` | 15-16 |
-| S10 | 1:45–1:53 | T: S7 start | Terminal shows the failpoint being armed: `execute.after_provider_response`. Overlay stays up the whole shot | `Fault injected by the demo. The payment itself is real regtest` | 17 |
+| S04 | 0:40–0:47 | T: `demo-full` workspace and scenario A lines. W: New payout form | Bob's invoice for 30,000 sats; highlight decoded fields: amount, payee node key, expiry, network regtest | `Invoice decoded and bound: amount, payee node, expiry` | 8 |
+| S05 | 0:47–0:54 | T: policy block from the seed/console (`DEFAULT_POLICY_RULES` tiers). W: Team and policy screen | Zoom on the tiers: up to 100,000 sats 1 approver, above 2 | `Default policy: 1 approver up to 100,000 sats, 2 above` | 9 |
+| S06 | 0:54–1:00 | Inset clip, labelled "Simulator / test output" | Output of the test "operators, viewers, API keys and the maker cannot approve", or the console on the seeded simulator: the creator's approve attempt is refused with "Policy requires someone other than the creator to approve." This inset is **not** from the real run and must be labelled so | `Maker cannot approve their own payout` | 10 |
+| S07 | 1:00–1:15 | T: scenario A line `approved by a different person than its creator`. W: Approve dialog | Show the intent digest (short form) in the sign dialog; the signature is accepted; state turns APPROVED. At 1:09 overlay text about the execution-time role check (no separate visual) | `Each approver signs the exact payment. Roles re-checked at execution` | 11-12 |
+| S08 | 1:15–1:31 | T: scenario A output. W: operator presses "Send payment" | Operator executes with an Idempotency-Key; state chip DISPATCHING then SETTLED; show `environment: REAL_PROVIDER` | `Alice's LND node pays over a regtest channel` | 13-14 |
+| S09 | 1:31–1:45 | T: scenario A cross-check lines | Two lines side by side: `sha256(preimage) == payment_hash : true`; bob's `lndLookupInvoice` state `SETTLED` | `Preimage matches the invoice. Bob's node confirms` | 15-16 |
+| S10 | 1:45–1:53 | T: scenario B start | Terminal shows the failpoint being armed: `execute.after_provider_response`. Overlay stays up the whole shot | `Fault injected by the demo. The payment itself is real regtest` | 17 |
 | S11 | 1:53–2:00 | T: HTTP 202. W: indigo chip | Response 202, state `UNKNOWN` in indigo (not red), incident "wallet's answer was lost" | `UNKNOWN, not FAILED. A second send is blocked` | 18 |
 | S12 | 2:00–2:07 | T/W | Execute again: HTTP 409 `send_blocked_unresolved` with the plain-language detail | `Duplicate refused (HTTP 409)` | 19 |
 | S13 | 2:07–2:15 | T/W | Reconcile: wallet lookup by payment hash, state `SETTLED`, `reconciled_after_uncertainty: true`; then balance line "paid once" | `Reconciled from the wallet's own record. One send` | 20 |
-| S14 | 2:15–2:30 | T: S8 output | Show `receipt-real.json` keys (environment, network, approvals[2], settlement.preimage, audit.segment); run verifier; output lines PASS; `VERDICT: VERIFIED`, `exit=0` | `Offline check: signatures, preimage, approvals, audit chain` | 21-22 |
-| S15 | 2:30–2:40 | T | Show the one-character edit (diff highlight on one digit), re-run verifier: `VERDICT: REJECTED`, `exit=1`, failing check `attestation.signature` visible | `One character changed: REJECTED` | 23 |
+| S14 | 2:15–2:30 | T: scenario D output | Show a `receipt-real-regtest-*.json` file's keys (environment, network, approvals, settlement.preimage, audit.segment); run `node packages/verifier/dist/orynt-verify.mjs ... --require-real`; output lines PASS; `VERDICT: VERIFIED`, exit 0 | `Offline check: signatures, preimage, approvals, audit chain` | 21-22 |
+| S15 | 2:30–2:40 | T | Show the one-character edit (memo "30000" to "30001", diff highlight), re-run the verifier: `VERDICT: REJECTED`, exit 1 (the issuer signature check fails) | `One character changed: REJECTED` | 23 |
 | S16 | 2:40–3:00 | Slide | Two columns: "Next (plans)": wallet adapters, mobile approvals, 20 interviews. "Limits today": regtest only; app-level enforcement; tamper-evident log. Footer: repo URL placeholder `[REPO URL]`, "Working title: Orynt". End card, no music sting | `Working title. Not a launched product` | 24-26 |
 
 Do not add background music with unclear licensing. If music is used, use a track you own or one with a licence you can cite; otherwise none.
@@ -105,7 +105,7 @@ Do not add background music with unclear licensing. If music is used, use a trac
 - Browser (Variant W): Chrome or Firefox at 1920x1080, zoom 110-125%, no extensions, private window, bookmarks bar off, console language English.
 - Theme: pick one for the whole video. Light uses the brand "paper" background `#f6f4ee` with ink text `#0f1b2d`; dark uses ink `#0f1b2d` background. Check contrast at least 4.5:1 for body text. State colours follow `packages/ui/tokens.css`: uncertain = indigo `#3a47a8`, proven failure = red, settled = green, simulator = purple (`--sim`). Never show UNKNOWN in red.
 - Cards/slides: Inter for text and Fraunces for titles (from `@fontsource-variable/inter`, `@fontsource-variable/fraunces`), brand assets in `packages/ui/brand/`.
-- Run the demo from a clean state twice before recording; record the second run. Keep the `docs/evidence/<timestamp>/transcript.txt` of the exact run you film.
+- Run `pnpm demo:full` twice before recording and film the second run. Keep the generated `docs/evidence/demo-real-regtest-<stamp>.md` and `.json` and receipts of the exact run you film.
 
 **Voice-over.** Record separately (any decent USB or headset mic, quiet room), 48 kHz mono WAV, read the 26 lines above, leave about 0.3 s between lines. Normalise (not verified on your ffmpeg build):
 
@@ -134,22 +134,23 @@ Prefer uploading `captions.en.srt` as a sidecar track where the host supports it
 
 ## 5. Pre-flight checklist (tick when true)
 
-- [ ] `pnpm demo:full` passed twice; transcript saved under `docs/evidence/`
+- [ ] `pnpm demo:full` passed twice; evidence files saved under `docs/evidence/`
 - [ ] Badge text correct for the cut (REGTEST vs SIMULATOR)
 - [ ] No secrets, real names or balances on screen; terminal scrollback cleared
 - [ ] Every VO line still matches what the screen shows
 - [ ] Duration at or below 3:00; captions in sync; audio levels sane
 - [ ] Link opens logged-out; description repeats the disclosure and says "working title"
 
-## 6. Main-cut evidence status
+## 6. Main-cut evidence status (2026-11-09)
 
 | Shot group | Needs | Status today |
 |---|---|---|
 | S01-S03 | Slides only | Can be made now; UNRENDERED |
-| S04-S07 | Authorization against a real LND connection (or console) | `PENDING-REAL`; the logic is `SIM-TESTED` |
-| S08-S09 | Real LND payment + bob invoice lookup | `PENDING-REAL`; to be verified by running `scripts/demo-full` on the owner's machine |
-| S10-S13 | Failpoint over a real payment | `PENDING-REAL` |
-| S14-S15 | Real receipt + verifier via `tsx` | Verifier works today on simulator receipts; real receipt `PENDING-REAL` |
+| S04-S05, S07 | `demo-full` real workspace/payout lines, or the console | Logic `SIM-TESTED`; real-mode run `PENDING-REAL` |
+| S06 | Labelled simulator/test inset | Available now (tests pass) |
+| S08-S09 | Real LND payment + bob invoice lookup (scenario A) | `PENDING-REAL`; to be verified by running `scripts/demo-full` on the owner's machine |
+| S10-S13 | Failpoint over a real payment (scenario B) | `PENDING-REAL` |
+| S14-S15 | Real receipt + built verifier | Verifier works today on simulator receipts (exit 4 / exit 1); real receipt `PENDING-REAL` |
 | S16 | Slide | Can be made now |
 
 ## 7. Fallback plan: if the real regtest run is unavailable
@@ -157,12 +158,9 @@ Prefer uploading `captions.en.srt` as a sidecar track where the host supports it
 Decision date 2026-11-16 (gate G4). The fallback cut is a different video, not an edit of the main cut, and it must say so.
 
 **What to film.**
-- Path A of `demo-runbook.md`: run these in the terminal (they exist and pass today):
-  - `pnpm --filter @orynt/api test:integration -t "create → submit → approve → execute"` (happy path, receipt `VERIFIED_SIMULATED`)
-  - `pnpm --filter @orynt/api test:integration -t "operators, viewers, API keys and the maker cannot approve"`
-  - `pnpm --filter @orynt/api test:integration -t "response lost AFTER the wallet accepted"`
-  - then verify a simulator receipt with and without `--require-real` (verdicts `VERIFIED_SIMULATED` and `REJECTED`). The receipt must first be exported to a file; a small export script is **to be added** (or capture one from the API after a manual run).
-- If the console works against the simulator, film it instead (start the API with `ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 ORYNT_ENV=development`, which loads the uncommitted simulator seed with an UNKNOWN payout ready; verify it first): its simulator labels are part of the product (`is_simulator` on connections; receipts say "SIMULATOR - no real value moved").
+- Primary fallback: `pnpm demo:full:sim` in the terminal (verified end to end on 2026-11-09; evidence `docs/evidence/demo-simulator-2026-11-09T15-28-43-507Z.md`). It shows the whole story on the labelled simulator: payout settled as `SIMULATED_SETTLED`, lost response then HTTP 202 `UNKNOWN`, duplicate refused, reconcile, receipts with verifier exit 4 `VERIFIED_SIMULATED`, one changed character exit 1, replay rejected. Scenario C (kill) is skipped in this mode.
+- Insets from existing tests (they pass today): `pnpm --filter @orynt/api test:integration -t "operators, viewers, API keys and the maker cannot approve"` and `-t "20 concurrent execute requests"`.
+- The console on the seeded simulator workspace: `pnpm db:start && pnpm build:all && ORYNT_ENV=development ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start`, then `http://127.0.0.1:8787/app/` (sign in `demo-owner@orynt.local` / `demo-password-123`). Its simulator labels are part of the product (`is_simulator` on connections; receipts say "SIMULATOR - no real value moved"). Screenshots already exist in `docs/evidence/screenshots/`.
 
 **Mandatory changes.**
 - Badge for the whole video: `SIMULATOR - NO REAL PAYMENT`. First frame after the problem section: card "This run uses a labelled wallet simulator. No Bitcoin network. No real or test coins moved."
@@ -178,12 +176,12 @@ Decision date 2026-11-16 (gate G4). The fallback cut is a different video, not a
 | 15 | Orynt checks the preimage hashes to the invoice. The state is simulated-settled, never settled. |
 | 16 | A real Lightning adapter exists in the code, but it has not yet been run against a node. |
 | 17 | Now the failure that causes double payments. The simulator accepts the payment, then drops the response. |
-| 22 | A standalone command checks it offline. The verdict is verified-simulated, and a require-real check rejects it. |
+| 22 | A standalone command checks it offline. The verdict is verified-simulated: not a real payment. |
 
 Partial-real option: if only the real payment works but not the failpoint stage, film the real payment (S08-S09, S14) and cover the uncertain-response story with a clearly labelled simulator segment, with the badge switching to `SIMULATOR` for that segment.
 
 ## 8. Subtitle files
 
-- `captions.en.srt`: main cut, 37 blocks, ends 2:59.5.
+- `captions.en.srt`: main cut, 37 blocks, ends 2:59.5 (regenerated after the 2026-11-09 reconciliation: cues 9-11 now match `demo-full`).
 - `captions.fallback-sim.en.srt`: fallback cut, 39 blocks, same timing.
 - Both were generated from the cue lists above, not from a recording. Timings are estimates from word counts. Re-time after the voice-over exists.

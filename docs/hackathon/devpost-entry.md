@@ -1,7 +1,7 @@
 # Orynt: Devpost entry (ready-to-paste fields)
 
 Status: draft source — video/deck unrendered; real-regtest evidence pending. **Devpost status: NOT SUBMITTED.** Nothing in this file claims a live URL, a recorded video, users, customers or real-network results.
-Written 2026-11-09. Field names follow the usual Devpost project form; check them against the real form when you open it (the form could not be retrieved while signed out).
+Reconciled 2026-11-09 with the committed branch (HEAD `78990af`; authoritative status in `docs/EXECUTION-REGISTER.md`). Field names follow the usual Devpost project form; check them against the real form when you open it (the form could not be retrieved while signed out).
 
 ## 0. How to use this file
 
@@ -41,13 +41,13 @@ Orynt is an authorization-to-settlement layer in front of a Lightning wallet you
 4. **Truthful state.** If the wallet's answer is lost, the payout becomes UNKNOWN, never FAILED, and a second send is refused until the wallet's own record (looked up by payment hash) says what happened. An expired invoice is not treated as proof of failure.
 5. **Evidence.** A signed receipt binds the agreement, the signed approvals, the payment preimage (sha256(preimage) = payment hash) and a hash-chained audit segment. A standalone command, `orynt-verify`, checks it offline and rejects tampered, forged, replayed or stale receipts. Simulator receipts are labelled and are rejected by `--require-real`.
 
-[A] Demo: on a local Bitcoin regtest network, the demo script pays a 150,000-sat invoice from one LND node to another through two signed approvals, then injects a fault so the response is lost after the payment succeeded; Orynt shows UNKNOWN, refuses the duplicate, reconciles from the node's record and issues a receipt that verifies; changing one character makes it fail. `[PLACEHOLDER: link to docs/evidence/<timestamp>/ with the transcript and receipt]`
+[A] Demo: on a local Bitcoin regtest network, `pnpm demo:full` pays 30,000-sat invoices from one LND node to another with a signed approval by someone other than the payout's author, injects a fault so the response is lost after a payment succeeded (Orynt shows UNKNOWN, refuses the duplicate, reconciles from the node's own record), kills the API process right after LND accepted a payment and recovers without a second send, then issues receipts that verify; changing one character makes the verifier reject. `[PLACEHOLDER: link to docs/evidence/demo-real-regtest-<stamp>.md and the receipts; fill only after the run exists]`
 
-[B] Demo: because the real-node run was not completed in time, the demo uses a labelled wallet simulator on real PostgreSQL. The LND adapter is implemented but has not been run against a node. Receipts from this run are labelled SIMULATOR and verify only as "verified-simulated".
+[B] Demo: because the real-node run was not completed in time, the demo (`pnpm demo:full:sim`, evidence in `docs/evidence/demo-simulator-*.md`) uses a labelled wallet simulator on real PostgreSQL. The LND adapter is implemented but has not been run against a node. Receipts from this run are labelled SIMULATOR and verify only as "verified-simulated".
 
 ### How we built it
 
-TypeScript monorepo (pnpm workspaces, Node 22). `packages/core` holds the domain model: integer-only amounts, a BOLT11 decoder/encoder checked against the BOLT 11 spec vectors, canonical JSON hashing, the state machine, the approval policy, intent digests, the audit hash chain and the receipt schema. `packages/wallets` defines the wallet provider contract with an LND REST adapter and a labelled simulator. `packages/verifier` is the standalone receipt verifier. `apps/api` is a Fastify service on PostgreSQL with contract-first routes (Zod schemas generate the OpenAPI 3.1 document and a typed SDK), idempotency keys, signed webhooks, a reconciler with leases and backoff, and crash-recovery sweeps. State transitions are validated in code and by compare-and-set updates in the database; a partial unique index allows only one open attempt per payment. A deterministic fault-injection facility ("failpoints") drives the lost-response demo and the adversarial tests. [In progress] A React web console for operators and approvers.
+TypeScript monorepo (pnpm workspaces, Node 22). `packages/core` holds the domain model: integer-only amounts, a BOLT11 decoder/encoder checked against the BOLT 11 spec vectors, canonical JSON hashing, the state machine, the approval policy, intent digests, the audit hash chain and the receipt schema. `packages/wallets` defines the wallet provider contract with an LND REST adapter and a labelled simulator. `packages/verifier` is the standalone receipt verifier. `apps/api` is a Fastify service on PostgreSQL with contract-first routes (Zod schemas generate the OpenAPI 3.1 document and a typed SDK), idempotency keys, signed webhooks, a reconciler with leases and backoff, and crash-recovery sweeps. State transitions are validated in code and by compare-and-set updates in the database; a partial unique index allows only one open attempt per payment. A deterministic fault-injection facility ("failpoints") drives the lost-response demo and the adversarial tests. A React operations console (served by the API at `/app/`, English with an unreviewed French table; automated browser checks 100/100 at 375, 768 and 1440 px on the simulator) and a static marketing site.
 
 ### Challenges we ran into
 
@@ -58,7 +58,7 @@ TypeScript monorepo (pnpm workspaces, Node 22). `packages/core` holds the domain
 
 ### Accomplishments that we're proud of
 
-- 41 integration tests on real PostgreSQL (simulator wallet), including adversarial cases: concurrent duplicate execution, crash between reservation and dispatch, an unreachable node during reconciliation, destination substitution, approval replay, and tenant isolation. (Counts from a run on 2026-11-09.)
+- 55 integration tests passing on real PostgreSQL with the simulator wallet (8 more real-Lightning tests exist and are skipped until a regtest node runs), including adversarial cases: concurrent duplicate execution, crash between reservation and dispatch, an unreachable node during reconciliation, destination substitution, approval replay, tenant isolation, and 13 regression tests for findings of an independent AI security review. Unit tests: core 24, verifier 26, contract 1. A load check of 100 payouts with 3 concurrent executes each produced 100 sends, 200 refusals, 0 doubles (single machine, not a capacity claim). A backup-restore rehearsal passed. (`docs/EXECUTION-REGISTER.md`, 2026-11-09.)
 - A verifier test that mutates the serialized receipt at about 400 positions and requires zero acceptances.
 - Honest limits are written into every receipt (`limitations` array), not hidden in documentation.
 - [A] A real payment, a real uncertain-response recovery and a real receipt on regtest, with transcript and receipt in the repository. `[PLACEHOLDER: confirm after running scripts/demo-full]`
@@ -72,14 +72,14 @@ TypeScript monorepo (pnpm workspaces, Node 22). `packages/core` holds the domain
 
 - Run the real-wallet path end to end and keep the transcript in the repo.
 - Talk to Bitcoin-native organisations, including at least four based in Africa, using the interview guide in `docs/business/interview-guide.md`; stop if the pain turns out to be rare (the falsification plan is in `docs/research/differentiation-review.md`).
-- More wallet adapters (for example Nostr Wallet Connect), LNURL/Lightning-address payees, hardware- or passkey-backed approval keys, mobile-first approval screens, a threat-model document and an external security review.
+- More wallet adapters (for example Nostr Wallet Connect), LNURL/Lightning-address payees, hardware- or passkey-backed approval keys, mobile-first approval screens, a human security review (the existing threat model rests on one independent AI review).
 - Legal review in target jurisdictions before any pilot with real funds; none has been done.
 
 ## 5. Built with (only technologies actually in the repository)
 
-TypeScript, Node.js 22, pnpm workspaces, Fastify 5 (`@fastify/cookie`, `@fastify/rate-limit`), PostgreSQL 16 (node-postgres), Zod 4, OpenAPI 3.1 (generated from the Zod contract), `@noble/curves`, `@noble/hashes`, `@scure/base` (Ed25519, SHA-256, bech32), BOLT11 (own codec), Vitest, esbuild, tsx, ESLint, Prettier, LND REST API (adapter implemented; `[A]` run on regtest / `[B]` not yet run against a node), Bitcoin Core regtest `[A only]`, React 19 + React Router 7 + Vite 8 (web console, in progress), Fontsource Inter / Fraunces / JetBrains Mono.
+TypeScript, Node.js 22, pnpm workspaces, Fastify 5 (`@fastify/cookie`, `@fastify/rate-limit`), PostgreSQL 16 (node-postgres), Zod 4, OpenAPI 3.1 (generated from the Zod contract), `@noble/curves`, `@noble/hashes`, `@scure/base` (Ed25519, SHA-256, bech32), BOLT11 (own codec), Vitest, esbuild, tsx, ESLint, Prettier, LND REST API (adapter implemented; `[A]` run on regtest / `[B]` not yet run against a node), Bitcoin Core regtest `[A only]`, React 19 + React Router 7 + Vite 8 (web console), Playwright and axe-core (browser and accessibility checks), Fontsource Inter / Fraunces / JetBrains Mono.
 
-Do not list: Docker (not used), cloud providers (nothing deployed), any AI product as a "technology" unless you want to (see disclosure below).
+Do not list: Docker (a `Dockerfile` and compose file exist but were never built or run, no daemon was available), Render/Fly (deploy templates exist, never used), cloud providers (nothing deployed), any AI product as a "technology" unless you want to (see disclosure below).
 
 ## 6. Links (fill when real)
 
@@ -135,28 +135,29 @@ Whether this matters to real users is untested. We compared against competitors 
 - **Least privilege:** fail-closed role table; API keys can never approve; operators cannot approve; by default the creator cannot approve their own payout (policy `requireDistinctMaker`).
 - **Secrets:** wallet credentials and webhook secrets are encrypted at rest with AES-256-GCM bound to their row and never returned by the API; production refuses to start without explicit keys.
 - **Inputs:** every route is validated by a Zod schema; amounts are integers; invoices are decoded, checksum- and signature-verified, and bound to network and amount; 256 KiB body limit.
-- **Web security:** CSRF token plus origin allow-list for cookie sessions, scrypt password hashes, lockout, rate limits, 404 (not 403) across tenants, SSRF checks on webhook targets.
+- **Web security:** CSRF token plus origin allow-list for cookie sessions, scrypt password hashes, lockout, rate limits, 404 (not 403) across tenants, SSRF checks on webhook targets and LND URLs, `ORYNT_ENV` mandatory (fails closed); production refuses the simulator, failpoints and the demo seed.
 - **Integrity:** append-only audit table plus hash chain with signed checkpoints; tamper-**evident**, not immutable.
 - **Logs:** credential, cookie and secret fields are redacted in the logger configuration (not covered by a test).
-- **Not done:** threat-model document, external review or penetration test, MFA/SSO, hardware-backed approval keys. The in-progress console keeps the approval key in browser `localStorage`.
+- **Threat model:** `docs/security/threat-model.md` (STRIDE plus the disposition of an independent **AI** code review: 15 findings fixed with regression tests, open items listed). **No human audit or penetration test.**
+- **Open items we state ourselves:** the approval screen signs the server-supplied digest without recomputing it from the displayed terms; the approval key lives in browser `localStorage` (no hardware/passkey backing); a tenant could register a fake LND-compatible server and obtain a "REAL" receipt for a payment it controls on both sides; LND REST behaviour is unverified against a real node; no MFA/SSO.
 - **Mainnet:** disabled by default; the default policy only allows regtest.
 
 ## 11. Limitations (state them plainly)
 
 1. Not a wallet and not a custodian; the entry may not meet the Overview's "wallet implementation" requirement (organisers asked).
 2. Regtest only. No mainnet execution is enabled by default and none was tested.
-3. `[B only]` The real Lightning adapter has not been run against a node. `[A]` It has been run only on a local regtest network.
+3. `[B only]` The real Lightning adapter has not been run against a node (its 8 acceptance tests are skipped). `[A]` It has been run only on a local regtest network, and its error classification (which errors prove "not sent") rests on documentation until observed.
 4. Approval and limit enforcement is at application level; anyone holding the wallet credential outside Orynt can bypass it.
 5. The audit log is tamper-evident, not immutable; a database administrator with the issuer key could write an alternative history. The receipt says so.
 6. A receipt proves a payment with a given hash settled with a given preimage. It does not prove delivery of work, the payee's real-world identity, absence of other payments, or legal enforceability, and it is not escrow.
 7. BOLT11 invoices only; the BOLT11 decoder is our own code (checked against spec vectors), not a mature library.
-8. No hosted demo, no mobile or low-bandwidth testing, no user research, no reach estimate.
+8. No hosted demo, no manual or low-bandwidth/performance testing and no human usability testing (automated browser and axe checks only), no user research, no reach estimate. Docker and deploy templates are unverified.
 9. "Orynt" is a working title with unresolved trademark risk.
 
 ## 12. Disclosures (put in README and, if there is room, here)
 
-- Built by one person with extensive assistance from an AI coding assistant (Claude Code). Commits carry a `Co-Authored-By` trailer. The organisers' rules do not address AI-assisted development; we disclose it anyway.
-- All repository history is dated 2026-11-09 (inside the submission window). `[PLACEHOLDER: owner to add any earlier work or design notes honestly]`.
+- Built by one person with extensive assistance from an AI coding assistant (Claude Code). Commits carry a `Co-Authored-By` trailer. The organisers' rules do not address AI-assisted development; we disclose it anyway. The security review was performed by a separate AI agent, and the threat model states the code has not been reviewed line by line by a human.
+- All repository history (15 commits) is dated 2026-11-09 (inside the submission window). `[PLACEHOLDER: owner to add any earlier work or design notes honestly]`.
 - Licence: Apache-2.0 (`LICENSE`). `[owner to confirm]`.
 - Entry is submitted as an individual, not under a company name. `[owner to confirm]`.
 

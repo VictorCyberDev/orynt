@@ -52,22 +52,22 @@ amount, node and expiry.
 
 12
 00:00:47,000 --> 00:00:54,000
-At 150,000 sats this needs two approvers under
-the workspace policy.
+The default policy needs one approver for
+30,000 sats, and two above 100,000.
 
 13
 00:00:54,000 --> 00:01:00,000
-The maker tries to approve it themselves.
+The maker cannot approve their own payout.
 Refused.
 
 14
-00:01:00,000 --> 00:01:04,858
-Two approvers each sign the exact payment with
+00:01:00,000 --> 00:01:04,755
+The approver signs the exact payment with
 their own key.
 
 15
-00:01:04,858 --> 00:01:09,000
-Change any field and those signatures stop
+00:01:04,755 --> 00:01:09,000
+Change any field and the signature stops
 matching.
 
 16
@@ -144,13 +144,13 @@ the approvals, the preimage and the audit
 chain.
 
 32
-00:02:22,000 --> 00:02:24,836
+00:02:22,000 --> 00:02:25,355
 A standalone command checks it offline.
 
 33
-00:02:24,836 --> 00:02:30,000
-The verdict is verified-simulated, and a
-require-real check rejects it.
+00:02:25,355 --> 00:02:30,000
+The verdict is verified-simulated: not a real
+payment.
 
 34
 00:02:30,000 --> 00:02:40,000
