@@ -1,6 +1,10 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
+import fastifyStatic from "@fastify/static";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import rateLimit from "@fastify/rate-limit";
 import { ZodError } from "zod";
 import { OryntError, canonicalize, hasPermission, hmacSha256Hex, publicKeyFromPrivate, type Problem, type ProblemCode } from "@orynt/core";
@@ -73,7 +77,20 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     if (e.code === "23505") return problem(reply, req, 409, "conflict", "That conflicts with existing data.");
     return problem(reply, req, 500, "internal", "Something went wrong on our side. Nothing was changed unless the response says so.");
   });
-  app.setNotFoundHandler((req, reply) => problem(reply, req, 404, "not_found", "No such endpoint."));
+  // ---- static front ends (built by `pnpm build`): the marketing site at / and the app at /app/ ------------------------------
+  const here = dirname(fileURLToPath(import.meta.url));
+  const webDist = process.env["ORYNT_WEB_DIST"] ?? join(here, "../../../web/dist");
+  const siteDist = process.env["ORYNT_SITE_DIST"] ?? join(here, "../../../site/dist");
+  const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  app.addHook("onSend", async (_req, reply) => { if (String(reply.getHeader("content-type") ?? "").startsWith("text/html")) { reply.header("content-security-policy", CSP); reply.header("x-frame-options", "DENY"); } });
+  const hasWeb = existsSync(join(webDist, "index.html")), hasSite = existsSync(join(siteDist, "index.html"));
+  if (hasSite) await app.register(fastifyStatic, { root: siteDist, prefix: "/", decorateReply: false, cacheControl: false, setHeaders: (res) => { res.header("cache-control", "public, max-age=300"); } });
+  if (hasWeb) await app.register(fastifyStatic, { root: webDist, prefix: "/app/", decorateReply: false, wildcard: false, setHeaders: (res, p) => { res.header("cache-control", p.includes("/assets/") ? "public, max-age=31536000, immutable" : "no-cache"); } });
+  app.setNotFoundHandler((req, reply) => {
+    const path = req.url.split("?")[0] ?? "";
+    if (hasWeb && req.method === "GET" && path.startsWith("/app") && !path.startsWith("/app/assets/") && String(req.headers.accept ?? "").includes("text/html")) return reply.type("text/html").header("cache-control", "no-cache").send(readFileSync(join(webDist, "index.html")));
+    return problem(reply, req, 404, "not_found", "No such endpoint.");
+  });
 
   // ---- contract-driven routes ---------------------------------------------------------------------------------------
   const setSession = (reply: FastifyReply, token: string) => reply.setCookie("orynt_session", token, { httpOnly: true, sameSite: "lax", path: "/", secure: config.cookieSecure, maxAge: 12 * 3600 });

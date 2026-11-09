@@ -1,0 +1,42 @@
+<svg viewBox="0 0 340 770" role="img" aria-labelledby="sn-t sn-d" xmlns="http://www.w3.org/2000/svg">
+<title id="sn-t">Payment states over time: unknown is indigo, not red</title>
+<desc id="sn-d">A vertical timeline of payment states. Draft, awaiting approval, approved and execution reserved happen before any money moves. Then dispatching and pending, ending in settled in green. If the wallet’s answer is lost or unclear, the payment enters unknown, shown in indigo, then reconciling. It ends as settled when the wallet’s record says paid, or as definitively failed in red only when the record proves it failed. While unknown or reconciling, a second send is refused.</desc>
+<defs><marker id="sna" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead"/></marker><marker id="snu" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead--unknown"/></marker><marker id="sno" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead--ok"/></marker><marker id="snd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="arrowhead--danger"/></marker></defs>
+<line class="edge" x1="40" y1="40" x2="40" y2="350"/>
+<line class="edge" x1="40" y1="350" x2="40" y2="400" marker-end="url(#sna)"/>
+<circle class="node" cx="40" cy="40" r="10"/>
+<text class="svg-text" x="66" y="46" font-size="17">Draft</text>
+<circle class="node" cx="40" cy="100" r="10"/>
+<text class="svg-text" x="66" y="106" font-size="17">Awaiting approval</text>
+<circle class="node" cx="40" cy="160" r="10"/>
+<text class="svg-text" x="66" y="166" font-size="17">Approved</text>
+<circle class="node" cx="40" cy="220" r="10"/>
+<text class="svg-text" x="66" y="226" font-size="17">Execution reserved</text>
+<circle class="node" cx="40" cy="280" r="10"/>
+<text class="svg-text" x="66" y="286" font-size="17">Dispatching</text>
+<circle class="node" cx="40" cy="340" r="10"/>
+<text class="svg-text" x="66" y="346" font-size="17">Pending</text>
+<text class="svg-text svg-muted" x="66" y="248" font-size="14">No money has moved before this point:</text>
+<text class="svg-text svg-muted" x="66" y="266" font-size="14">revise, reject or cancel.</text>
+<rect class="node node--ok" x="20" y="404" width="130" height="44" rx="10"/>
+<text class="svg-text t-ok svg-strong" x="85" y="432" font-size="19" text-anchor="middle">Settled</text>
+<rect class="band-unknown" x="8" y="480" width="324" height="282" rx="16"/>
+<text class="svg-text t-unknown svg-strong" x="24" y="510" font-size="16">If the wallet’s answer is lost</text>
+<text class="svg-text t-unknown svg-strong" x="24" y="530" font-size="16">or unclear</text>
+<path class="edge edge--unknown" d="M190 280 H304 V570 H176" marker-end="url(#snu)"/>
+<text class="svg-text t-unknown" x="204" y="266" font-size="15">answer lost</text>
+<rect class="node node--unknown" x="30" y="548" width="144" height="50" rx="10"/>
+<text class="svg-text t-unknown svg-strong" x="102" y="579" font-size="20" text-anchor="middle">Unknown</text>
+<line class="edge edge--unknown" x1="102" y1="598" x2="102" y2="632" marker-end="url(#snu)"/>
+<rect class="node node--unknown-soft" x="30" y="636" width="144" height="50" rx="10"/>
+<text class="svg-text t-unknown svg-strong" x="102" y="667" font-size="20" text-anchor="middle">Reconciling</text>
+<path class="edge edge--ok" d="M80 686 L76 708" marker-end="url(#sno)"/>
+<path class="edge edge--danger" d="M150 686 C 150 700, 230 696, 230 708" marker-end="url(#snd)"/>
+<rect class="node node--ok" x="22" y="708" width="108" height="44" rx="10"/>
+<text class="svg-text t-ok svg-strong" x="76" y="736" font-size="17" text-anchor="middle">Settled</text>
+<rect class="node node--danger" x="160" y="708" width="160" height="44" rx="10"/>
+<text class="svg-text t-danger svg-strong" x="240" y="728" font-size="15" text-anchor="middle">Definitively</text>
+<text class="svg-text t-danger svg-strong" x="240" y="744" font-size="15" text-anchor="middle">failed</text>
+<text class="svg-text" x="200" y="622" font-size="14">Second send is</text>
+<text class="svg-text" x="200" y="640" font-size="14">refused here.</text>
+</svg>

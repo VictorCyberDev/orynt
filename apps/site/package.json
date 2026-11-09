@@ -1,0 +1,21 @@
+{
+  "name": "@orynt/site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "description": "Orynt public marketing site: static HTML + CSS + tiny vanilla JS, built by a plain Node script",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "node --check build.mjs",
+    "serve": "node scripts/serve.mjs",
+    "check:links": "node scripts/check-links.mjs",
+    "check:claims": "node scripts/verify-claims.mjs",
+    "check:a11y": "node scripts/a11y.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
+    "verify": "node build.mjs && node scripts/verify-claims.mjs && node scripts/check-links.mjs && node scripts/a11y.mjs"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.0"
+  }
+}

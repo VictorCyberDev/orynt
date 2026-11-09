@@ -1,0 +1,176 @@
+1
+00:00:00,000 --> 00:00:05,000
+African Bitcoin businesses and communities pay
+contractors and contributors in sats.
+
+2
+00:00:05,000 --> 00:00:07,090
+The approval is a chat message.
+
+3
+00:00:07,090 --> 00:00:11,000
+The payment is a wallet screen. The proof is a
+screenshot.
+
+4
+00:00:11,000 --> 00:00:17,000
+When the wallet's answer is lost mid-payment,
+nobody knows whether the money moved.
+
+5
+00:00:17,000 --> 00:00:22,000
+So people retry and pay twice, or wait and
+leave someone unpaid.
+
+6
+00:00:22,000 --> 00:00:28,000
+Orynt sits in front of a wallet you already
+run. It never holds your funds.
+
+7
+00:00:28,000 --> 00:00:34,000
+It decides who may pay, makes sure a payment
+is sent once, and keeps the proof.
+
+8
+00:00:34,000 --> 00:00:37,388
+Everything you will see runs on Bitcoin
+regtest.
+
+9
+00:00:37,388 --> 00:00:40,000
+These are test coins, not real money.
+
+10
+00:00:40,000 --> 00:00:42,333
+A maker enters a payout for Bob.
+
+11
+00:00:42,333 --> 00:00:47,000
+Orynt decodes his invoice and binds the
+amount, node and expiry.
+
+12
+00:00:47,000 --> 00:00:54,000
+At 150,000 sats this needs two approvers under
+the workspace policy.
+
+13
+00:00:54,000 --> 00:01:00,000
+The maker tries to approve it themselves.
+Refused.
+
+14
+00:01:00,000 --> 00:01:04,858
+Two approvers each sign the exact payment with
+their own key.
+
+15
+00:01:04,858 --> 00:01:09,000
+Change any field and those signatures stop
+matching.
+
+16
+00:01:09,000 --> 00:01:15,000
+Roles are checked again at execution, not just
+at approval.
+
+17
+00:01:15,000 --> 00:01:19,571
+Execute. Orynt first reserves a single-use
+intent in PostgreSQL,
+
+18
+00:01:19,571 --> 00:01:22,000
+then asks Alice's LND node to pay.
+
+19
+00:01:22,000 --> 00:01:31,000
+The node routes the payment over a regtest
+channel and returns the preimage.
+
+20
+00:01:31,000 --> 00:01:35,414
+Orynt checks the preimage hashes to the
+invoice,
+
+21
+00:01:35,414 --> 00:01:39,000
+and only then marks the payout settled.
+
+22
+00:01:39,000 --> 00:01:45,000
+Bob's node independently shows the invoice as
+paid.
+
+23
+00:01:45,000 --> 00:01:49,131
+Now the failure that causes double payments.
+We inject a fault:
+
+24
+00:01:49,131 --> 00:01:53,000
+the response is lost after the wallet accepted
+the payment.
+
+25
+00:01:53,000 --> 00:02:00,000
+Orynt does not call it failed. The state is
+unknown, and sending again is blocked.
+
+26
+00:02:00,000 --> 00:02:07,000
+Someone presses execute again. Refused: the
+first attempt may already have paid.
+
+27
+00:02:07,000 --> 00:02:12,443
+Reconciliation asks the wallet for its own
+record by payment hash.
+
+28
+00:02:12,443 --> 00:02:15,000
+Settled. One send, one payment.
+
+29
+00:02:15,000 --> 00:02:18,387
+Orynt issues a signed receipt: the agreement,
+
+30
+00:02:18,387 --> 00:02:22,000
+the approvals, the preimage and the audit
+chain.
+
+31
+00:02:22,000 --> 00:02:30,000
+A standalone command checks it offline,
+without contacting Orynt. Verified.
+
+32
+00:02:30,000 --> 00:02:40,000
+Now we change a single character of the
+receipt. Rejected.
+
+33
+00:02:40,000 --> 00:02:43,213
+Next: more wallet adapters, mobile-first
+approvals,
+
+34
+00:02:43,213 --> 00:02:48,000
+and interviews with African Bitcoin teams to
+test whether this pain is real.
+
+35
+00:02:48,000 --> 00:02:51,593
+Limits today: regtest only, application-level
+enforcement,
+
+36
+00:02:51,593 --> 00:02:55,000
+and an audit log that is tamper-evident, not
+immutable.
+
+37
+00:02:55,000 --> 00:02:59,500
+Orynt. Every payment, under control.

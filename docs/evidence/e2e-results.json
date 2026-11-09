@@ -1,0 +1,508 @@
+{
+  "ran_at": "2026-11-09T15:13:11.185Z",
+  "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
+  "total": 100,
+  "failed": 0,
+  "results": [
+    {
+      "name": "signed-out visitors are redirected to sign-in",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approvals queue lists payouts waiting for me",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approval dialog shows exact terms before signing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "approver created a browser key and signed an approval through the UI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sending settles on the practice wallet and says SIMULATED (never 'Settled')",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "a second send is impossible after settlement (no Send action offered)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "receipt downloads as JSON with the simulator label",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "in-browser verifier: simulated receipt → VERIFIED SIMULATED",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "in-browser verifier rejects a receipt changed by one character",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "UNKNOWN payout: the panel states what is known / not known",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "UNKNOWN payout: Send is present but DISABLED, and the reason is written out in words",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "UNKNOWN is not styled or worded as failure",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "checking the wallet's record resolves the uncertain payment from evidence",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "wizard flags an invalid invoice in plain words",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "wizard decodes and shows amount/network/payee from the invoice itself",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "wizard creates and submits a payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /payouts",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /approvals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /wallets",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /team",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /activity",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /developers",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /settings",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /guide",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /payout-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /new-payout",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
