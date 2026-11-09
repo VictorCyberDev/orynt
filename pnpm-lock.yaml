@@ -54,7 +54,11 @@ importers:
 
   packages/verifier: {}
 
-  packages/wallets: {}
+  packages/wallets:
+    dependencies:
+      '@orynt/core':
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 

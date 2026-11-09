@@ -13,5 +13,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@orynt/core": "workspace:*"
   }
 }

@@ -49,3 +49,29 @@ describe("bolt11 decoder against BOLT 11 spec vectors", () => {
     expect(() => decodeInvoice("bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq")).toThrow(Bolt11Error);
   });
 });
+
+import { encodeInvoice, nodePubkeyFromPrivate } from "../src/bolt11-encode";
+import { sha256Hex } from "../src/crypto";
+
+describe("bolt11 encoder round-trips through the independent decoder", () => {
+  const priv = "e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734";
+  it("reproduces the spec payee key and round-trips fields", () => {
+    expect(nodePubkeyFromPrivate(priv)).toBe(PAYEE);
+    const preimage = "07".repeat(32);
+    const inv = encodeInvoice({
+      network: "regtest", amountMsat: 123_456n, paymentHashHex: sha256Hex(Buffer.from(preimage, "hex")),
+      paymentSecretHex: "11".repeat(32), description: "invoice #42 — café", timestamp: 1_800_000_000, expirySeconds: 600, privateKeyHex: priv,
+    });
+    const d = decodeInvoice(inv);
+    expect(d).toMatchObject({ network: "regtest", amountMsat: 123_456n, timestamp: 1_800_000_000, expirySeconds: 600, payeePubkey: PAYEE });
+    expect(d.description).toBe("invoice #42 — café");
+    expect(d.paymentHash).toBe(sha256Hex(Buffer.from(preimage, "hex")));
+  });
+  it("encodes amounts exactly across units", () => {
+    for (const amt of [1n, 10n, 1000n, 1_000_000n, 123_456_789n, 100_000_000_000n, 2_100_000_000_000_000_000n]) {
+      const d = decodeInvoice(encodeInvoice({ network: "regtest", amountMsat: amt, paymentHashHex: "ab".repeat(32), timestamp: 1_800_000_000, privateKeyHex: priv }));
+      expect(d.amountMsat).toBe(amt);
+    }
+    expect(decodeInvoice(encodeInvoice({ network: "mainnet", amountMsat: null, paymentHashHex: "ab".repeat(32), timestamp: 1_800_000_000, privateKeyHex: priv })).amountMsat).toBeNull();
+  });
+});

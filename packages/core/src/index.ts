@@ -9,3 +9,4 @@ export * from "./intent";
 export * from "./audit-chain";
 export * from "./problems";
 export * from "./receipt";
+export * from "./bolt11-encode";
