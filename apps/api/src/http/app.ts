@@ -3,7 +3,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import cookie from "@fastify/cookie";
 import fastifyStatic from "@fastify/static";
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import rateLimit from "@fastify/rate-limit";
 import { ZodError } from "zod";
@@ -60,7 +60,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     try { done(null, JSON.parse(text)); } catch { const err = new Error("Request body is not valid JSON.") as Error & { statusCode: number }; err.statusCode = 400; done(err, undefined); }
   });
   await app.register(cookie);
-  await app.register(rateLimit, { global: true, max: 600, timeWindow: "1 minute", keyGenerator: (req) => (req.headers.authorization?.slice(0, 40) ?? req.ip) });
+  await app.register(rateLimit, { global: true, max: config.rateLimitPerMinute, timeWindow: "1 minute", keyGenerator: (req) => (req.headers.authorization?.slice(0, 40) ?? req.ip) });
 
   app.setSerializerCompiler(() => (data) => JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
   app.addHook("onSend", async (req, reply) => {
@@ -85,8 +85,8 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   });
   // ---- static front ends (built by `pnpm build`): the marketing site at / and the app at /app/ ------------------------------
   const here = dirname(fileURLToPath(import.meta.url));
-  const webDist = process.env["ORYNT_WEB_DIST"] ?? join(here, "../../../web/dist");
-  const siteDist = process.env["ORYNT_SITE_DIST"] ?? join(here, "../../../site/dist");
+  const webDist = resolve(process.env["ORYNT_WEB_DIST"] ?? join(here, "../../../web/dist"));
+  const siteDist = resolve(process.env["ORYNT_SITE_DIST"] ?? join(here, "../../../site/dist"));
   const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
   app.addHook("onSend", async (_req, reply) => { if (String(reply.getHeader("content-type") ?? "").startsWith("text/html")) { reply.header("content-security-policy", CSP); reply.header("x-frame-options", "DENY"); } });
   const hasWeb = existsSync(join(webDist, "index.html")), hasSite = existsSync(join(siteDist, "index.html"));
@@ -94,7 +94,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   if (hasWeb) await app.register(fastifyStatic, { root: webDist, prefix: "/app/", decorateReply: false, wildcard: false, setHeaders: (res, p) => { res.header("cache-control", p.includes("/assets/") ? "public, max-age=31536000, immutable" : "no-cache"); } });
   app.setNotFoundHandler((req, reply) => {
     const path = req.url.split("?")[0] ?? "";
-    if (hasWeb && req.method === "GET" && path.startsWith("/app") && !path.startsWith("/app/assets/") && String(req.headers.accept ?? "").includes("text/html")) return reply.type("text/html").header("cache-control", "no-cache").send(readFileSync(join(webDist, "index.html")));
+    if (hasWeb && req.method === "GET" && path.startsWith("/app") && !path.startsWith("/app/assets/") && !/\.[A-Za-z0-9]{1,6}$/.test(path)) return reply.type("text/html").header("cache-control", "no-cache").send(readFileSync(join(webDist, "index.html")));
     return problem(reply, req, 404, "not_found", "No such endpoint.");
   });
 

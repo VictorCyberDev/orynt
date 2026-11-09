@@ -26,10 +26,17 @@
     "demo:full": "tsx scripts/demo-full.ts",
     "regtest:fetch": "bash infra/regtest/fetch.sh",
     "demo:full:sim": "tsx scripts/demo-full.ts --simulator",
-    "test:real-lightning": "ORYNT_REGTEST_ENV=.regtest/env.json pnpm --filter @orynt/api test:integration -- test/lnd.itest.ts"
+    "test:real-lightning": "ORYNT_REGTEST_ENV=.regtest/env.json pnpm --filter @orynt/api test:integration -- test/lnd.itest.ts",
+    "test:all": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration",
+    "build:all": "pnpm --filter @orynt/verifier build && pnpm --filter @orynt/sdk build && pnpm --filter @orynt/web build && pnpm --filter @orynt/site build && pnpm --filter @orynt/api build",
+    "start": "node apps/api/dist/server.mjs",
+    "openapi": "tsx scripts/export-openapi.ts",
+    "backup": "bash infra/postgres/backup.sh",
+    "restore:rehearsal": "bash infra/postgres/restore-rehearsal.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
+    "@orynt/contract": "workspace:*",
     "@orynt/core": "workspace:*",
     "@orynt/wallets": "workspace:*",
     "@types/node": "^22.0.0",
@@ -47,5 +54,6 @@
     "onlyBuiltDependencies": [
       "esbuild"
     ]
-  }
+  },
+  "type": "module"
 }

@@ -11,6 +11,9 @@ importers:
       '@eslint/js':
         specifier: ^9.0.0
         version: 9.39.5
+      '@orynt/contract':
+        specifier: workspace:*
+        version: link:packages/contract
       '@orynt/core':
         specifier: workspace:*
         version: link:packages/core

@@ -70,10 +70,10 @@ ${section({
   title: "Quickstart: one payout, end to end.",
   intro: "Against a local API on regtest. The wallet connection and approver setup happen in the web app first.",
   body: `<div class="code-stack">
-${codeBlock(snippet("1-create.ts"), { label: "1 · create and submit (TypeScript)" })}
-${codeBlock(snippet("2-approve.ts"), { label: "2 · approve (TypeScript, run as the approver)" })}
-${codeBlock(snippet("3-execute.ts"), { label: "3 · execute once, handle uncertainty (TypeScript)" })}
-${codeBlock(snippet("4-receipt.ts"), { label: "4 · fetch the receipt (TypeScript)" })}
+${codeBlock(snippet("1-create.ts.txt"), { label: "1 · create and submit (TypeScript)" })}
+${codeBlock(snippet("2-approve.ts.txt"), { label: "2 · approve (TypeScript, run as the approver)" })}
+${codeBlock(snippet("3-execute.ts.txt"), { label: "3 · execute once, handle uncertainty (TypeScript)" })}
+${codeBlock(snippet("4-receipt.ts.txt"), { label: "4 · fetch the receipt (TypeScript)" })}
 </div>
 <div class="callout callout--unknown" style="margin-top:32px"><p><strong>The one rule to remember.</strong></p><p>If <code>certain</code> is <code>false</code> (HTTP 202), the payout is <em>Unknown</em>, not failed. Do not execute again. Reconcile or wait. The API refuses a second send anyway, with <code>send_blocked_unresolved</code>.</p></div>`,
 })}
@@ -82,7 +82,7 @@ ${section({
   id: "verify",
   title: "Verify a receipt, offline.",
   intro: "The verifier is a separate program that does not contact Orynt. It rejects tampered, replayed, stale or forged receipts, and tells you what a receipt cannot prove.",
-  body: `<div class="code-stack">${codeBlock(snippet("5-verify.sh"), { lang: "sh", label: "shell" })}</div>
+  body: `<div class="code-stack">${codeBlock(snippet("5-verify.sh.txt"), { lang: "sh", label: "shell" })}</div>
 <p class="small muted" style="margin-top:16px">The verifier lives in ${repoPath("packages/verifier")}. Build it with the command above; no binary is published.</p>`,
 })}
 
@@ -91,7 +91,7 @@ ${section({
   tint: true,
   title: "Webhooks.",
   intro: "Verify every delivery with the raw body. Deliveries are at-least-once, so de-duplicate on the event id.",
-  body: `<div class="code-stack">${codeBlock(snippet("6-webhook.ts"), { label: "TypeScript" })}</div>
+  body: `<div class="code-stack">${codeBlock(snippet("6-webhook.ts.txt"), { label: "TypeScript" })}</div>
 <h3 style="margin:40px 0 16px">Event types</h3>
 ${table({ caption: "Webhook event types", head: ["Event", "When"], rows: events.map(([e, w]) => [`<code>${e}</code>`, w]) })}`,
 })}
@@ -105,7 +105,7 @@ ${section({
     head: ["Method", "Path", "What it does"],
     rows: endpoints.map(([m, p, d]) => [`<code>${m}</code>`, `<code>${esc(p)}</code>`, d]),
   })}
-<div class="code-stack" style="margin-top:32px">${codeBlock(snippet("7-curl.sh"), { lang: "sh", label: "plain HTTP" })}</div>`,
+<div class="code-stack" style="margin-top:32px">${codeBlock(snippet("7-curl.sh.txt"), { lang: "sh", label: "plain HTTP" })}</div>`,
 })}
 
 ${section({

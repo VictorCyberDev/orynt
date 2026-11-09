@@ -1,3 +1,4 @@
+/* global document, window, fetch */
 /* Orynt site: mobile menu + contact form. No dependencies, no tracking, no cookies. */
 (function () {
   "use strict";

@@ -1,0 +1,18 @@
+{
+  "ran_at": "2026-11-09T15:19:29.938Z",
+  "env": "single Node process + local PostgreSQL 16, SIMULATOR wallet (no network latency to a real node)",
+  "payouts": 100,
+  "execute_requests": 300,
+  "concurrency": 30,
+  "wallet_sends": 100,
+  "refused_duplicates": 200,
+  "double_payments": 0,
+  "wall_ms": 1196,
+  "latency_ms": {
+    "p50": 90,
+    "p95": 208,
+    "p99": 220,
+    "max": 228
+  },
+  "caveat": "Not a capacity claim: one machine, simulated wallet, no network."
+}

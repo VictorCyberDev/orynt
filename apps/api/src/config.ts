@@ -17,6 +17,7 @@ export interface Config {
   allowPrivateWebhookTargets: boolean;
   logLevel: string;
   sendTimeoutSeconds: number;
+  rateLimitPerMinute: number;
   reconcileInitialDelaySeconds: number;
 }
 
@@ -48,6 +49,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     allowedOrigins: (e["ORYNT_ALLOWED_ORIGINS"] ?? "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8787").split(",").map((s) => s.trim()).filter(Boolean),
     allowPrivateWebhookTargets: !prod,
     logLevel: e["LOG_LEVEL"] ?? (env === "test" ? "silent" : "info"),
+    rateLimitPerMinute: Number(e["ORYNT_RATE_LIMIT_PER_MIN"] ?? 600),
     sendTimeoutSeconds: Number(e["ORYNT_SEND_TIMEOUT_SECONDS"] ?? 30),
     reconcileInitialDelaySeconds: Number(e["ORYNT_RECONCILE_INITIAL_DELAY_SECONDS"] ?? 10),
   };

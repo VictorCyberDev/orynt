@@ -2,7 +2,7 @@
 //  - every /v1/... path shown exists in packages/contract/src/routes.ts (or is the OpenAPI route in apps/api)
 //  - every webhook event and payment state shown exists in the code; the contact form matches the createLead route
 //  - the TypeScript samples type-check against packages/sdk/src (needs the repo's typescript)
-import { readFileSync, readdirSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
@@ -86,9 +86,9 @@ if (!existsSync(tsc)) problems.push("typescript not found at repo root; cannot t
 else {
   const snip = (n) => readFileSync(join(here, "../src/snippets", n), "utf8");
   const tmp = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "orynt-site-snippets-"));
-  const main = `declare const approverClient: import("@orynt/sdk").OryntClient;\n` + ["1-create.ts", "2-approve.ts", "3-execute.ts", "4-receipt.ts"].map(snip).join("\n") + "\nexport {};\n";
+  const main = `declare const approverClient: import("@orynt/sdk").OryntClient;\n` + ["1-create.ts.txt", "2-approve.ts.txt", "3-execute.ts.txt", "4-receipt.ts.txt"].map(snip).join("\n") + "\nexport {};\n";
   writeFileSync(join(tmp, "quickstart.ts"), main);
-  writeFileSync(join(tmp, "webhook.ts"), snip("6-webhook.ts"));
+  writeFileSync(join(tmp, "webhook.ts"), snip("6-webhook.ts.txt"));
   const sdk = join(repo, "packages/sdk/src/index.ts");
   writeFileSync(join(tmp, "tsconfig.json"), JSON.stringify({
     compilerOptions: { target: "ES2023", module: "ESNext", moduleResolution: "Bundler", lib: ["ES2023", "DOM"], strict: true, noUncheckedIndexedAccess: true, noEmit: true, skipLibCheck: true, types: ["node"], typeRoots: [join(repo, "node_modules/@types")], paths: { "@orynt/sdk": [sdk] } },

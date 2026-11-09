@@ -1,0 +1,21 @@
+# UNVERIFIED template (no Docker daemon in the build environment). Local development only; secrets here are placeholders.
+# Usage: docker compose -f infra/docker-compose.yml up --build
+services:
+  postgres:
+    image: postgres:16
+    environment: { POSTGRES_USER: orynt, POSTGRES_PASSWORD: orynt, POSTGRES_DB: orynt_dev }
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["orynt-pg:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U orynt"], interval: 5s, timeout: 3s, retries: 20 }
+  api:
+    build: { context: .., dockerfile: Dockerfile }
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      DATABASE_URL: postgres://orynt:orynt@postgres:5432/orynt_dev
+      ORYNT_ENV: development            # production requires ORYNT_SECRET_KEY and ORYNT_ISSUER_KEY — see .env.example
+      ORYNT_SEED_DEMO: "1"
+      ORYNT_FAILPOINTS: "1"
+      HOST: 0.0.0.0
+    ports: ["127.0.0.1:8787:8787"]
+volumes: { orynt-pg: {} }
+# Regtest Lightning is NOT included: use `node infra/regtest/up.mjs` on the host (see infra/regtest/README.md).

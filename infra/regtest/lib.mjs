@@ -30,7 +30,7 @@ export function lnd(node) {
   return async (method, path, body, macaroonHex) => new Promise((resolve, reject) => {
     const u = new URL(path, `https://127.0.0.1:${node.restPort}`); const payload = body === undefined ? undefined : JSON.stringify(body);
     const req = https.request({ method, hostname: u.hostname, port: u.port, path: u.pathname + u.search, ca: ca(), headers: { "Grpc-Metadata-macaroon": macaroonHex ?? mac(), ...(payload ? { "content-type": "application/json", "content-length": Buffer.byteLength(payload) } : {}) } }, (res) => {
-      let d = ""; res.on("data", (c) => (d += c)); res.on("end", () => { try { const j = JSON.parse(d || "{}"); (res.statusCode ?? 500) >= 400 ? reject(new Error(`LND ${path} ${res.statusCode}: ${d.slice(0, 300)}`)) : resolve(j); } catch (e) { reject(e); } });
+      let d = ""; res.on("data", (c) => (d += c)); res.on("end", () => { try { const j = JSON.parse(d || "{}"); if ((res.statusCode ?? 500) >= 400) reject(new Error(`LND ${path} ${res.statusCode}: ${d.slice(0, 300)}`)); else resolve(j); } catch (e) { reject(e); } });
     });
     req.on("error", reject); if (payload) req.write(payload); req.end();
   });

@@ -1,0 +1,15 @@
+# UNTESTED template. Review the provider's current free-tier terms before use. Needs owner approval; do not deploy automatically.
+services:
+  - type: web
+    name: orynt-demo
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/ready
+    envVars:
+      - { key: ORYNT_ENV, value: development }       # simulator wallet is refused in production
+      - { key: ORYNT_SEED_DEMO, value: "1" }
+      - { key: ORYNT_SECRET_KEY, generateValue: true }
+      - { key: DATABASE_URL, fromDatabase: { name: orynt-db, property: connectionString } }
+databases:
+  - name: orynt-db
+    plan: free

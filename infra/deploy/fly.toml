@@ -1,0 +1,14 @@
+# UNTESTED template. `fly launch --no-deploy` then review. Needs owner approval.
+app = "orynt-demo-change-me"
+[build]
+  dockerfile = "../../Dockerfile"
+[env]
+  ORYNT_ENV = "development"
+  ORYNT_SEED_DEMO = "1"
+  PORT = "8787"
+[http_service]
+  internal_port = 8787
+  force_https = true
+  [[http_service.checks]]
+    path = "/health/ready"
+    interval = "15s"
