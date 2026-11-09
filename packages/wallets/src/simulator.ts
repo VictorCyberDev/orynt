@@ -17,7 +17,9 @@ export type SimBehavior =
   | "pending_then_succeed" // first lookup: IN_FLIGHT, afterwards SUCCEEDED
   | "accept_then_lose_response" // payment "goes through" but the send call times out (OutcomeUnknown)
   | "not_sent_unreachable"
-  | "error_then_no_record"; // call fails ambiguously and the wallet never created a record
+  | "error_then_no_record" // call fails ambiguously and the wallet never created a record
+  | "fail_insufficient" // terminal failure: not enough channel liquidity
+  | "succeed_bad_preimage"; // a misbehaving wallet: claims success with a preimage that does not match
 
 export class SimulatorProvider implements WalletProvider {
   readonly kind = "simulator" as const;
@@ -27,6 +29,8 @@ export class SimulatorProvider implements WalletProvider {
   private records = new Map<string, PaymentRecord>();
   private lookupCounts = new Map<string, number>();
   sendCalls = 0;
+  /** make lookups throw, to model an unreachable node during reconciliation */
+  failLookups = false;
 
   constructor(private readonly network: Network = "regtest") {}
 
@@ -74,11 +78,22 @@ export class SimulatorProvider implements WalletProvider {
         this.succeed(hash, req.amountMsat);
         throw new OutcomeUnknownError("simulator: connection reset after the wallet accepted the payment");
       case "not_sent_unreachable": throw new NotSentError("simulator: wallet unreachable");
+      case "fail_insufficient": {
+        const rec: PaymentRecord = { status: "FAILED", paymentHash: hash, failureReason: "FAILURE_REASON_INSUFFICIENT_BALANCE", observedAt: new Date().toISOString() };
+        this.records.set(hash, rec);
+        return rec;
+      }
+      case "succeed_bad_preimage": {
+        const rec: PaymentRecord = { status: "SUCCEEDED", paymentHash: hash, preimage: "ff".repeat(32), amountMsat: req.amountMsat, feeMsat: 0n, settledAt: new Date().toISOString(), observedAt: new Date().toISOString() };
+        this.records.set(hash, rec);
+        return rec;
+      }
       case "error_then_no_record": throw new OutcomeUnknownError("simulator: ambiguous error, no record was created");
     }
   }
 
   async lookupPayment(hash: string): Promise<PaymentRecord> {
+    if (this.failLookups) throw new OutcomeUnknownError("simulator: node unreachable");
     const n = (this.lookupCounts.get(hash) ?? 0) + 1;
     this.lookupCounts.set(hash, n);
     const rec = this.records.get(hash);

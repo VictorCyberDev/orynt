@@ -31,6 +31,7 @@ async function gate(tx: Tx, d: Deps, ctx: Ctx, o: Record<string, any>, rev: Reco
   if (conn.provider_kind === "simulator" && d.config.env === "production") throw new OryntError("wallet_unavailable", 409, "The simulator cannot be used in production.");
   const caps = (await tx.query("SELECT * FROM provider_capabilities WHERE wallet_connection_id=$1 ORDER BY discovered_at DESC LIMIT 1", [conn.id])).rows[0];
   if (!caps || caps.can_send === "false") throw new OryntError("wallet_insufficient_permissions", 409, "This wallet connection is not allowed to send payments.");
+  if (Date.now() - new Date(caps.discovered_at).getTime() > 24 * 3600 * 1000) throw new OryntError("wallet_unavailable", 409, "This wallet's permissions were last checked more than 24 hours ago. Re-check the connection before sending.");
   const b = await bindingFor(tx, o, rev);
   if (!b) throw new OryntError("approval_invalid", 409, "Payout has no bound policy.");
   const active = (await tx.query("SELECT id FROM approval_policies WHERE org_id=$1 AND active", [ctx.orgId])).rows[0];
@@ -72,7 +73,8 @@ export async function executeObligation(d: Deps, ctx: Ctx, obligationId: string,
       const o = await lockObligation(tx, ctx.orgId, obligationId);
       if (o.state !== fromState) {
         const blocked = (MONEY_MAY_HAVE_MOVED as readonly string[]).includes(o.state) || o.state === "EXECUTION_RESERVED";
-        if (blocked) { await recordBlocked(d, ctx, obligationId, `second ${mode} refused in state ${o.state}`); throw new OryntError("send_blocked_unresolved", 409, stateActions(o.state).find((a) => a.action === (mode === "retry" ? "retry" : "execute"))?.reason ?? "A payment for this payout already exists.", { state: o.state }); }
+        // NB: never touch the pool from inside a transaction callback (pool starvation under concurrency); the caller records the block afterwards.
+        if (blocked) throw new OryntError("send_blocked_unresolved", 409, stateActions(o.state).find((a) => a.action === (mode === "retry" ? "retry" : "execute"))?.reason ?? "A payment for this payout already exists.", { state: o.state });
         throw new OryntError("invalid_state", 409, stateActions(o.state).find((a) => a.action === (mode === "retry" ? "retry" : "execute"))?.reason ?? `Payout is ${o.state}.`);
       }
       rev = (await tx.query("SELECT * FROM obligation_revisions WHERE obligation_id=$1 AND revision=$2", [obligationId, o.current_revision])).rows[0];
@@ -91,10 +93,14 @@ export async function executeObligation(d: Deps, ctx: Ctx, obligationId: string,
       // The partial unique index one_open_attempt makes a second concurrent attempt impossible even if everything above were bypassed.
       attemptId = (await tx.query("INSERT INTO execution_attempts(intent_id,attempt_no,outcome) VALUES ($1,$2,'RESERVED') RETURNING id", [it.id, n])).rows[0].id;
       await cas(tx, ctx.orgId, obligationId, fromState, "EXECUTION_RESERVED", {}, "next_reconcile_at = now() + interval '90 seconds'");
+      await fp("execute.in_reserve_tx"); // exercises rollback: nothing above may survive a failure here
       await appendAudit(tx, ctx.orgId, `obligation:${obligationId}`, actorTag(ctx.actor), "payment.reserved", `obligation:${obligationId}`, { intent_id: it.id, attempt_no: n, intent_digest: it.intent_digest, payment_hash: it.payment_hash, amount_msat: it.amount_msat.toString(), wallet_connection_id: conn.id, provider: conn.provider_kind, mode });
     });
   } catch (e) {
-    if (e instanceof OryntError) throw e;
+    if (e instanceof OryntError) {
+      if (e.code === "send_blocked_unresolved") await recordBlocked(d, ctx, obligationId, `second ${mode} refused in state ${String(e.extra?.["state"] ?? "unknown")}`);
+      throw e;
+    }
     const pgErr = e as { code?: string; constraint?: string };
     if (pgErr.code === "23505" && pgErr.constraint === "one_open_attempt") { await recordBlocked(d, ctx, obligationId, "concurrent execute blocked by one_open_attempt"); throw new OryntError("send_blocked_unresolved", 409, "A send for this payout is already in progress."); }
     throw e;
