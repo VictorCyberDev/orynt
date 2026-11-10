@@ -23,7 +23,7 @@ async function audit(page, label) {
 }
 for (const colorScheme of ["light", "dark"]) {
   for (const width of [375, 1440]) {
-    const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, colorScheme });
+    const ctx = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, colorScheme, bypassCSP: true }); // axe is injected as an inline script; CSP is exercised by check-privacy.mjs
     const page = await ctx.newPage();
     for (const path of listPages()) {
       await page.goto(base + path, { waitUntil: "networkidle" });

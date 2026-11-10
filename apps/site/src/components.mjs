@@ -1,4 +1,5 @@
 import { esc } from "./helpers.mjs";
+import { CTA } from "./site.config.mjs";
 
 export const pageHero = ({ eyebrow, title, lead, extra = "" }) => `<section class="page-hero">
 <div class="container">
@@ -9,11 +10,23 @@ ${extra}
 </div>
 </section>`;
 
-export const ctaBand = ({ title = "Tell us about your payouts.", text = "We are looking for a small number of conversations with teams that pay people in Bitcoin over Lightning. No sales pressure, no payment taken, regtest first.", button = "Request a pilot conversation" } = {}) => `<section class="band" aria-labelledby="cta-title">
+/** A button link for one of the four standard calls to action. kind: primary | secondary */
+export const ctaButton = (key, kind = "primary", label) => `<a class="btn btn--${kind}" href="${CTA[key].href}">${esc(label ?? CTA[key].label)}</a>`;
+
+/** Row of standard CTA buttons, e.g. ctaRow(["signup","pilot"]). The first is primary, the rest secondary. */
+export const ctaRow = (keys = ["signup", "pilot"], { extra = "", style = "" } = {}) =>
+  `<div class="btn-row"${style ? ` style="${style}"` : ""}>${keys.map((k, i) => ctaButton(k, i === 0 ? "primary" : "secondary")).join("")}${extra}</div>`;
+
+export const ctaBand = ({
+  title = "Try it on regtest, or tell us about your payouts.",
+  text = "Create a free account and use the practice wallet or your own regtest node, or ask for a pilot conversation. No sales pressure, no card charged, no real funds at risk.",
+  keys = ["signup", "pilot"],
+  more = `<a class="btn btn--secondary" href="/security/">Read the honest security status</a>`,
+} = {}) => `<section class="band" aria-labelledby="cta-title">
 <div class="container">
 <h2 id="cta-title">${esc(title)}</h2>
 <p>${esc(text)}</p>
-<div class="btn-row"><a class="btn btn--primary" href="/contact/">${esc(button)}</a><a class="btn btn--secondary" href="/security/">Read the honest security status</a></div>
+${ctaRow(keys, { extra: more })}
 </div>
 </section>`;
 

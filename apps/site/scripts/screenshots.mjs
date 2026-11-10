@@ -8,7 +8,7 @@ import { listPages } from "./_pages.mjs";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "../screenshots");
 mkdirSync(out, { recursive: true });
-const SHOT = { "/": "home", "/product/": "product", "/developers/": "developers", "/security/": "security", "/pricing/": "pricing", "/contact/": "contact" };
+const SHOT = { "/": "home", "/product/": "product", "/platform/": "platform", "/solutions/": "solutions", "/integrations/": "integrations", "/developers/": "developers", "/security/": "security", "/pricing/": "pricing", "/help/": "help", "/status/": "status", "/contact/": "contact" };
 const WIDTHS = [375, 768, 1440];
 const scheme = process.env.SCHEME ?? "light";
 

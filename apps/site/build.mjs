@@ -37,6 +37,7 @@ write("css/tokens.css", readFileSync(join(ui, "tokens.css")));
 write("css/base.css", readFileSync(join(ui, "base.css")));
 cpSync(join(root, "src/assets/site.css"), join(dist, "css/site.css"));
 cpSync(join(root, "src/assets/site.js"), join(dist, "js/site.js"));
+cpSync(join(root, "src/assets/boot.js"), join(dist, "js/boot.js"));
 
 // ---- brand assets (original files from packages/ui; never redrawn) ---------------------------------------------------
 cpSync(join(ui, "brand"), join(dist, "brand"), { recursive: true });

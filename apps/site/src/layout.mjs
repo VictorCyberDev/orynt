@@ -1,5 +1,5 @@
 import { esc } from "./helpers.mjs";
-import { NAV, FOOTER, NAME, TAGLINE, SITE_URL } from "./site.config.mjs";
+import { NAV, FOOTER, NAME, TAGLINE, SITE_URL, CTA } from "./site.config.mjs";
 
 const abs = (path) => (SITE_URL ? SITE_URL + path : path);
 
@@ -17,6 +17,7 @@ export function head(page) {
 <meta name="description" content="${esc(page.description)}">
 ${page.noindex ? '<meta name="robots" content="noindex">' : ""}<link rel="canonical" href="${esc(url)}">
 <meta name="color-scheme" content="light dark">
+<meta name="referrer" content="same-origin">
 <meta name="theme-color" content="#f6f4ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0a1220" media="(prefers-color-scheme: dark)">
 <meta property="og:type" content="website">
@@ -39,9 +40,10 @@ ${FONT_PRELOADS.map((f) => `<link rel="preload" href="/fonts/${f}" as="font" typ
 <link rel="stylesheet" href="/css/tokens.css">
 <link rel="stylesheet" href="/css/base.css">
 <link rel="stylesheet" href="/css/site.css">
-<script>document.documentElement.classList.add("js")</script>
+<script src="/js/boot.js"></script>
 <script src="/js/site.js" defer></script>
 ${jsonLd}
+${page.headExtra ?? ""}
 </head>`;
 }
 
@@ -54,15 +56,17 @@ export function header(page) {
     const current = page.path === n.href || (n.href !== "/" && page.path.startsWith(n.href));
     return `<li><a href="${n.href}"${current ? ' aria-current="page"' : ""}>${esc(n.label)}</a></li>`;
   }).join("");
-  const contactCurrent = page.path === "/contact/" ? ' aria-current="page"' : "";
   return `<header class="site-header">
 <div class="container site-header__bar">
 <a class="brand" href="/" aria-label="${NAME} home">${logo("brand__logo")}</a>
 <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav"><span class="menu-toggle__label">Menu</span><span class="menu-toggle__icon" aria-hidden="true"></span></button>
 <nav class="site-nav" id="site-nav" aria-label="Primary">
 <ul class="site-nav__list">${items}</ul>
-<a class="btn btn--primary btn--sm site-nav__cta" href="/contact/"${contactCurrent}>Request a pilot</a>
 </nav>
+<div class="header-actions">
+<a class="btn btn--secondary btn--sm" href="${CTA.login.href}">${CTA.login.label}</a>
+<a class="btn btn--primary btn--sm" href="${CTA.signup.href}">${CTA.signup.label}</a>
+</div>
 </div>
 </header>`;
 }
@@ -84,7 +88,7 @@ export function footer() {
 ${cols}
 </div>
 <div class="site-footer__legal">
-<p><strong>Early-stage and unaudited.</strong> Nothing on this site is an offer, a price quote, or financial, legal or tax advice. ${NAME} is a provisional name: no trademark or domain clearance has been established. Local development uses Bitcoin regtest only.</p>
+<p><strong>Early-stage and unaudited.</strong> Nothing on this site is an offer, a price quote, or financial, legal or tax advice. Real Lightning payments are verified on Bitcoin regtest only; mainnet is disabled. Billing uses a sandbox provider and no card is charged. ${NAME} is a provisional name: no trademark or domain clearance has been established.</p>
 </div>
 </div>
 </footer>`;

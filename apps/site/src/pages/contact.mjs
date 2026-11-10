@@ -3,9 +3,9 @@ import { LEADS_ENDPOINT } from "../site.config.mjs";
 
 export default {
   path: "/contact/",
-  title: "Request a pilot conversation",
+  title: "Request a pilot",
   description:
-    "Ask for a demo or a pilot conversation about Orynt. Early-stage, regtest first, no payment taken. Your message goes to the project's own API, with explicit consent.",
+    "Request a pilot or demo conversation about Orynt. Early-stage, regtest first, no payment taken. Your message goes to the project's own API, with explicit consent.",
   body: () => `
 ${pageHero({
   eyebrow: "Contact",
@@ -59,6 +59,13 @@ ${section({
 <li>Honest answers, including &ldquo;that is not built&rdquo; and &ldquo;a different tool fits you better&rdquo;.</li>
 <li>Regtest first. We will not ask you to put real funds at risk.</li>
 <li>No payment is taken, and no account is created.</li>
+</ul>
+</div>
+<div class="card" style="margin-top:20px">
+<h2 style="font-size:1.25rem;margin-bottom:12px">Looking for something else?</h2>
+<ul class="list">
+<li>Want to try it yourself? <a href="/app/signup">Create account</a> or <a href="/app/login">Sign in</a>.</li>
+<li>Already using the app and stuck? <a href="/app/contact-support">Contact support</a>.</li>
 </ul>
 </div>
 <div class="callout callout--warn" style="margin-top:20px"><p><strong>Please never send</strong> wallet credentials, macaroons, seed phrases, API keys or private keys, here or anywhere else.</p></div>

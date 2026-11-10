@@ -18,13 +18,16 @@ ${section({
 <p>Everything here is general information about an early-stage project. It is not an offer, a price quote, a contract, or financial, legal or tax advice. Statements about what Orynt does describe design intent unless they say a capability is verified.</p>
 
 <h2>Early-stage software</h2>
-<p>Orynt is unaudited and is developed on Bitcoin regtest. Do not use it with funds you cannot afford to lose, and do not rely on anything on this site for a decision about real money.</p>
+<p>Orynt is unaudited. Its real Lightning payments are verified on Bitcoin regtest only and mainnet is disabled. Do not use it with funds you cannot afford to lose, and do not rely on anything on this site for a decision about real money.</p>
 
 <h2>No warranties</h2>
 <p>The site and its content are provided &ldquo;as is&rdquo;, without warranties of any kind, and may be incomplete or wrong. If you spot a mistake, please tell us.</p>
 
 <h2>Pricing and plans</h2>
-<p>Pricing material is a set of hypotheses. Nothing can be purchased through this site, and no price here is binding.</p>
+<p>Pricing material is a set of hypotheses under test. Nothing can be purchased through this site, no price here is binding, and the app uses a sandbox billing provider that charges no card.</p>
+
+<h2>The app and acceptable use</h2>
+<p>These terms cover reading this website. Terms for using the app and the API have not been written. Until they are, see the draft <a href="/acceptable-use/">acceptable use policy</a>, which is also unreviewed.</p>
 
 <h2>Third-party names</h2>
 <p>Names of other products and projects belong to their owners. Mentioning them implies no partnership or endorsement. Comparisons are based on public documentation and may be out of date.</p>

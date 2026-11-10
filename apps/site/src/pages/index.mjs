@@ -1,5 +1,5 @@
 import { esc, svgPartial } from "../helpers.mjs";
-import { ctaBand, section } from "../components.mjs";
+import { ctaBand, ctaButton, section } from "../components.mjs";
 import { readRegister, verifiedRows } from "../register.mjs";
 import { repoPath } from "../site.config.mjs";
 
@@ -17,17 +17,18 @@ function statusStrip() {
 <div class="status-strip__head"><h2 id="status-title">Honest status</h2><p class="small muted">Early-stage. Read this before anything else on this site.</p></div>
 <div class="status-strip__cols">
 <div>
-<h3><span class="tag tag--ok">Verified</span> Working today</h3>
+<h3><span class="tag tag--ok">Verified</span> Checked in this project</h3>
 ${verifiedHtml}
 </div>
 <div>
 <h3><span class="tag tag--pending">Open</span> Not yet verified</h3>
 <ul class="list list--no">
-<li>A real Lightning regtest run against an LND node is <strong>pending</strong>. The simulator is clearly labelled and is not a real payment.</li>
-<li><strong>No human audit.</strong> One AI-assisted independent code review was done and its findings fixed; no penetration test, human security audit or certification exists.</li>
-<li><strong>No customers.</strong> No pilots, revenue, testimonials or usage numbers exist, and none are implied anywhere on this site.</li>
-<li><strong>No mainnet.</strong> Local development uses Bitcoin regtest only; mainnet execution is not enabled by default.</li>
-<li>Pricing, willingness to pay and market size are <strong>unvalidated hypotheses</strong>.</li>
+<li><strong>Mainnet is disabled.</strong> Real Lightning payments are verified on Bitcoin regtest only, a test network with no monetary value.</li>
+<li><strong>One wallet type.</strong> NWC, BTCPay and Core Lightning adapters are not built. Lightning Address payments are verified on regtest against a local test server only.</li>
+<li><strong>No human audit.</strong> One AI-assisted independent code review was done and its findings fixed; no penetration test, human security audit, SOC 2 or other certification exists.</li>
+<li><strong>Billing is a sandbox.</strong> Live Stripe and Paystack checkout is written but not commissioned; no card has ever been charged.</li>
+<li><strong>Nothing is deployed publicly</strong>, and there are <strong>no customers</strong>, revenue, testimonials or usage numbers.</li>
+<li>Pricing, willingness to pay and market size are <strong>unvalidated hypotheses</strong>. The name &ldquo;Orynt&rdquo; has unresolved trademark risk and no domain is owned.</li>
 </ul>
 </div>
 </div>
@@ -55,13 +56,15 @@ export default {
 <section class="hero" aria-labelledby="hero-title">
 <div class="container hero__grid">
 <div>
-<p class="status-pill">Early-stage &middot; Bitcoin regtest only &middot; Not yet audited</p>
+<p class="status-pill">Early-stage &middot; Real Lightning verified on regtest &middot; Mainnet disabled &middot; Not yet audited</p>
 <h1 id="hero-title">Your payments, under control.</h1>
 <p class="lead">Orynt sits in front of a Lightning wallet you already control. It records what you owe, gets the right people to approve it, sends each payment once, and keeps proof you can check without trusting us.</p>
 <div class="btn-row">
-<a class="btn btn--primary" href="/contact/">Request a pilot conversation</a>
-<a class="btn btn--secondary" href="/product/">See how it works</a>
+${ctaButton("signup")}
+${ctaButton("login", "secondary")}
+${ctaButton("pilot", "secondary")}
 </div>
+<p class="small muted" style="margin-top:16px">Free Developer plan. Practice wallet or your own regtest node. No card is charged. <a href="/product/">See how it works</a>.</p>
 <p class="hero__tagline">Every payment. Under control.</p>
 </div>
 <figure class="figure">
@@ -138,6 +141,34 @@ ${section({
 </div>
 </div>`,
 })}
+
+${section({
+  id: "app",
+  tint: true,
+  title: "What you can do in the app today.",
+  intro: "Beyond a single payout. Each of these exists in the app and the API; the limits per plan are on the <a href=\"/pricing/\">pricing page</a>.",
+  body: `<div class="grid grid--3">
+<article class="card"><h3>Batch CSV payouts</h3><p>Upload up to 200 rows. A preview flags bad rows without creating anything, and each item still needs its own approval.</p></article>
+<article class="card"><h3>Recurring schedules</h3><p>Weekly or monthly. Each cycle asks for a fresh invoice and never pays by itself.</p></article>
+<article class="card"><h3>Reports and CSV</h3><p>Payout reports and recipient statements. Only real settlements are summed; no fiat values.</p></article>
+<article class="card"><h3>Teams and sign-in</h3><p>Invite teammates, set roles, turn on authenticator-app (TOTP) two-factor sign-in.</p></article>
+<article class="card"><h3>API, SDK and webhooks</h3><p>A typed client and signed webhooks. Plan limits are enforced on the server and surface as <code>402</code> errors.</p></article>
+<article class="card"><h3>Plans and support</h3><p>Plans with real limits, billed through a sandbox provider for now. Support requests with safe diagnostics attached.</p></article>
+</div>
+<p class="small muted" style="margin-top:20px">Single payouts are verified against real LND nodes on regtest. Batches, schedules, reports, accounts and billing are verified with the practice wallet and automated tests, not on real nodes. Support requests and analytics are implemented, with less testing.</p>
+<div class="btn-row"><a class="btn btn--secondary" href="/platform/">How the platform works</a><a class="btn btn--secondary" href="/solutions/">Target use cases</a><a class="btn btn--secondary" href="/pricing/">Pricing hypotheses</a></div>`,
+})}
+
+<section class="section" id="start" aria-labelledby="start-title">
+<div class="container">
+<div class="section__head"><h2 id="start-title">Three ways to start.</h2></div>
+<div class="grid grid--3">
+<article class="card"><h3>Try it yourself</h3><p>Create an account, connect the practice wallet or a regtest LND node, and send a first payout through approval to a receipt.</p><p>${ctaButton("signup")}</p></article>
+<article class="card"><h3>Come back</h3><p>Already have a workspace? Sign in to your payouts, approvals and receipts.</p><p>${ctaButton("login", "secondary")}</p></article>
+<article class="card"><h3>Talk first</h3><p>Want to walk through your own workflow before touching anything? Ask for a pilot conversation, or ask support a question.</p><p>${ctaButton("pilot", "secondary")} ${ctaButton("support", "secondary")}</p></article>
+</div>
+</div>
+</section>
 
 ${statusStrip()}
 

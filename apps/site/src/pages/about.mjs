@@ -31,7 +31,7 @@ ${section({
 <p><strong>Orynt is currently one person&rsquo;s project.</strong> There is no team to introduce, no advisors, no investors and no customers, and we will not fill this page with any.</p>
 <p>That has consequences you should weigh: one person is a single point of failure for support, security and continuity. Receipts are designed to verify offline without Orynt precisely so that your evidence does not depend on the project surviving.</p>
 </div>
-<div class="callout callout--neutral"><p><strong>The name is provisional.</strong></p><p>&ldquo;Orynt&rdquo; is a working name. No trademark or domain clearance has been established, and we make no claim of ownership of the name.</p></div>
+<div class="callout callout--neutral"><p><strong>The name is provisional.</strong></p><p>&ldquo;Orynt&rdquo; is a working name. No trademark or domain clearance has been established: an automated check found a possible conflicting trademark application, nobody has reviewed it, and we own no domain. We make no claim of ownership of the name.</p></div>
 </div>`,
 })}
 
@@ -45,6 +45,6 @@ ${section({
 </div>`,
 })}
 
-${ctaBand({ title: "Want to help test the idea?", text: "If you pay people in Bitcoin as a team, a conversation about what goes wrong today is the most useful thing you can give us." })}
+${ctaBand({ title: "Want to help test the idea?", text: "Try it on regtest with a free account, or, if you pay people in Bitcoin as a team, tell us what goes wrong today. Either is the most useful thing you can give us." })}
 `,
 };

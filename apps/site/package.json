@@ -13,7 +13,8 @@
     "check:claims": "node scripts/verify-claims.mjs",
     "check:a11y": "node scripts/a11y.mjs",
     "screenshots": "node scripts/screenshots.mjs",
-    "verify": "node build.mjs && node scripts/verify-claims.mjs && node scripts/check-links.mjs && node scripts/a11y.mjs"
+    "verify": "node build.mjs && node scripts/verify-claims.mjs && node scripts/check-links.mjs && node scripts/check-privacy.mjs && node scripts/a11y.mjs",
+    "check:privacy": "node scripts/check-privacy.mjs"
   },
   "devDependencies": {
     "axe-core": "^4.14.0"

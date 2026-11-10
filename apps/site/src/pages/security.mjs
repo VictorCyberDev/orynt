@@ -8,11 +8,13 @@ const secDocs = REGISTER_PATH.replace("EXECUTION-REGISTER.md", "security");
 const secDocsEmpty = !existsSync(secDocs) || readdirSync(secDocs).length === 0;
 
 const glance = [
-  ["Independent audit, penetration test or certification", "None. No SOC 2, ISO 27001, penetration test, code review by an outside party, or bug bounty exists.", tag("Not done", "danger")],
-  ["Real funds", "Local development uses Bitcoin regtest only. Mainnet execution is not enabled by default, and we are not asking anyone to use Orynt with real funds.", tag("Regtest only", "hypothesis")],
+  ["Independent audit, penetration test or certification", "None by a human. No SOC 2, ISO 27001, penetration test or bug bounty exists. One AI-assisted independent review was done, its findings were fixed and regression tests added.", tag("Not done", "danger")],
+  ["Real funds", "Real Lightning payments are verified on Bitcoin regtest only, a test network. Mainnet execution is disabled, and we are not asking anyone to use Orynt with real funds.", tag("Regtest only", "hypothesis")],
   ["Custody of funds or keys", "Designed not to. The operator connects a wallet they control. Whether that is legally &ldquo;non-custodial&rdquo; is an open question for counsel.", tag("Designed", "neutral")],
-  ["Protection against a double send", "A single-use execution record is reserved before the wallet is called; a second send is refused until the wallet&rsquo;s own record says what happened.", tag("Designed · not yet verified", "neutral")],
-  ["Real Lightning regtest run", "Pending. The simulator is clearly labelled and is not a real payment.", tag("Pending", "pending")],
+  ["Protection against a double send", "A single-use execution record is reserved before the wallet is called; a second send is refused until the wallet&rsquo;s own record says what happened. On a real regtest node, 10 concurrent executes produced one payment.", tag("Verified · real regtest", "ok")],
+  ["Lost answers", "In a real regtest run the API was killed after the wallet accepted a payment; after restart the payout was Unknown, was reconciled from the wallet&rsquo;s record, and settled once.", tag("Verified · real regtest", "ok")],
+  ["Sign-in protections", "Authenticator-app (TOTP) two-factor step-up, email verification, password reset and rate limits exist. Single sign-on does not.", tag("Built", "neutral")],
+  ["Billing and card data", "Billing uses a sandbox provider. No card details are collected and no card has ever been charged. Live checkout is written but not commissioned.", tag("Sandbox", "hypothesis")],
   ["Security contact and disclosure policy", "Not published yet.", tag("Planned", "pending")],
   ["Who is responsible for security", "One person, the founder. There is no dedicated security role and no second reviewer yet.", tag("Honest limit", "hypothesis")],
 ];
@@ -104,8 +106,8 @@ ${section({
 ${section({
   id: "regtest",
   title: "Regtest only, for now.",
-  body: `<div class="prose"><p>Orynt is developed and demonstrated on Bitcoin <strong>regtest</strong>, a private test network with no monetary value. Mainnet execution is switched off by default.</p>
-<p>A run against a <em>real</em> Lightning node on regtest is still pending; until it is done and recorded, anything that looks like a real payment in the product is a simulator payment, and is labelled that way.</p></div>`,
+  body: `<div class="prose"><p>Orynt is developed and demonstrated on Bitcoin <strong>regtest</strong>, a private test network with no monetary value. Mainnet execution is disabled.</p>
+<p>The payments in the project&rsquo;s real-node tests and demo are real Lightning payments between real software (bitcoind and LND), but of worthless test coins. The practice wallet is a simulator: its payments are labelled <em>Simulated</em> and can never produce a real receipt.</p></div>`,
 })}
 
 ${section({
@@ -114,7 +116,7 @@ ${section({
   title: "What is not audited or not done.",
   body: `<div class="grid grid--2">
 <ul class="list list--no">
-<li>Independent code, architecture or cryptography review</li>
+<li>Independent human code, architecture or cryptography review</li>
 <li>Penetration test</li>
 <li>SOC 2, ISO 27001 or any other certification</li>
 <li>Bug bounty</li>
@@ -123,10 +125,10 @@ ${section({
 </ul>
 <ul class="list list--no">
 <li>Backups, disaster recovery and uptime commitments</li>
-<li>Hosting, subprocessors and data residency for any hosted tier</li>
+<li>A public deployment, hosting, subprocessors and data residency</li>
 <li>Written incident-response plan</li>
 <li>External anchoring of audit checkpoints</li>
-<li>Single sign-on and a multi-factor sign-in design</li>
+<li>Single sign-on, and hardware- or passkey-backed approval keys (approval keys live in the browser)</li>
 <li>Legal review of the design (see <a href="/terms/">terms</a>, <a href="/privacy/">privacy</a>)</li>
 </ul>
 </div>`,
@@ -135,7 +137,7 @@ ${section({
 ${section({
   id: "report",
   title: "Reporting a problem.",
-  body: `<div class="prose"><p>There is no formal vulnerability-disclosure policy or dedicated security address yet; that is planned. Until it exists, you can <a href="/contact/">use the contact form</a> and start your message with &ldquo;security&rdquo;. Please describe the issue in general terms and <strong>do not include secrets, keys or exploit details</strong> in the form.</p></div>`,
+  body: `<div class="prose"><p>There is no formal vulnerability-disclosure policy or dedicated security address yet; that is planned. Until it exists, use <a href="/app/contact-support">Contact support</a> (choose the security category) or the <a href="/contact/">contact form</a>, and start your message with &ldquo;security&rdquo;. Please describe the issue in general terms and <strong>do not include secrets, keys or exploit details</strong> in the form.</p></div>`,
 })}
 
 ${section({
@@ -154,6 +156,6 @@ ${section({
 ${secDocsEmpty ? `<p class="small muted" style="margin-top:16px">${tag("Note", "neutral")} The repository&rsquo;s <code>docs/security/</code> folder was empty when this site was built, so there is no formal threat-model document to link.</p>` : `<p class="small muted" style="margin-top:16px">More security documents: ${repoPath("docs/security")}.</p>`}`,
 })}
 
-${ctaBand({ title: "Security questions for a pilot?", text: "Ask them. If we cannot answer honestly, we will say so, and that goes on our to-do list." })}
+${ctaBand({ title: "Security questions for a pilot?", text: "Ask them. If we cannot answer honestly, we will say so, and that goes on our to-do list.", keys: ["pilot", "support"], more: `<a class="btn btn--secondary" href="/status/">Status</a>` })}
 `,
 };

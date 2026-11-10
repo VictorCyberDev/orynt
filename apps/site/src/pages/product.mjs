@@ -1,7 +1,9 @@
 import { svgPartial, table, tag } from "../helpers.mjs";
-import { ctaBand, pageHero, section } from "../components.mjs";
+import { ctaBand, ctaRow, pageHero, section } from "../components.mjs";
 
-const status = tag("Designed · not yet verified");
+const REAL = tag("Verified · real regtest", "ok");
+const TESTED = tag("Verified · simulator + tests", "ok");
+const statusById = { obligation: REAL, approval: TESTED, execution: REAL, truth: REAL, evidence: REAL, platform: tag("Built · SDK not on npm", "neutral") };
 
 const steps = [
   {
@@ -74,13 +76,14 @@ export default {
   path: "/product/",
   title: "Product",
   description:
-    "How Orynt works in six steps: obligation, approval, execution, truthful state, evidence and a developer platform. Designed for Lightning payouts; early-stage and not yet audited.",
+    "How Orynt works in six steps: obligation, approval, execution, truthful state, evidence and a developer platform. Real Lightning payments verified on regtest; mainnet disabled; early-stage and not yet audited.",
   body: () => `
 ${pageHero({
   eyebrow: "Product",
   title: "From &ldquo;we owe them&rdquo; to &ldquo;here is the proof&rdquo;.",
   lead: "Orynt is a layer between the decision to pay and the wallet that sends the money. This is the whole flow, in plain language.",
-  extra: `<div class="callout callout--neutral" style="margin-top:28px;max-width:44rem"><p><strong>How to read the status labels.</strong> &ldquo;Designed &middot; not yet verified&rdquo; means the behaviour is specified and code exists, but the project&rsquo;s execution register does not yet mark it verified. Nothing here has been audited or used with real customer funds.</p></div>`,
+  extra: `<div class="callout callout--neutral" style="margin-top:28px;max-width:44rem"><p><strong>How to read the status labels.</strong> &ldquo;Verified&rdquo; follows the project&rsquo;s execution register: a command was run and its result recorded. &ldquo;Real regtest&rdquo; means it ran against real bitcoind and LND nodes on a test network; &ldquo;simulator + tests&rdquo; means automated tests with the labelled practice wallet. Nothing has been audited, and mainnet is disabled.</p></div>
+${ctaRow(["signup", "pilot"])}`,
 })}
 
 ${section({
@@ -90,7 +93,7 @@ ${section({
 ${steps
   .map(
     (s) => `<li id="${s.id}"><div class="steps__body">
-<h3>${s.title} ${status}</h3>
+<h3>${s.title} ${statusById[s.id] ?? ""}</h3>
 <p class="lead" style="font-size:1.1875rem">${s.lead}</p>
 <dl class="kv">
 <div><dt>What happens</dt><dd>${s.does}</dd></div>
@@ -129,7 +132,7 @@ ${section({
   body: `<div class="grid grid--2">
 <div class="prose">
 <p>Orynt does not hold funds. An operator connects a Lightning wallet they control, and Orynt discovers what that connection is allowed to do rather than assuming. The credentials you hand over decide what Orynt could do with your money, so give the least permission that works.</p>
-<p>Today that means an <strong>LND node over REST on Bitcoin regtest</strong>, or a <strong>simulator</strong> that is always labelled and can never produce a real receipt. Other wallet types are not built.</p>
+<p>Today that means an <strong>LND node over REST on Bitcoin regtest</strong>, or a <strong>simulator</strong> that is always labelled and can never produce a real receipt. Other wallet types are not built; see the <a href="/integrations/">wallet capability matrix</a>.</p>
 </div>
 <div class="callout callout--warn"><p><strong>Where the limits live.</strong></p><p>Approval rules, roles and limits are enforced inside Orynt. They are not enforced by the wallet. If someone holds your wallet credentials directly, they can bypass Orynt entirely. Read the <a href="/security/">security page</a> for the full picture.</p></div>
 </div>`,

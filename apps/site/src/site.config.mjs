@@ -17,31 +17,60 @@ export const LEADS_ENDPOINT = `${API_BASE}/v1/public/leads`;
 export const NAME = "Orynt";
 export const TAGLINE = "Every payment. Under control.";
 
+/** Links into the product app (served by the same API process under /app). They are not pages of this static site. */
+export const APP = {
+  signup: "/app/signup",
+  login: "/app/login",
+  support: "/app/contact-support",
+  billing: "/app/billing",
+  guide: "/app/guide",
+  verify: "/app/verify",
+};
+
+/** The four calls to action, with the exact labels used everywhere on the site. */
+export const CTA = {
+  signup: { href: APP.signup, label: "Create account" },
+  login: { href: APP.login, label: "Sign in" },
+  support: { href: APP.support, label: "Contact support" },
+  pilot: { href: "/contact/", label: "Request a pilot" },
+};
+
 export const NAV = [
   { href: "/product/", label: "Product" },
-  { href: "/use-cases/", label: "Use cases" },
+  { href: "/platform/", label: "Platform" },
+  { href: "/solutions/", label: "Solutions" },
+  { href: "/integrations/", label: "Integrations" },
   { href: "/developers/", label: "Developers" },
-  { href: "/security/", label: "Security" },
   { href: "/pricing/", label: "Pricing" },
-  { href: "/about/", label: "About" },
+  { href: "/help/", label: "Help" },
 ];
 
 export const FOOTER = {
   Product: [
     { href: "/product/", label: "How it works" },
-    { href: "/use-cases/", label: "Use cases" },
-    { href: "/developers/", label: "Developers" },
+    { href: "/platform/", label: "Platform" },
+    { href: "/solutions/", label: "Solutions" },
+    { href: "/integrations/", label: "Integrations" },
     { href: "/pricing/", label: "Pricing hypotheses" },
   ],
+  "Build and get help": [
+    { href: "/developers/", label: "Developers" },
+    { href: "/help/", label: "Help center" },
+    { href: "/status/", label: "Status" },
+    { href: CTA.support.href, label: CTA.support.label },
+  ],
   Trust: [
-    { href: "/security/", label: "Security and status" },
+    { href: "/security/", label: "Security" },
     { href: "/faq/", label: "FAQ" },
     { href: "/privacy/", label: "Privacy (draft)" },
     { href: "/terms/", label: "Terms (draft)" },
+    { href: "/acceptable-use/", label: "Acceptable use (draft)" },
   ],
-  Company: [
+  "Get started": [
+    { href: CTA.signup.href, label: CTA.signup.label },
+    { href: CTA.login.href, label: CTA.login.label },
+    { href: CTA.pilot.href, label: CTA.pilot.label },
     { href: "/about/", label: "About" },
-    { href: "/contact/", label: "Request a pilot conversation" },
   ],
 };
 

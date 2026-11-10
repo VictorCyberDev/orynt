@@ -11,6 +11,9 @@ const MIME = {
   ".xml": "application/xml; charset=utf-8", ".json": "application/json",
 };
 
+// The same policy apps/api sends with HTML (see CSP in apps/api/src/http/app.ts), so a11y/screenshot/privacy runs fail on anything it would block.
+export const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+
 export function startServer(port = 4173, { leads } = {}) {
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://x");
@@ -22,10 +25,11 @@ export function startServer(port = 4173, { leads } = {}) {
       const s = await stat(file);
       if (s.isDirectory()) file = join(file, "index.html");
       const body = await readFile(file);
-      res.writeHead(200, { "content-type": MIME[extname(file)] ?? "application/octet-stream" }).end(body);
+      const type = MIME[extname(file)] ?? "application/octet-stream";
+      res.writeHead(200, { "content-type": type, ...(type.startsWith("text/html") ? { "content-security-policy": CSP } : {}) }).end(body);
     } catch {
       const body = await readFile(join(root, "404.html")).catch(() => Buffer.from("not found"));
-      res.writeHead(404, { "content-type": MIME[".html"] }).end(body);
+      res.writeHead(404, { "content-type": MIME[".html"], "content-security-policy": CSP }).end(body);
     }
   });
   return new Promise((ok) => server.listen(port, "127.0.0.1", () => ok(server)));
