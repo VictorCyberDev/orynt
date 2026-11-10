@@ -65,7 +65,9 @@ const approve = async (a: S, ob: any) => {
   say(`Orynt demo:full — mode: ${MODE.toUpperCase()}${SIM ? "  (SIMULATED: no real payment occurs; do NOT present as real evidence)" : "  (real Lightning payments between real nodes on local regtest; test coins only)"}`);
   const gitSha = execSync("git rev-parse HEAD", { cwd: ROOT }).toString().trim(); evidence["commit"] = gitSha;
   h("Setup: fresh PostgreSQL database, API server, verifier bundle");
-  execSync("bash infra/postgres/start-local.sh", { cwd: ROOT, stdio: "ignore" });
+  // use an existing PostgreSQL (CI service container, docker, remote) if reachable; otherwise start the local distro cluster
+  const reachable = await (async () => { const c = new pg.Client({ connectionString: ADMIN }); try { await c.connect(); await c.end(); return true; } catch { return false; } })();
+  if (!reachable) execSync("bash infra/postgres/start-local.sh", { cwd: ROOT, stdio: "ignore" });
   const adm = new pg.Client({ connectionString: ADMIN }); await adm.connect(); await adm.query(`CREATE DATABASE ${DB}`); await adm.end();
   execFileSync("pnpm", ["--filter", "@orynt/verifier", "build"], { cwd: ROOT, stdio: "ignore" });
   await startServer(); ok(true, `API ready on ${BASE} with database ${DB}`);
