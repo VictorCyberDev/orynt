@@ -49,6 +49,8 @@ export interface EncodeInvoiceParams {
   paymentHashHex: string;
   paymentSecretHex?: string;
   description?: string;
+  /** 32-byte hex sha256 of the description (BOLT11 `h` tag), used by LNURL-pay */
+  descriptionHashHex?: string;
   timestamp: number;
   expirySeconds?: number;
   privateKeyHex: string; // payee node key
@@ -60,6 +62,7 @@ export function encodeInvoice(p: EncodeInvoiceParams): string {
   words.push(...tag(1, bytesToWords(hexToBytes(p.paymentHashHex))));
   if (p.paymentSecretHex) words.push(...tag(16, bytesToWords(hexToBytes(p.paymentSecretHex))));
   if (p.description) words.push(...tag(13, bytesToWords(utf8ToBytes(p.description))));
+  if (p.descriptionHashHex) words.push(...tag(23, bytesToWords(hexToBytes(p.descriptionHashHex))));
   if (p.expirySeconds !== undefined) {
     let n = p.expirySeconds;
     const ws: number[] = [];

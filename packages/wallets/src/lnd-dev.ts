@@ -29,8 +29,8 @@ async function call(cfg: LndConfig, method: "GET" | "POST", path: string, body?:
 }
 
 export interface CreatedInvoice { paymentRequest: string; paymentHash: string; addIndex: string }
-export async function lndAddInvoice(cfg: LndConfig, valueMsat: bigint, memo: string, expirySeconds = 3600): Promise<CreatedInvoice> {
-  const r = await call(cfg, "POST", "/v1/invoices", { value_msat: valueMsat.toString(), memo, expiry: String(expirySeconds) });
+export async function lndAddInvoice(cfg: LndConfig, valueMsat: bigint, memo: string, expirySeconds = 3600, descriptionHashHex?: string): Promise<CreatedInvoice> {
+  const r = await call(cfg, "POST", "/v1/invoices", { value_msat: valueMsat.toString(), ...(descriptionHashHex ? { description_hash: Buffer.from(descriptionHashHex, "hex").toString("base64") } : { memo }), expiry: String(expirySeconds) });
   return { paymentRequest: String(r["payment_request"]), paymentHash: Buffer.from(String(r["r_hash"]), "base64").toString("hex"), addIndex: String(r["add_index"]) };
 }
 export async function lndLookupInvoice(cfg: LndConfig, paymentHashHex: string): Promise<{ state: string; settled: boolean; amtPaidMsat: bigint; preimage: string }> {

@@ -69,6 +69,12 @@ export const saasHandlers: Record<string, H> = {
   createTicket: async (a) => ({ status: 201, body: await sup.createTicket(a.deps, need(a.principal), a.body, a.req.id) }),
   listTickets: async (a) => ({ body: { data: await sup.listTickets(a.deps, need(a.ctx).orgId) } }),
   publicSupport: async (a) => ({ status: 201, body: await sup.createTicket(a.deps, null, a.body, a.req.id) }),
+  resolveLightningAddress: async (a) => {
+    const c = need(a.ctx);
+    const conns = (await a.deps.pool.query("SELECT network FROM wallet_connections WHERE org_id=$1 AND status='active' AND ($2::uuid IS NULL OR id=$2) ORDER BY created_at", [c.orgId, a.body.wallet_connection_id ?? null])).rows;
+    if (conns.length !== 1) throw new OryntError("validation_failed", 422, conns.length ? "More than one wallet is connected: choose which wallet will pay." : "Connect a wallet first.");
+    return { body: await (await import("../services/lnurl")).resolveLightningAddress(a.deps, a.body.address, a.body.amount_msat, conns[0].network) };
+  },
   funnel: async (a) => ({ body: { data: await orgFunnel(a.deps, need(a.ctx).orgId) } }),
 
   recipientAction: async (a) => {

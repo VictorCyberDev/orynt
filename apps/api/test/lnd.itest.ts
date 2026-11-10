@@ -177,3 +177,30 @@ d("Real-node failure modes (regtest)", () => {
     expect((await lndLookupInvoice(bobCfg(), inv.paymentHash)).amtPaidMsat).toBe(37_000_000n);
   }, 400_000);
 });
+
+d("Lightning Address (LNURL-pay) with a REAL LND invoice", () => {
+  let env: TestEnv, c: Client, owner: Actor, operator: Actor, approver: Actor, connId: string, srv: import("node:http").Server, port = 0;
+  const bobCfg = () => ({ restUrl: reg.bob.restUrl, macaroonHex: readFileSync(reg.bob.adminMacaroonPath).toString("hex"), tlsCertPem: readFileSync(reg.bob.tlsCertPath, "utf8") });
+  const METADATA = JSON.stringify([["text/plain", "Real LND LNURL test"]]);
+  beforeAll(async () => {
+    const http = await import("node:http");
+    srv = http.createServer(async (req, res) => {
+      const u = new URL(req.url!, "http://x"); const send = (o: unknown) => { res.writeHead(200, { "content-type": "application/json" }); res.end(JSON.stringify(o)); };
+      if (u.pathname.startsWith("/.well-known/lnurlp/")) return send({ tag: "payRequest", callback: `http://127.0.0.1:${port}/cb`, minSendable: 1000, maxSendable: 500_000_000, metadata: METADATA });
+      const inv = await lndAddInvoice(bobCfg(), BigInt(u.searchParams.get("amount")!), "", 3600, sha256Hex(METADATA)); send({ pr: inv.paymentRequest, routes: [] });
+    });
+    await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r)); port = (srv.address() as { port: number }).port;
+    env = await createEnv(); c = new Client(env);
+    owner = await c.register("owner@lnurl-real.test"); operator = await c.addMember(owner, "op@lnurl-real.test", "operator"); approver = await c.addMember(owner, "ap@lnurl-real.test", "approver");
+    connId = (await c.call("POST", "/v1/connections", owner, { label: "alice", kind: "lnd", lnd: { rest_url: reg.alice.restUrl, macaroon_hex: reg.alice.oryntMacaroonHex, tls_cert_pem: readFileSync(reg.alice.tlsCertPath, "utf8") } })).body.id;
+  });
+  afterAll(async () => { srv?.close(); await env?.teardown(); });
+  it("resolves a Lightning address to a real LND invoice whose description hash matches, then pays it for real", async () => {
+    const r = await c.call("POST", "/v1/lnurl/resolve", operator, { address: `bob@127.0.0.1:${port}`, amount_msat: "42000000" });
+    expect(r.status).toBe(200); expect(r.body.verified.description_hash_matches).toBe(true); expect(r.body.payee_pubkey).toBe(reg.bob.pubkey); expect(decodeInvoice(r.body.invoice).descriptionHash).toBe(sha256Hex(METADATA));
+    const ob = (await c.call("POST", "/v1/obligations", operator, { counterparty_name: "Bob via LN address", amount_msat: "42000000", invoice: r.body.invoice, wallet_connection_id: connId })).body;
+    const s = (await c.call("POST", `/v1/obligations/${ob.id}/submit`, operator)).body; expect((await c.approve(approver, s)).body.state).toBe("APPROVED");
+    const ex = await c.call("POST", `/v1/obligations/${ob.id}/execute`, operator, undefined, { "idempotency-key": "lnurl-real-" + Math.random().toString(36).slice(2) + "xx" });
+    expect(ex.body.state).toBe("SETTLED"); expect(ex.body.environment).toBe("REAL_PROVIDER");
+  });
+});

@@ -46,3 +46,24 @@ export async function vetWebhookTarget(url: string, allowPrivate: boolean): Prom
   for (const a of addrs) if (!allowPrivate && isPrivateAddress(a.address)) throw new Error("target resolves to a private address");
   return { url: u, address: addrs[0]!.address, family: addrs[0]!.family as 4 | 6 };
 }
+
+import http from "node:http";
+import https from "node:https";
+/** GET a small JSON document from an untrusted URL: https only (http+private only in development), DNS pinned to the vetted address, no redirects, hard deadline, size cap. */
+export async function safeGetJson(url: string, allowPrivate: boolean, maxBytes = 64 * 1024, timeoutMs = 8000): Promise<unknown> {
+  const v = await vetWebhookTarget(url, allowPrivate);
+  const lib = v.url.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const deadline = setTimeout(() => req.destroy(new Error("request deadline exceeded")), timeoutMs);
+    const req = lib.request({ method: "GET", hostname: v.url.hostname.replace(/^\[|\]$/g, ""), port: v.url.port, path: v.url.pathname + v.url.search, headers: { accept: "application/json" }, lookup: (_h, _o, cb) => (cb as (e: null, a: string, f: number) => void)(null, v.address, v.family) }, (res) => {
+      if ((res.statusCode ?? 0) >= 300 && (res.statusCode ?? 0) < 400) { clearTimeout(deadline); res.destroy(); return reject(new Error("redirects are not followed")); }
+      if ((res.statusCode ?? 0) !== 200) { clearTimeout(deadline); res.destroy(); return reject(new Error(`HTTP ${res.statusCode}`)); }
+      let size = 0; const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => { size += c.length; if (size > maxBytes) { res.destroy(); clearTimeout(deadline); reject(new Error("response too large")); } else chunks.push(c); });
+      res.on("end", () => { clearTimeout(deadline); try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8"))); } catch { reject(new Error("response is not valid JSON")); } });
+      res.on("error", (e) => { clearTimeout(deadline); reject(e); });
+    });
+    req.on("error", (e) => { clearTimeout(deadline); reject(e); });
+    req.end();
+  });
+}
