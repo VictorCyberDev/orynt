@@ -151,6 +151,26 @@ describe("billing, webhooks and server-enforced entitlements", () => {
     expect(() => parsePaystack(pay + " ", psig, SECRET)).toThrow();
     void applyBillingEvent;
   });
+  it("provider payload mapping regressions (found by the provider evaluation): Stripe new+old shapes, Paystack ids and cancellation semantics", () => {
+    const now = Math.floor(Date.now() / 1000);
+    // Stripe: period end and invoice->subscription link in BOTH the pre-basil and basil locations
+    const st = (type: string, object: unknown) => { const raw = JSON.stringify({ id: "evt_" + type, type, created: now, data: { object } }); return parseStripe(raw, stripeSig(raw), SECRET); };
+    expect(st("customer.subscription.updated", { id: "sub_1", items: { data: [{ current_period_end: now + 500 }] } }).periodEnd).toBe(now + 500);
+    expect(st("customer.subscription.updated", { id: "sub_1", current_period_end: now + 400 }).periodEnd).toBe(now + 400);
+    expect(st("invoice.payment_failed", { parent: { subscription_details: { subscription: "sub_new" } } }).subscriptionId).toBe("sub_new");
+    expect(st("invoice.payment_failed", { subscription: "sub_old" }).subscriptionId).toBe("sub_old");
+    // Paystack: sign helper
+    const ps = (body: object) => { const raw = JSON.stringify(body); return parsePaystack(raw, createHmac("sha512", SECRET).update(raw).digest("hex"), SECRET); };
+    // charge.success must not store the transaction reference as the subscription id
+    expect(ps({ event: "charge.success", data: { id: 1, reference: "TXN_REF", paid_at: new Date().toISOString(), metadata: { org_id: "o", plan_id: "growth" }, customer: { customer_code: "CUS_1" } } }).subscriptionId).toBeUndefined();
+    // payloads without an id: distinct failures get distinct event ids, an identical retry gets the same one
+    const fail = (code: string) => ({ event: "invoice.payment_failed", data: { subscription: { subscription_code: "SUB_1" }, invoice_code: code, createdAt: new Date().toISOString() } });
+    const a = ps(fail("INV_1")), b = ps(fail("INV_2"));
+    expect(a.eventId).not.toBe(b.eventId); expect(a.eventId).not.toContain("undefined"); expect(ps(fail("INV_1")).eventId).toBe(a.eventId);
+    // not_renew means "cancel at period end", only disable cancels now
+    expect(ps({ event: "subscription.not_renew", data: { subscription_code: "SUB_1", createdAt: new Date().toISOString() } })).toMatchObject({ kind: "updated", cancelAtPeriodEnd: true, subscriptionId: "SUB_1" });
+    expect(ps({ event: "subscription.disable", data: { subscription_code: "SUB_1", createdAt: new Date().toISOString() } }).kind).toBe("canceled");
+  });
   it("the sandbox billing provider is refused in production configuration", async () => {
     const { loadConfig } = await import("../src/config");
     expect(() => loadConfig({ ORYNT_ENV: "production", ORYNT_SECRET_KEY: "a".repeat(64), ORYNT_ISSUER_KEY: "b".repeat(64), ORYNT_DEFAULT_PLAN: "enterprise" } as NodeJS.ProcessEnv)).toThrow(/ORYNT_DEFAULT_PLAN/);

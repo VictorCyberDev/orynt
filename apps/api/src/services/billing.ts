@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { OryntError } from "@orynt/core";
 import { withTx } from "../db/pool";
 import { appendAudit } from "./audit";
@@ -24,12 +24,15 @@ export function parseStripe(raw: string, sigHeader: string | undefined, secret: 
   if (!eq(hmac("sha256", secret, `${parts["t"]}.${raw}`), parts["v1"]!)) throw new OryntError("unauthenticated", 401, "Invalid webhook signature.");
   const e = JSON.parse(raw); const o = e.data?.object ?? {}; const base = { provider: "stripe", eventId: String(e.id), type: String(e.type), occurredAt: Number(e.created) };
   const meta = o.metadata ?? {};
+  // Stripe API 2025-03-31 ("basil") moved these fields; accept both shapes. The new locations come from the provider evaluation's reading of Stripe's changelog and are UNVERIFIED against live webhook traffic.
+  const periodEndOf = (x: any): number | undefined => x?.current_period_end ?? x?.items?.data?.[0]?.current_period_end;
+  const invoiceSub = (x: any): string | undefined => x?.subscription ?? x?.parent?.subscription_details?.subscription;
   switch (e.type) {
     case "checkout.session.completed": return { ...base, kind: "activated", orgId: meta.org_id ?? o.client_reference_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.subscription };
-    case "customer.subscription.updated": return { ...base, kind: "updated", orgId: meta.org_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.id, periodEnd: o.current_period_end, cancelAtPeriodEnd: !!o.cancel_at_period_end };
+    case "customer.subscription.updated": return { ...base, kind: "updated", orgId: meta.org_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.id, periodEnd: periodEndOf(o), cancelAtPeriodEnd: !!o.cancel_at_period_end };
     case "customer.subscription.deleted": return { ...base, kind: "canceled", orgId: meta.org_id, subscriptionId: o.id, customerId: o.customer };
-    case "invoice.payment_failed": return { ...base, kind: "payment_failed", subscriptionId: o.subscription, customerId: o.customer };
-    case "invoice.paid": return { ...base, kind: "payment_succeeded", subscriptionId: o.subscription, customerId: o.customer, periodEnd: o.lines?.data?.[0]?.period?.end };
+    case "invoice.payment_failed": return { ...base, kind: "payment_failed", subscriptionId: invoiceSub(o), customerId: o.customer };
+    case "invoice.paid": return { ...base, kind: "payment_succeeded", subscriptionId: invoiceSub(o), customerId: o.customer, periodEnd: o.lines?.data?.[0]?.period?.end };
     default: return { ...base, kind: "ignored" };
   }
 }
@@ -37,11 +40,12 @@ export function parseStripe(raw: string, sigHeader: string | undefined, secret: 
 export function parsePaystack(raw: string, sigHeader: string | undefined, secret: string): BillingEvent {
   if (!sigHeader || !eq(hmac("sha512", secret, raw), sigHeader.toLowerCase())) throw new OryntError("unauthenticated", 401, "Invalid webhook signature.");
   const e = JSON.parse(raw); const d = e.data ?? {}; const meta = d.metadata ?? {};
-  const base = { provider: "paystack", eventId: String(e.id ?? `${e.event}:${d.id ?? d.subscription_code ?? d.reference}`), type: String(e.event), occurredAt: Math.floor(Date.parse(d.paid_at ?? d.createdAt ?? new Date().toISOString()) / 1000) };
+  const base = { provider: "paystack", eventId: e.id !== undefined ? String(e.id) : `${e.event}:${createHash("sha256").update(raw).digest("hex").slice(0, 32)}` /* no stable id in the payload: identical retries hash identically, distinct events never collide */, type: String(e.event), occurredAt: Math.floor(Date.parse(d.paid_at ?? d.createdAt ?? new Date().toISOString()) / 1000) };
   switch (e.event) {
-    case "charge.success": return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code, subscriptionId: d.reference };
+    case "charge.success": return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code }; // the transaction reference is NOT a subscription id; subscription.create supplies the subscription code
     case "subscription.create": return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code, subscriptionId: d.subscription_code };
-    case "subscription.disable": case "subscription.not_renew": return { ...base, kind: "canceled", subscriptionId: d.subscription_code, customerId: d.customer?.customer_code };
+    case "subscription.not_renew": return { ...base, kind: "updated", cancelAtPeriodEnd: true, subscriptionId: d.subscription_code, customerId: d.customer?.customer_code }; // stops renewing; access continues to period end
+    case "subscription.disable": return { ...base, kind: "canceled", subscriptionId: d.subscription_code, customerId: d.customer?.customer_code };
     case "invoice.payment_failed": return { ...base, kind: "payment_failed", subscriptionId: d.subscription?.subscription_code, customerId: d.customer?.customer_code };
     default: return { ...base, kind: "ignored" };
   }
