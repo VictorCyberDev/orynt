@@ -34,7 +34,7 @@ const bobCfg = () => ({ restUrl: reg.bob.restUrl, macaroonHex: readFileSync(reg.
 
 let server: ChildProcess | null = null;
 const startServer = async () => {
-  server = spawn("npx", ["tsx", "src/server.ts"], { cwd: join(ROOT, "apps/api"), detached: true, stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORYNT_ENV: "development", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_FAILPOINTS: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "3600", ORYNT_WORKER_INTERVAL_MS: "1000", PORT: String(PORT), DATABASE_URL: ADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error" } });
+  server = spawn("npx", ["tsx", "src/server.ts"], { cwd: join(ROOT, "apps/api"), detached: true, stdio: ["ignore", "ignore", "inherit"], env: { ...process.env, ORYNT_ENV: "development", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_BILLING_WEBHOOK_SECRET: "whsec_dev_sandbox_only", ORYNT_FAILPOINTS: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "3600", ORYNT_WORKER_INTERVAL_MS: "1000", PORT: String(PORT), DATABASE_URL: ADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error" } });
   for (let i = 0; i < 80; i++) { try { if ((await fetch(BASE + "/health/ready")).ok) return; } catch { /* not yet */ } await new Promise((r) => setTimeout(r, 500)); }
   throw new Error("API did not become ready");
 };

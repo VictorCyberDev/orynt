@@ -14,7 +14,7 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
 
 (async () => {
   execSync(`psql "${PGADMIN}" -c "CREATE DATABASE ${DB}"`, { stdio: "ignore" });
-  const server = spawn("npx", ["tsx", "src/server.ts"], { cwd: path.join(ROOT, "apps/api"), env: { ...process.env, ORYNT_ENV: "development", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_FAILPOINTS: "1", ORYNT_SEED_DEMO: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "10", PORT: String(PORT), DATABASE_URL: PGADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error", ORYNT_ALLOWED_ORIGINS: BASE }, stdio: ["ignore", "inherit", "inherit"], detached: true });
+  const server = spawn("npx", ["tsx", "src/server.ts"], { cwd: path.join(ROOT, "apps/api"), env: { ...process.env, ORYNT_ENV: "development", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_BILLING_WEBHOOK_SECRET: "whsec_dev_sandbox_only", ORYNT_RATE_LIMIT_PER_MIN: "20000", ORYNT_FAILPOINTS: "1", ORYNT_SEED_DEMO: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "10", PORT: String(PORT), DATABASE_URL: PGADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error", ORYNT_ALLOWED_ORIGINS: BASE }, stdio: ["ignore", "inherit", "inherit"], detached: true });
   let browser;
   const cleanup = async () => { try { await browser?.close(); } catch {} try { process.kill(-server.pid, "SIGTERM"); } catch {} await new Promise((r) => setTimeout(r, 500)); try { execSync(`psql "${PGADMIN}" -c "DROP DATABASE IF EXISTS ${DB} WITH (FORCE)"`, { stdio: "ignore" }); } catch {} };
   try {
@@ -113,22 +113,34 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
     await ow.page.getByRole("button", { name: "Submit for approval" }).click();
     await ow.page.waitForSelector("text=Waiting for approval");
     check("wizard creates and submits a payout", true);
+    // --- 4b. billing through the UI (SANDBOX provider: same signed-webhook path, no real money)
+    await ow.page.goto(BASE + "/app/billing"); await ow.page.waitForSelector("text=Sandbox billing");
+    check("billing page labels the sandbox provider as not charging real money", /No card is charged/.test(await ow.page.locator("main").innerText()));
+    await ow.page.getByRole("button", { name: "Choose Business" }).click(); await ow.page.waitForSelector("text=Sandbox checkout complete");
+    await ow.page.reload(); await ow.page.waitForSelector("text=Current plan");
+    check("plan change via sandbox checkout takes effect (server-side entitlement)", /business/i.test(await ow.page.locator("#cur, section").first().innerText()) && (await ow.page.locator("text=current").count()) > 0);
+    await shot(ow.page, "1440", "09-billing");
+    // --- 4c. support request through the UI
+    await ow.page.goto(BASE + "/app/support"); await ow.page.locator("#ts").fill("Payment shows checking"); await ow.page.locator("#tb").fill("PO-0003 has been checking for a while, please look.");
+    await ow.page.getByRole("button", { name: "Send request" }).click(); await ow.page.waitForSelector("text=received");
+    check("support request returns a reference number", /SUP-[0-9A-F]{8}/.test(await ow.page.locator("main").innerText()));
     await ow.ctx.close();
 
     // --- 5. responsive screenshots, overflow and accessibility across routes/viewports/themes
-    const routes = [["", "overview"], ["payouts", "payouts"], ["approvals", "approvals"], ["connections", "wallets"], ["team", "team"], ["activity", "activity"], ["developers", "developers"], ["settings", "settings"], ["guide", "guide"], ["incidents", "incidents"]];
+    const routes = [["", "overview"], ["payouts", "payouts"], ["approvals", "approvals"], ["connections", "wallets"], ["team", "team"], ["activity", "activity"], ["developers", "developers"], ["settings", "settings"], ["guide", "guide"], ["incidents", "incidents"], ["billing", "billing"], ["reports", "reports"], ["batches", "batches"], ["schedules", "schedules"], ["support", "support"]];
     const unknownId = await (async () => { const r = await (await op.ctx.request.get(BASE + "/v1/obligations?state=SIMULATED_SETTLED&limit=1")).json(); return r.data[0]?.id; })();
     await op.ctx.close();
     for (const [w, h, vp] of VIEWPORTS) {
       const s = await ctxFor("demo-owner@orynt.local", [w, h], true); // CSP bypassed ONLY so axe can be injected; all functional flows above ran under the real CSP
       const rr = [...routes, ["payouts/" + unknownId, "payout-detail"], ["payouts/new", "new-payout"]];
       for (const [r, name] of rr) {
-        await s.page.goto(`${BASE}/app/${r}`); await s.page.waitForSelector("main h1", { timeout: 10000 }); await s.page.waitForTimeout(250);
+        await s.page.goto(`${BASE}/app/${r}`); try { await s.page.waitForSelector("main h1", { timeout: 10000 }); } catch (e) { console.log(`NO H1 @${vp}px /${name} url=${s.page.url()} body=${(await s.page.locator("body").innerText()).slice(0, 200).replace(/\n/g, " | ")}`); throw e; } await s.page.waitForTimeout(250);
         const ov = await overflow(s.page);
         check(`no horizontal overflow @${vp}px /${name}`, ov <= 0, ov > 0 ? `${ov}px too wide` : "");
         await shot(s.page, vp, "app-" + name);
         if (vp === "375" || vp === "1440") for (const theme of ["light", "dark"]) {
           await s.page.evaluate((t) => { document.documentElement.dataset.theme = t; }, theme);
+          await s.page.addStyleTag({ content: "*, *::before, *::after { transition: none !important; animation: none !important; }" }); await s.page.waitForTimeout(60); // measure the SETTLED theme, not a mid-transition colour
           await s.page.addScriptTag({ content: axeSrc });
           const res = await s.page.evaluate(async () => { const r = await window.axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa"] }); return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => ({ id: v.id, n: v.nodes.length, impact: v.impact, sample: v.nodes[0]?.target?.join(" ") })); });
           check(`axe serious/critical @${vp}px ${theme} /${name}`, res.length === 0, res.map((v) => `${v.id}×${v.n}(${v.sample})`).join("; "));

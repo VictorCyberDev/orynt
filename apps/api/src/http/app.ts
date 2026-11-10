@@ -61,7 +61,9 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     try { done(null, JSON.parse(text)); } catch { const err = new Error("Request body is not valid JSON.") as Error & { statusCode: number }; err.statusCode = 400; done(err, undefined); }
   });
   await app.register(cookie);
-  await app.register(rateLimit, { global: true, max: config.rateLimitPerMinute, timeWindow: "1 minute", keyGenerator: (req) => req.ip });
+  await app.register(rateLimit, { global: true, max: config.rateLimitPerMinute, timeWindow: "1 minute", keyGenerator: (req) => req.ip,
+    // the abuse limiter protects the API; static pages/assets (cheap, cacheable) must not consume or be blocked by it
+    allowList: (req) => !req.url.startsWith("/v1/") && !req.url.startsWith("/metrics") });
 
   app.setSerializerCompiler(() => (data) => JSON.stringify(data, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
   app.addHook("onSend", async (req, reply) => {

@@ -21,6 +21,7 @@ export const PageQuery = z.object({ cursor: z.string().optional(), limit: z.coer
 export const User = z.object({ id: Uuid, email: z.string(), name: z.string() });
 export const Workspace = z.object({ id: Uuid, name: z.string(), slug: z.string() });
 export const Me = z.object({
+  email_verified: z.boolean().optional(), mfa_enabled: z.boolean().optional(),
   user: User, workspace: Workspace, role: RoleEnum, permissions: z.array(z.string()), csrf_token: z.string().optional(),
   approval_key: z.object({ registered: z.boolean(), public_key: z.string().nullable() }),
   workspaces: z.array(Workspace.extend({ role: RoleEnum })),

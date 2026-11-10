@@ -8,6 +8,7 @@ export function Team() {
   const members = useAsync(() => api.request<{ data: import("@orynt/sdk").Member[] }>("GET", "/v1/members").then((r) => r.data), []);
   const pols = useAsync(() => api.request<{ data: import("@orynt/sdk").PolicyT[] }>("GET", "/v1/policies").then((r) => r.data), []);
   const [add, setAdd] = useState(false);
+  const [invite, setInvite] = useState(false);
   const canManage = me?.permissions.includes("member:manage");
   const canPolicy = me?.permissions.includes("policy:manage");
   const active = pols.data?.data.find((p) => p.active);
@@ -15,7 +16,7 @@ export function Team() {
   const revoke = async (id: string, status: "active" | "revoked") => { try { await api.request("PATCH", `/v1/members/${id}`, { body: { status } }); toast("ok", status === "revoked" ? "Access revoked. Their approvals no longer count." : "Access restored."); members.reload(); } catch (e) { toast("danger", errorText(e)); } };
   return (
     <div className="page">
-      <header className="page-h"><div><h1>Team &amp; policy</h1><p className="lede">Who may do what, and the rules every payment must pass.</p></div>{canManage ? <Button variant="primary" onClick={() => setAdd(true)}>Add a member</Button> : null}</header>
+      <header className="page-h"><div><h1>Team &amp; policy</h1><p className="lede">Who may do what, and the rules every payment must pass.</p></div>{canManage ? <div className="actions"><Button onClick={() => setInvite(true)}>Invite by email</Button><Button variant="primary" onClick={() => setAdd(true)}>Add with temporary password</Button></div> : null}</header>
       <Card title="Members" id="mem">
         {members.loading && !members.data ? <Skeleton /> : null}
         {members.error ? <ErrorNote>{members.error}</ErrorNote> : null}
@@ -32,6 +33,7 @@ export function Team() {
         {active ? <PolicyForm rules={active.rules as PolicyRules} editable={!!canPolicy} onSaved={() => pols.reload()} /> : null}
         <Note tone="info">Publishing a new revision means payouts approved under the old one must be re-approved before they can be sent.</Note>
       </Card>
+      {invite ? <InviteMember onClose={() => setInvite(false)} /> : null}
       {add ? <AddMember onClose={() => setAdd(false)} onDone={() => { setAdd(false); members.reload(); }} /> : null}
     </div>
   );
@@ -85,4 +87,9 @@ function AddMember({ onClose, onDone }: { onClose: () => void; onDone: () => voi
       </form>
     </Dialog>
   );
+}
+
+function InviteMember({ onClose }: { onClose: () => void }) {
+  const [email, setEmail] = useState(""); const [role, setRole] = useState("operator"); const [err, setErr] = useState<string | null>(null);
+  return <Dialog title="Invite by email" onClose={onClose}><form onSubmit={async (e) => { e.preventDefault(); setErr(null); try { await api.request("POST", "/v1/invitations", { body: { email, role } }); toast("ok", "Invitation sent. It expires in 7 days."); onClose(); } catch (x) { setErr(errorText(x)); } }}>{err ? <ErrorNote>{err}</ErrorNote> : null}<Field label="Email" htmlFor="ie"><input id="ie" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field><Field label="Role" htmlFor="ir"><select id="ir" value={role} onChange={(e) => setRole(e.target.value)}>{ROLES.filter((r) => r !== "owner").map((r) => <option key={r}>{r}</option>)}</select></Field><div className="actions"><Button type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit">Send invitation</Button></div></form></Dialog>;
 }

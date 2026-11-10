@@ -103,8 +103,9 @@ export async function meOf(d: Deps, p: Principal) {
   const userId = p.actor.userId;
   const user = userId ? (await d.pool.query("SELECT id,email,name FROM users WHERE id=$1", [userId])).rows[0] : { id: p.actor.id, email: "", name: p.actor.name };
   const mem = userId ? (await d.pool.query("SELECT approval_public_key FROM memberships WHERE user_id=$1 AND org_id=$2", [userId, p.orgId])).rows[0] : null;
+  const flags = userId ? (await d.pool.query("SELECT email_verified_at IS NOT NULL AS ev, mfa_enabled_at IS NOT NULL AS mfa FROM users WHERE id=$1", [userId])).rows[0] : { ev: true, mfa: false };
   const wss = userId ? (await d.pool.query("SELECT o.id,o.name,o.slug,m.role FROM memberships m JOIN organizations o ON o.id=m.org_id WHERE m.user_id=$1 AND m.status='active' ORDER BY o.name", [userId])).rows : [{ ...org, role: p.role }];
-  return { user, workspace: org, role: p.role, permissions: [...permissionsFor(p.role)], csrf_token: p.csrf, approval_key: { registered: !!mem?.approval_public_key, public_key: mem?.approval_public_key ?? null }, workspaces: wss, auth: p.auth };
+  return { email_verified: !!flags.ev, mfa_enabled: !!flags.mfa, user, workspace: org, role: p.role, permissions: [...permissionsFor(p.role)], csrf_token: p.csrf, approval_key: { registered: !!mem?.approval_public_key, public_key: mem?.approval_public_key ?? null }, workspaces: wss, auth: p.auth };
 }
 
 export async function switchWorkspace(d: Deps, p: Principal, workspaceId: string) {

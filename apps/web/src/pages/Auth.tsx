@@ -9,17 +9,18 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const loc = useLocation();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [f, setF] = useState({ email: "", password: "", name: "", workspace: "" });
+  const [f, setF] = useState({ email: "", password: "", name: "", workspace: "", mfa: "" });
+  const [needMfa, setNeedMfa] = useState(false);
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value });
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const r = mode === "login"
-        ? await api.request<import("@orynt/sdk").MeT>("POST", "/v1/auth/login", { body: { email: f.email, password: f.password } })
+        ? await api.request<import("@orynt/sdk").MeT>("POST", "/v1/auth/login", { body: { email: f.email, password: f.password, ...(f.mfa ? { mfa_code: f.mfa } : {}) } })
         : await api.request<import("@orynt/sdk").MeT>("POST", "/v1/auth/register", { body: { email: f.email, password: f.password, name: f.name, workspace_name: f.workspace } });
       setCsrf(r.data.csrf_token); setMe(r.data);
       nav((loc.state as { from?: string } | null)?.from ?? (mode === "signup" ? "/guide" : "/"), { replace: true });
-    } catch (e2) { setErr(errorText(e2)); } finally { setBusy(false); }
+    } catch (e2) { if ((e2 as { problem?: { mfa_required?: boolean } }).problem?.mfa_required) { setNeedMfa(true); setErr("Enter the 6-digit code from your authenticator app."); } else setErr(errorText(e2)); } finally { setBusy(false); }
   };
   return (
     <div className="auth">
@@ -37,8 +38,9 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
           <Field label="Workspace name" htmlFor="ws" hint="Usually your organisation."><input id="ws" required value={f.workspace} onChange={set("workspace")} /></Field></> : null}
         <Field label="Email" htmlFor="email"><input id="email" type="email" required autoComplete="email" value={f.email} onChange={set("email")} /></Field>
         <Field label="Password" htmlFor="pw" hint={mode === "signup" ? "At least 12 characters." : undefined}><input id="pw" type="password" required minLength={mode === "signup" ? 12 : 1} autoComplete={mode === "login" ? "current-password" : "new-password"} value={f.password} onChange={set("password")} /></Field>
+        {needMfa ? <Field label="Authenticator code" htmlFor="mfa"><input id="mfa" inputMode="numeric" autoComplete="one-time-code" pattern="\d{6}" maxLength={6} value={f.mfa} onChange={set("mfa")} /></Field> : null}
         <Button variant="primary" type="submit" busy={busy}>{mode === "login" ? "Sign in" : "Create workspace"}</Button>
-        <p className="alt">{mode === "login" ? <>New here? <Link to="/signup">Create a workspace</Link></> : <>Already have one? <Link to="/login">Sign in</Link></>} · <Link to="/verify">Verify a receipt</Link></p>
+        <p className="alt">{mode === "login" ? <><Link to="/forgot">Forgot your password?</Link> · </> : null}{mode === "login" ? <>New here? <Link to="/signup">Create a workspace</Link></> : <>Already have one? <Link to="/login">Sign in</Link></>} · <Link to="/verify">Verify a receipt</Link></p>
       </form>
     </div>
   );

@@ -18,6 +18,9 @@ import { Developers } from "./pages/Developers";
 import { Settings } from "./pages/Settings";
 import { VerifyReceipt } from "./pages/VerifyReceipt";
 import { Guide } from "./pages/Guide";
+import { Billing } from "./pages/Billing";
+import { Batches, Reports, Schedules, Support } from "./pages/Work";
+import { AcceptInvite, Forgot, ResetPassword, SupportPublic, VerifyEmail } from "./pages/Links";
 
 export function App() {
   const [me, setMeState] = useState<MeT | null>(null);
@@ -35,6 +38,11 @@ export function App() {
         <Routes>
           <Route path="/login" element={me ? <Navigate to="/" replace /> : <AuthPage mode="login" />} />
           <Route path="/signup" element={me ? <Navigate to="/" replace /> : <AuthPage mode="signup" />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/forgot" element={<Forgot />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/accept-invite" element={<AcceptInvite />} />
+          <Route path="/contact-support" element={<SupportPublic />} />
           <Route path="/verify" element={publicPath && !me ? <div className="public-wrap"><VerifyReceipt /></div> : <Layout><VerifyReceipt /></Layout>} />
           <Route path="/guide" element={!me ? <div className="public-wrap"><Guide /></div> : <Layout><Guide /></Layout>} />
           {me ? (
@@ -50,6 +58,11 @@ export function App() {
               <Route path="activity" element={<Activity />} />
               <Route path="developers" element={<Developers />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="billing" element={<Billing />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="batches" element={<Batches />} />
+              <Route path="schedules" element={<Schedules />} />
+              <Route path="support" element={<Support />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           ) : <Route path="*" element={<Navigate to="/login" replace state={{ from: loc.pathname }} />} />}

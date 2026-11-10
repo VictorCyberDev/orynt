@@ -10,6 +10,7 @@ export function ApproveDialog({ ob, onClose, onDone }: { ob: Obligation; onClose
   const { me, setMe } = useSession();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [mfa, setMfa] = useState("");
   const userId = me!.user.id, orgId = me!.workspace.id;
   const local = loadKey(userId, orgId);
   const registered = me!.approval_key.public_key;
@@ -26,7 +27,7 @@ export function ApproveDialog({ ob, onClose, onDone }: { ob: Obligation; onClose
   const approve = async () => {
     setBusy(true); setErr(null);
     try {
-      await api.obligations.approve(ob.id, signApprovalBody(local!, ob, userId, orgId));
+      await api.obligations.approve(ob.id, { ...signApprovalBody(local!, ob, userId, orgId), ...(me!.mfa_enabled ? { mfa_code: mfa } : {}) } as never);
       toast("ok", `Approved ${ob.ref} — exact terms signed.`); onDone();
     } catch (e) { setErr(errorText(e)); } finally { setBusy(false); }
   };
@@ -48,7 +49,7 @@ export function ApproveDialog({ ob, onClose, onDone }: { ob: Obligation; onClose
           {keyState === "mismatch" ? "Approvals made here would be rejected. Register this browser's key (replaces the old one) or use the browser where you set up your key." : "It is created in this browser and never leaves it. Orynt stores only the public half."}
           <div className="actions"><Button variant="primary" onClick={setup} busy={busy}>{keyState === "mismatch" ? "Register this browser's key" : "Create and register key"}</Button></div>
         </Note>
-      ) : <div className="actions"><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={approve} busy={busy}>Sign &amp; approve</Button></div>}
+      ) : <>{me!.mfa_enabled ? <div className="field"><label htmlFor="am">Authenticator code</label><input id="am" inputMode="numeric" maxLength={6} autoComplete="one-time-code" value={mfa} onChange={(e) => setMfa(e.target.value)} /></div> : null}<div className="actions"><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={approve} busy={busy}>Sign &amp; approve</Button></div></>}
     </Dialog>
   );
 }

@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-09T15:33:25.930Z",
+  "ran_at": "2026-11-10T13:27:36.348Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
-  "total": 100,
+  "total": 138,
   "failed": 0,
   "results": [
     {
@@ -81,6 +81,21 @@
     },
     {
       "name": "wizard creates and submits a payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "billing page labels the sandbox provider as not charging real money",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "plan change via sandbox checkout takes effect (server-side entitlement)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "support request returns a reference number",
       "ok": true,
       "detail": ""
     },
@@ -235,6 +250,81 @@
       "detail": ""
     },
     {
+      "name": "no horizontal overflow @375px /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /support",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /support",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /support",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "no horizontal overflow @375px /payout-detail",
       "ok": true,
       "detail": ""
@@ -311,6 +401,31 @@
     },
     {
       "name": "no horizontal overflow @768px /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /support",
       "ok": true,
       "detail": ""
     },
@@ -471,6 +586,81 @@
     },
     {
       "name": "axe serious/critical @1440px dark /incidents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /billing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /reports",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /batches",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /schedules",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /support",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /support",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /support",
       "ok": true,
       "detail": ""
     },
