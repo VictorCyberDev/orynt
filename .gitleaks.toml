@@ -1,0 +1,11 @@
+# Orynt gitleaks configuration. Extends the default ruleset. The only exception is exact-value:
+# deterministic, client-chosen Idempotency-Key literals used in integration tests (e.g. "verify-key-12345").
+# They are request identifiers, not credentials. Any other finding — including a real credential in a test file — still fails the gate.
+title = "orynt"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test Idempotency-Key literals (<word>-key-<5 digits>)"
+regexes = ['''^[a-z]+-key-\d{5}$''']
