@@ -1,11 +1,13 @@
 name: ci
 on: { push: { branches: [main, "claude/**"] }, pull_request: {} }
 permissions: { contents: read }
-concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }
+concurrency:
+  group: "ci-${{ github.ref }}"
+  cancel-in-progress: true
 
 jobs:
   verify:
-    name: lint · typecheck · unit · build · integration (simulator)
+    name: "verify - lint, typecheck, unit, build, integration (simulator)"
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -28,7 +30,7 @@ jobs:
       - run: pnpm test:integration
 
   audit:
-    name: dependency audit (hard gate: high/critical, production deps)
+    name: "dependency audit (hard gate - high and critical, production deps)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +50,7 @@ jobs:
         env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
 
   real-lightning:
-    name: real Lightning on regtest (bitcoind + 2×LND)
+    name: "real Lightning on regtest (bitcoind + 2 LND nodes)"
     runs-on: ubuntu-latest
     needs: verify
     services:
@@ -78,7 +80,7 @@ jobs:
         run: pnpm regtest:down
 
   e2e:
-    name: browser E2E (Chromium, 375/768/1440, axe)
+    name: "browser E2E (Chromium, 375, 768, 1440, axe)"
     runs-on: ubuntu-latest
     needs: verify
     services:
@@ -103,7 +105,7 @@ jobs:
         with: { name: e2e-screenshots, path: docs/evidence/screenshots }
 
   docker:
-    name: container image builds and starts
+    name: "container image builds and starts"
     runs-on: ubuntu-latest
     needs: verify
     steps:
