@@ -22,7 +22,7 @@ New payout (paste invoice → decoded & checked on-device: amount, network, expi
 Response interrupted ⇒ `UNKNOWN` (indigo, calm), never `FAILED`. Send is disabled with the reason in plain words; a second send is refused server-side; "Check the wallet's record now" asks the wallet by payment hash; the payment settles only when the preimage matches; the receipt records that it was settled after an uncertain moment.
 
 ## Truthful feature gates
-Simulator ("Practice wallet"): labelled in the header, on every payout, and in the receipt; states `SIMULATED_SETTLED`. Mainnet: refused. French: core screens only, unreviewed. Not implemented: NWC, BTCPay, BOLT12/LNURL, batch payouts, fiat references, email notifications, SSO/MFA, multi-instance deployment.
+Simulator ("Practice wallet"): labelled in the header, on every payout, and in the receipt; states `SIMULATED_SETTLED`. Mainnet: refused. French: core screens only, unreviewed. Implemented in R2 (simulator/regtest verified, see `docs/EXECUTION-REGISTER.md`): LNURL-pay / Lightning Address, batch CSV payouts, recurring schedules (drafts only), TOTP MFA step-up, e-mail verification/reset/invitations (outbox; real delivery not commissioned), billing with server-enforced entitlements (sandbox; live provider not commissioned). **Still not implemented:** NWC, BTCPay and Core Lightning adapters, BOLT12, fiat references, SSO, WebAuthn, multi-instance deployment.
 
 ## Non-goals
 Exchange, trading, custody, escrow, lending, generic bounty marketplace, autonomous AI spender.
