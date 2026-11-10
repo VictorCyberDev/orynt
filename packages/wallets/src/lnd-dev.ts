@@ -41,3 +41,7 @@ export async function lndChannelBalance(cfg: LndConfig): Promise<{ localMsat: bi
   const r = (await call(cfg, "GET", "/v1/balance/channels")) as { local_balance?: { msat?: string }; remote_balance?: { msat?: string } };
   return { localMsat: BigInt(r.local_balance?.msat ?? "0"), remoteMsat: BigInt(r.remote_balance?.msat ?? "0") };
 }
+export async function lndActiveChannels(cfg: LndConfig): Promise<number> {
+  const r = (await call(cfg, "GET", "/v1/channels")) as { channels?: Array<{ active?: boolean }> };
+  return (r.channels ?? []).filter((c) => c.active).length;
+}

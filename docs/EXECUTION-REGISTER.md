@@ -11,9 +11,9 @@ Nothing is VERIFIED without a command and evidence path. Environment: Linux x86_
 | M0 | Dakar rules checklist | PARTIAL | `docs/hackathon/rules-checklist.md` | retrieved via Firecrawl; **rules pages conflict** (Africa-resident vs students-only; "wallet implementation") → owner decision |
 | M1 | Brand, strategy, spec, tokens | PARTIAL | `docs/brand/`, `docs/business/`, `docs/product/`, `packages/ui/` | mark reviewed as PNG (resembles a progress ring — recorded). No bespoke icon set. Business docs = hypotheses; **no customer validation exists.** |
 | M2 | Monorepo, migrations, Postgres, schema | VERIFIED | `pnpm test:integration` (migrations up→down→up, failed-migration rollback, checksum drift) | docker compose is **UNVERIFIED** (no daemon); local PostgreSQL used |
-| M2 | **Regtest network (bitcoind + 2×LND, channel)** | **BLOCKED** | `infra/regtest/*` written, `bash -n`/`node --check` only | the sandbox's permission classifier refused to *execute* the checksum-verified downloaded binaries (even `--version`). Binaries downloaded + SHA-256 verified, extracted, **never run** |
+| M2 | Regtest network (bitcoind 29.5 + 2×LND v0.20.1, funded channel, least-privilege macaroons) | VERIFIED | `pnpm regtest:up` exit 0 (2026-11-10) | Core 32.1 was tried first: LND v0.20.1 refused to start ("node backend does not support taproot") → pinned 29.5. First real run also fixed two readiness races in `up.mjs`. Binaries SHA-256-verified; PGP/guix attestations not verified |
 | M3 | Auth, tenancy, roles, policy, signed approvals | VERIFIED | `adversarial.itest`, `security.itest` (see matrix) | simulator wallet |
-| M4 | **Real Lightning adapter** (LND REST) | **UNVERIFIED** | `packages/wallets/src/lnd.ts`; `apps/api/test/lnd.itest.ts` = **8 skipped** | written from LND docs; never exercised against a node. Error→"not sent / unknown" classification is therefore unproven |
+| M4 | **Real Lightning adapter** (LND REST) | VERIFIED (regtest) | `pnpm test:real-lightning` → **14/14 pass**; `pnpm demo:full` (real) all assertions pass, `docs/evidence/demo-real-regtest-*.md` | first real run exposed 3 adapter defects, now fixed: padded-base64 payment-hash path (unpadded = HTTP 400, would have broken every reconcile), `checkpermissions` needs `macaroon:read` (→ authorization probes instead), startup recovery left DISPATCHING for up to 90 s |
 | M4 | Invoice decode/validation (BOLT11) | VERIFIED vs spec | `packages/core/test/bolt11.test.ts` (spec vectors incl. payee-key recovery) | cross-check against real LND invoices is in the skipped test |
 | M4 | State machine, durable intents, reconciliation, incidents | VERIFIED (simulator) | `adversarial.itest`, `load.itest`, `demo:full:sim` | |
 | M4 | NWC adapter, BTCPay adapter | NOT STARTED | — | cannot be verified here → not shipped (mandate: BTCPay only if verifiable) |
@@ -42,7 +42,8 @@ Nothing is VERIFIED without a command and evidence path. Environment: Linux x86_
 | `pnpm restore:rehearsal` | PASSED (counts equal; 9 audit chains re-verified on restored copy) |
 | `pnpm audit --prod --audit-level=high` | no known vulnerabilities |
 | **Clean clone of the pushed branch** into an empty dir (`git clone` → `pnpm install --frozen-lockfile` → `lint` → `typecheck` → `build:all` → `test` → `test:integration`) | all exit 0; integration 55 pass / 8 skipped (verified at commit 78990af) |
-| `pnpm demo:full` / `pnpm test:real-lightning` | **NOT RUN** (needs regtest) |
+| `pnpm test:real-lightning` (real bitcoind+LND regtest) | 14 pass: decoder == LND invoices; real payment; duplicate refused by wallet; NOT_FOUND; bad cred/unreachable; real receipt VERIFIED --require-real; lost-response→reconcile (1 payment); insufficient liquidity; read-only credential blocked; expired invoice; destination/network substitution; 10 concurrent executes→1 payment; our node restart mid-uncertainty; payee node offline→proven failure→retry settles once |
+| `pnpm demo:full` (REAL) | all assertions pass incl. **SIGKILL of the API after LND accepted the payment → restart → UNKNOWN → reconciled → SETTLED**; receipts exit 0 VERIFIED; tamper/replay/swap rejected |
 | Docker build/compose | **NOT RUN** (no daemon) |
 | CI workflow | written, **never run on GitHub** |
 

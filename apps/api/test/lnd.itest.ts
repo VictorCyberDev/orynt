@@ -4,8 +4,10 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { decodeInvoice, sha256Hex, hexToBytes } from "@orynt/core";
-import { AlreadyExistsError, InsufficientPermissionsError, LndRestProvider, NotSentError, lndAddInvoice, lndLookupInvoice } from "@orynt/wallets";
+import { resolve } from "node:path";
+import { decodeInvoice, sha256Hex, hexToBytes, DEFAULT_POLICY_RULES, encodeInvoice, nodePubkeyFromPrivate } from "@orynt/core";
+import { AlreadyExistsError, InsufficientPermissionsError, LndRestProvider, NotSentError, lndActiveChannels, lndAddInvoice, lndLookupInvoice } from "@orynt/wallets";
+import { execFileSync } from "node:child_process";
 import { verifyReceipt } from "@orynt/verifier";
 import { Client, createEnv, type Actor, type TestEnv } from "./helpers";
 import { arm, disarmAll } from "../src/lib/failpoints";
@@ -88,8 +90,90 @@ d("Orynt end-to-end on a REAL Lightning payment (regtest)", () => {
     expect(paid.status).toBe("SUCCEEDED");
   });
   it("insufficient liquidity is a PROVEN failure reported by LND, not a guess", async () => {
-    const { id } = await payout(900_000); // > channel capacity: LND cannot route it
+    await c.call("POST", "/v1/policies", owner, { name: "Default policy", rules: { ...DEFAULT_POLICY_RULES, allowedNetworks: ["regtest"], maxPaymentMsat: "20000000000", dailyLimitMsat: null, tiers: [{ upToMsat: null, requiredApprovals: 1 }] } });
+    const { id } = await payout(9_000_000); // 9M sats > the 5M-sat channel: LND cannot route it
     const r = await exec(id); expect(["DEFINITIVELY_FAILED", "UNKNOWN"]).toContain(r.body.state);
     if (r.body.state === "DEFINITIVELY_FAILED") expect(r.body.payment.attempts[0].failure_reason).toMatch(/FAILURE_REASON/);
   });
+});
+
+d("Real-node failure modes (regtest)", () => {
+  let env: TestEnv, c: Client, owner: Actor, operator: Actor, approver: Actor, connId: string;
+  const aliceCfg = () => ({ restUrl: reg.alice.restUrl, macaroonHex: reg.alice.oryntMacaroonHex, tlsCertPem: readFileSync(reg.alice.tlsCertPath, "utf8") });
+  const bobCfg = () => ({ restUrl: reg.bob.restUrl, macaroonHex: readFileSync(reg.bob.adminMacaroonPath).toString("hex"), tlsCertPem: readFileSync(reg.bob.tlsCertPath, "utf8") });
+  const nodeCtl = (cmd: "stop" | "start", name: "alice" | "bob") => execFileSync("node", [resolve(__dirname, "../../../infra/regtest/node.mjs"), cmd, name], { stdio: "pipe", timeout: 150_000 });
+  const waitChannel = async () => { const end = Date.now() + 120_000; while (Date.now() < end) { try { if ((await lndActiveChannels(aliceCfg())) > 0) return; } catch { /* node starting */ } await new Promise((r) => setTimeout(r, 2000)); } throw new Error("channel did not become active"); };
+  const sys = () => systemCtx(owner.orgId, "test");
+  beforeAll(async () => {
+    env = await createEnv(); c = new Client(env);
+    owner = await c.register("owner@fail.test"); operator = await c.addMember(owner, "op@fail.test", "operator"); approver = await c.addMember(owner, "ap@fail.test", "approver");
+    connId = (await c.call("POST", "/v1/connections", owner, { label: "alice", kind: "lnd", lnd: { rest_url: reg.alice.restUrl, macaroon_hex: reg.alice.oryntMacaroonHex, tls_cert_pem: readFileSync(reg.alice.tlsCertPath, "utf8") } })).body.id;
+  });
+  afterAll(async () => { disarmAll(); try { nodeCtl("start", "alice"); } catch { /* maybe running */ } try { nodeCtl("start", "bob"); } catch { /* maybe running */ } await env?.teardown(); });
+  const approved = async (sats: number, expiry = 3600) => {
+    const inv = await lndAddInvoice(bobCfg(), BigInt(sats) * 1000n, `fail-mode ${sats}`, expiry);
+    const ob = (await c.call("POST", "/v1/obligations", operator, { counterparty_name: "Bob (regtest)", amount_msat: String(sats * 1000), invoice: inv.paymentRequest, wallet_connection_id: connId })).body;
+    const s = (await c.call("POST", `/v1/obligations/${ob.id}/submit`, operator)).body;
+    expect((await c.approve(approver, s)).body.state).toBe("APPROVED");
+    return { id: ob.id as string, inv };
+  };
+  const exec = (id: string) => c.call("POST", `/v1/obligations/${id}/execute`, operator, undefined, { "idempotency-key": "f-" + Math.random().toString(36).slice(2) + "xxxxxx" });
+
+  it("a READ-ONLY credential is discovered as unable to send: payouts cannot even be submitted", async () => {
+    const r = await c.call("POST", "/v1/connections", owner, { label: "alice read-only", kind: "lnd", lnd: { rest_url: reg.alice.restUrl, macaroon_hex: reg.alice.readOnlyMacaroonHex, tls_cert_pem: readFileSync(reg.alice.tlsCertPath, "utf8") } });
+    expect(r.status).toBe(201); expect(r.body.capabilities.can_send).toBe("false"); expect(r.body.capabilities.can_lookup).toBe("true");
+    const inv = await lndAddInvoice(bobCfg(), 30_000_000n, "ro");
+    const ob = (await c.call("POST", "/v1/obligations", operator, { counterparty_name: "Bob RO", amount_msat: "30000000", invoice: inv.paymentRequest, wallet_connection_id: r.body.id })).body;
+    const sub = await c.call("POST", `/v1/obligations/${ob.id}/submit`, operator);
+    expect(sub.status).toBe(409); expect(sub.body.code).toBe("wallet_insufficient_permissions");
+  });
+  it("a real invoice that has expired is refused before anything is sent", async () => {
+    const inv = await lndAddInvoice(bobCfg(), 1_000_000n, "short", 1);
+    await new Promise((r) => setTimeout(r, 2500));
+    const r = await c.call("POST", "/v1/obligations", operator, { counterparty_name: "Late", amount_msat: "1000000", invoice: inv.paymentRequest, wallet_connection_id: connId });
+    expect(r.status).toBe(422); expect(r.body.code).toBe("invoice_expired");
+  });
+  it("destination substitution and wrong-network invoices are refused (real LND-issued invoice vs bound payee)", async () => {
+    const cp = (await c.call("POST", "/v1/counterparties", operator, { name: "Pinned elsewhere", bound_payee_pubkey: nodePubkeyFromPrivate("c3".repeat(32)) })).body;
+    const inv = await lndAddInvoice(bobCfg(), 1_000_000n, "subst");
+    const r = await c.call("POST", "/v1/obligations", operator, { counterparty_id: cp.id, amount_msat: "1000000", invoice: inv.paymentRequest, wallet_connection_id: connId });
+    expect(r.body.code).toBe("destination_mismatch");
+    const wrongNet = encodeInvoice({ network: "mainnet", amountMsat: 1_000_000n, paymentHashHex: "ab".repeat(32), timestamp: Math.floor(Date.now() / 1000), expirySeconds: 3600, privateKeyHex: "b2".repeat(32) });
+    expect((await c.call("POST", "/v1/obligations", operator, { counterparty_name: "WN", amount_msat: "1000000", invoice: wrongNet, wallet_connection_id: connId })).body.code).toBe("network_mismatch");
+  });
+  it("10 concurrent executes against the REAL wallet: exactly one payment reaches LND", async () => {
+    const { id, inv } = await approved(35_000);
+    const rs = await Promise.all(Array.from({ length: 10 }, () => exec(id)));
+    expect(rs.filter((r) => r.status === 200 || r.status === 202).length).toBe(1);
+    const lookup = await new LndRestProvider(aliceCfg()).lookupPayment(inv.paymentHash);
+    expect(lookup.status).toBe("SUCCEEDED");
+    expect((await lndLookupInvoice(bobCfg(), inv.paymentHash)).amtPaidMsat).toBe(35_000_000n); // paid once, not 10x
+  }, 120_000);
+  it("OUR node restarts while a payment is uncertain: reconciliation errors, stays blocked, then settles after the node returns", async () => {
+    const { id, inv } = await approved(36_000);
+    arm("execute.after_provider_response", "throw");
+    expect((await exec(id)).body.state).toBe("UNKNOWN");
+    nodeCtl("stop", "alice");
+    expect(await reconcileObligation(env.deps, sys(), id, "worker")).toBe("ERROR");
+    const blocked = (await c.call("GET", `/v1/obligations/${id}`, owner)).body; expect(blocked.state).toBe("RECONCILING");
+    expect((await exec(id)).status).toBe(409);
+    nodeCtl("start", "alice"); await env.pool.query("UPDATE payout_obligations SET reconcile_lease_until=NULL WHERE id=$1", [id]);
+    expect(await reconcileObligation(env.deps, sys(), id, "worker")).toBe("SETTLED");
+    expect((await new LndRestProvider(aliceCfg()).lookupPayment(inv.paymentHash)).status).toBe("SUCCEEDED");
+  }, 300_000);
+  it("PAYEE node offline: the payment fails as PROVEN (wallet-reported), and a retry after it returns settles for real — one payment total", async () => {
+    const { id, inv } = await approved(37_000);
+    nodeCtl("stop", "bob");
+    const r = await exec(id);
+    expect(["DEFINITIVELY_FAILED", "PENDING", "UNKNOWN"]).toContain(r.body.state);
+    if (r.body.state !== "DEFINITIVELY_FAILED") { // LND may still be retrying: let reconciliation find the terminal state
+      for (let i = 0; i < 12 && !["DEFINITIVELY_FAILED", "SETTLED"].includes((await c.call("GET", `/v1/obligations/${id}`, owner)).body.state); i++) { await env.pool.query("UPDATE payout_obligations SET reconcile_lease_until=NULL WHERE id=$1", [id]); await reconcileObligation(env.deps, sys(), id, "worker"); await new Promise((x) => setTimeout(x, 3000)); }
+    }
+    const failed = (await c.call("GET", `/v1/obligations/${id}`, owner)).body;
+    expect(failed.state).toBe("DEFINITIVELY_FAILED"); expect(failed.payment.attempts[0].failure_reason).toMatch(/FAILURE_REASON/);
+    nodeCtl("start", "bob"); await waitChannel();
+    const retry = await c.call("POST", `/v1/payments/${failed.payment.id}/retry`, operator, undefined, { "idempotency-key": "retry-" + Math.random().toString(36).slice(2) + "xxxx" });
+    expect(retry.body.state).toBe("SETTLED"); expect(retry.body.payment.attempts.length).toBe(2);
+    expect((await lndLookupInvoice(bobCfg(), inv.paymentHash)).amtPaidMsat).toBe(37_000_000n);
+  }, 400_000);
 });

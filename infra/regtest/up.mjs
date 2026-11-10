@@ -13,7 +13,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync, openSync, existsSync, rmSync, readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { join } from "node:path";
-import { DIR, findBin, lnd, rpc, sleep, until } from "./lib.mjs";
+import { DIR, findBin, lnd, lndArgs, rpc, sleep, until } from "./lib.mjs";
 
 const fresh = process.argv.includes("--fresh");
 if (fresh && existsSync(DIR)) for (const d of ["bitcoind", "alice", "bob", "pids.json", "env.json"]) rmSync(join(DIR, d), { recursive: true, force: true });
@@ -26,7 +26,7 @@ const start = (name, cmd, args) => { const out = openSync(join(DIR, `${name}.log
 
 // 1. bitcoind (regtest only)
 mkdirSync(join(DIR, "bitcoind"), { recursive: true });
-start("bitcoind", bin.bitcoind, ["-regtest", `-datadir=${join(DIR, "bitcoind")}`, "-server=1", "-txindex=1", "-fallbackfee=0.0002", `-rpcuser=${btc.rpcUser}`, `-rpcpassword=${btc.rpcPass}`, `-rpcport=${btc.rpcPort}`, `-port=${btc.p2pPort}`, `-zmqpubrawblock=tcp://127.0.0.1:${btc.zmqBlock}`, `-zmqpubrawtx=tcp://127.0.0.1:${btc.zmqTx}`]);
+start("bitcoind", bin.bitcoind, ["-regtest", `-datadir=${join(DIR, "bitcoind")}`, "-server=1", "-txindex=1", "-listenonion=0", "-fallbackfee=0.0002", `-rpcuser=${btc.rpcUser}`, `-rpcpassword=${btc.rpcPass}`, `-rpcport=${btc.rpcPort}`, `-port=${btc.p2pPort}`, `-zmqpubrawblock=tcp://127.0.0.1:${btc.zmqBlock}`, `-zmqpubrawtx=tcp://127.0.0.1:${btc.zmqTx}`]);
 writeFileSync(join(DIR, "pids.json"), JSON.stringify(pids));
 await until(async () => (await rpc(btc, "getblockchaininfo")).chain === "regtest", "bitcoind RPC");
 if ((await rpc(btc, "getblockchaininfo")).chain !== "regtest") throw new Error("refusing: not regtest");
@@ -40,7 +40,7 @@ const mk = (name, p) => ({ name, dir: join(DIR, name), restPort: p.rest, rpcPort
 const alice = mk("alice", { rest: 8081, rpc: 10009, listen: 9735 }), bob = mk("bob", { rest: 8082, rpc: 10010, listen: 9736 });
 for (const n of [alice, bob]) {
   mkdirSync(n.dir, { recursive: true });
-  start(`lnd-${n.name}`, bin.lnd, [`--lnddir=${n.dir}`, "--bitcoin.active", "--bitcoin.regtest", "--bitcoin.node=bitcoind", `--bitcoind.rpchost=127.0.0.1:${btc.rpcPort}`, `--bitcoind.rpcuser=${btc.rpcUser}`, `--bitcoind.rpcpass=${btc.rpcPass}`, `--bitcoind.zmqpubrawblock=tcp://127.0.0.1:${btc.zmqBlock}`, `--bitcoind.zmqpubrawtx=tcp://127.0.0.1:${btc.zmqTx}`, `--listen=127.0.0.1:${n.listen}`, `--rpclisten=127.0.0.1:${n.rpcPort}`, `--restlisten=127.0.0.1:${n.restPort}`, "--noseedbackup", `--alias=orynt-${n.name}`, "--tlsextraip=127.0.0.1", "--accept-keysend"]);
+  start(`lnd-${n.name}`, bin.lnd, lndArgs(n.name, btc.rpcPass));
 }
 writeFileSync(join(DIR, "pids.json"), JSON.stringify(pids));
 const A = lnd(alice), B = lnd(bob);
@@ -52,9 +52,10 @@ for (const i of [aInfo, bInfo]) if (!i.chains?.some((c) => c.network === "regtes
 const addr = (await A("GET", "/v1/newaddress?type=0")).address;
 await rpc(btc, "sendtoaddress", [addr, 2], "miner"); await mine(6);
 await until(async () => BigInt((await A("GET", "/v1/balance/blockchain")).confirmed_balance) > 0n, "alice funded");
-await A("POST", "/v1/peers", { addr: { pubkey: bInfo.identity_pubkey, host: `127.0.0.1:${bob.listen}` }, perm: true }).catch((e) => { if (!/already connected/i.test(e.message)) throw e; });
+// LND reports synced_to_chain before its server subsystem accepts RPCs: retry until it does.
+await until(async () => { try { await A("POST", "/v1/peers", { addr: { pubkey: bInfo.identity_pubkey, host: `127.0.0.1:${bob.listen}` }, perm: true }); return true; } catch (e) { if (/already connected/i.test(e.message)) return true; throw e; } }, "alice can connect to bob", 120_000, 2000);
 await until(async () => (await A("GET", "/v1/peers")).peers?.some((p) => p.pub_key === bInfo.identity_pubkey), "peer connected");
-await A("POST", "/v1/channels", { node_pubkey: Buffer.from(bInfo.identity_pubkey, "hex").toString("base64"), local_funding_amount: "5000000", push_sat: "0" });
+await until(async () => { await A("POST", "/v1/channels", { node_pubkey: Buffer.from(bInfo.identity_pubkey, "hex").toString("base64"), local_funding_amount: "5000000", push_sat: "0" }); return true; }, "channel funding accepted", 120_000, 2000);
 await mine(6);
 await until(async () => (await A("GET", "/v1/channels")).channels?.some((c) => c.active), "channel active", 120_000);
 await sleep(2000);

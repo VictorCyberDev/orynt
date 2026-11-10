@@ -19,6 +19,8 @@ export interface Config {
   sendTimeoutSeconds: number;
   rateLimitPerMinute: number;
   trustProxy: boolean;
+  /** true: on startup every DISPATCHING payout is immediately treated as interrupted (safe only if no other instance can be mid-call). false: use the age threshold. */
+  assumeSingleInstance: boolean;
   reconcileInitialDelaySeconds: number;
 }
 
@@ -52,6 +54,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     allowPrivateWebhookTargets: !prod,
     logLevel: e["LOG_LEVEL"] ?? (env === "test" ? "silent" : "info"),
     trustProxy: e["ORYNT_TRUST_PROXY"] === "1",
+    assumeSingleInstance: (e["ORYNT_ASSUME_SINGLE_INSTANCE"] ?? (prod ? "0" : "1")) === "1",
     rateLimitPerMinute: Number(e["ORYNT_RATE_LIMIT_PER_MIN"] ?? 600),
     sendTimeoutSeconds: Number(e["ORYNT_SEND_TIMEOUT_SECONDS"] ?? 30),
     reconcileInitialDelaySeconds: Number(e["ORYNT_RECONCILE_INITIAL_DELAY_SECONDS"] ?? 10),

@@ -13,7 +13,7 @@ export async function until(fn, what, timeoutMs = 90_000, every = 800) {
 export function findBin() {
   const home = process.env.ORYNT_BIN_DIR ?? join(DIR, "bin");
   const cands = {
-    bitcoind: [process.env.ORYNT_BITCOIND, join(home, "bitcoin-32.1/bin/bitcoind"), "/opt/orynt-bin/bitcoin-32.1/bin/bitcoind"],
+    bitcoind: [process.env.ORYNT_BITCOIND, join(home, "bitcoin-29.5/bin/bitcoind"), "/opt/orynt-bin/bitcoin-29.5/bin/bitcoind"],
     lnd: [process.env.ORYNT_LND, join(home, "lnd-linux-amd64-v0.20.1-beta/lnd"), "/opt/orynt-bin/lnd-linux-amd64-v0.20.1-beta/lnd"],
   };
   const out = {};
@@ -35,3 +35,7 @@ export function lnd(node) {
     req.on("error", reject); if (payload) req.write(payload); req.end();
   });
 }
+
+export const PORTS = { bitcoind: { rpcPort: 18543, p2pPort: 18544, zmqBlock: 28332, zmqTx: 28333, rpcUser: "orynt" }, alice: { rest: 8081, rpc: 10009, listen: 9735 }, bob: { rest: 8082, rpc: 10010, listen: 9736 } };
+export const lndArgs = (name, rpcPass) => { const n = PORTS[name]; const b = PORTS.bitcoind; const dir = join(DIR, name);
+  return [`--lnddir=${dir}`, "--bitcoin.active", "--bitcoin.regtest", "--bitcoin.node=bitcoind", `--bitcoind.rpchost=127.0.0.1:${b.rpcPort}`, `--bitcoind.rpcuser=${b.rpcUser}`, `--bitcoind.rpcpass=${rpcPass}`, `--bitcoind.zmqpubrawblock=tcp://127.0.0.1:${b.zmqBlock}`, `--bitcoind.zmqpubrawtx=tcp://127.0.0.1:${b.zmqTx}`, `--listen=127.0.0.1:${n.listen}`, `--rpclisten=127.0.0.1:${n.rpc}`, `--restlisten=127.0.0.1:${n.rest}`, "--noseedbackup", `--alias=orynt-${name}`, "--tlsextraip=127.0.0.1", "--accept-keysend"]; };

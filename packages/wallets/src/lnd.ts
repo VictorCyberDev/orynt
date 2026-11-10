@@ -22,8 +22,9 @@ interface Raw {
 const NOT_SENT_CODES = new Set(["ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT",
   "SELF_SIGNED_CERT_IN_CHAIN", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "ERR_TLS_CERT_ALTNAME_INVALID", "ERR_SSL_WRONG_VERSION_NUMBER"]);
 
-function b64url(hex: string): string {
-  return Buffer.from(hex, "hex").toString("base64url");
+/** LND's REST gateway decodes path bytes with a PADDED base64 alphabet (observed on a real node: unpadded input => HTTP 400 "illegal base64 data"). */
+function b64urlPadded(hex: string): string {
+  return Buffer.from(hex, "hex").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "%3D");
 }
 function msatOf(v: unknown): bigint | undefined {
   if (typeof v === "string" && /^[0-9]+$/.test(v)) return BigInt(v);
@@ -144,24 +145,23 @@ export class LndRestProvider implements WalletProvider {
       canReadInfo = false;
       notes.push(`Cannot read wallet info: ${(e as Error).message}`);
     }
-    // Ask LND whether THIS macaroon holds the permissions we need, instead of assuming.
-    const check = async (entity: string, action: string): Promise<boolean | "unknown"> => {
+    // Discover what THIS credential may do by probing authorization, never by assuming. (LND's CheckMacaroonPermissions RPC needs macaroon:read,
+    // which a least-privilege credential correctly lacks — observed on a real node — so it cannot be used.) LND checks authorization BEFORE
+    // validating a request, so a call with a deliberately invalid payload distinguishes "not allowed" from "allowed but invalid" with no side effect.
+    const denied = (raw: Raw) => /permission denied|invalid macaroon|verification failed|expected macaroon/i.test(this.errOf(raw).message) || raw.status === 401 || raw.status === 403;
+    const probe = async (method: "GET" | "POST", path: string, body?: unknown): Promise<boolean | "unknown"> => {
       try {
-        const raw = await this.request("POST", "/v1/macaroon/checkpermissions", {
-          macaroon: Buffer.from(this.cfg.macaroonHex, "hex").toString("base64"),
-          permissions: [{ entity, action }],
-          fullMethod: "",
-        }, { timeoutMs: 8000 });
-        if (raw.status === 200) return (raw.lines[0] as { valid?: boolean }).valid === true;
-        return "unknown";
-      } catch {
-        return "unknown";
-      }
+        const raw = await this.request(method, path, body, { timeoutMs: 8000 });
+        if (denied(raw)) return false;
+        return raw.status === 200 || raw.status === 400 || raw.status === 500 || raw.status === 404 ? true : "unknown";
+      } catch { return "unknown"; }
     };
-    const write = await check("offchain", "write");
-    const read = await check("offchain", "read");
+    // offchain:write — SendPaymentSync with an invalid payment request can never pay anything
+    const write = await probe("POST", "/v1/channels/transactions", { payment_request: "lnbcrt1invalid-orynt-permission-probe" });
+    // offchain:read — list at most one payment
+    const read = await probe("GET", "/v1/payments?max_payments=1");
     if (write === false) notes.push("This credential cannot send payments (missing offchain:write).");
-    if (read === false) notes.push("This credential cannot look up payments (missing offchain:read).");
+    if (read === false) notes.push("This credential cannot look up payments (missing offchain:read) — Orynt could not reconcile an uncertain payment.");
     if (write === "unknown" || read === "unknown") notes.push("Permission check was inconclusive; Orynt will find out on first use and fail closed.");
     return { canSendPayments: write, canLookupPayments: read, canReadInfo, notes, discoveredAt: new Date().toISOString() };
   }
@@ -214,7 +214,7 @@ export class LndRestProvider implements WalletProvider {
   async lookupPayment(paymentHash: string): Promise<PaymentRecord> {
     if (!/^[0-9a-f]{64}$/.test(paymentHash)) throw new Error("payment hash must be 32 bytes hex");
     // TrackPaymentV2 returns the current state first; we read one message and hang up.
-    const raw = await this.request("GET", `/v2/router/track/${b64url(paymentHash)}`, undefined, { timeoutMs: 10000, mode: "first" });
+    const raw = await this.request("GET", `/v2/router/track/${b64urlPadded(paymentHash)}`, undefined, { timeoutMs: 10000, mode: "first" });
     const first = raw.lines[0] as { result?: Record<string, unknown>; error?: { code?: number; message?: string } } | undefined;
     if (raw.status === 200 && first?.result) return this.toRecord(first.result, paymentHash);
     const e = this.errOf(raw);

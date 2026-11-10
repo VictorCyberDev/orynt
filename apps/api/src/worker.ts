@@ -23,6 +23,6 @@ export function startWorker(d: Deps) {
 /** Startup recovery: anything left DISPATCHING by a process that died is moved to UNKNOWN (never failed, never retried). */
 export async function recoverOnStartup(d: Deps) {
   const released = await releaseStaleReservations(d);
-  const unknown = await recoverStaleDispatch(d, 3);
+  const unknown = await recoverStaleDispatch(d, d.config.assumeSingleInstance ? 0 : d.config.sendTimeoutSeconds * 2 + 30);
   if (released || unknown) d.log.warn({ released, unknown }, "startup recovery acted on interrupted payments");
 }

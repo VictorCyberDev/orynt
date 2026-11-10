@@ -2,7 +2,7 @@
   "name": "orynt",
   "private": true,
   "version": "0.1.0",
-  "description": "Orynt — Bitcoin-native payment authorization and operations. Every payment. Under control.",
+  "description": "Orynt \u2014 Bitcoin-native payment authorization and operations. Every payment. Under control.",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.28.0",
   "engines": {
@@ -26,7 +26,7 @@
     "demo:full": "tsx scripts/demo-full.ts",
     "regtest:fetch": "bash infra/regtest/fetch.sh",
     "demo:full:sim": "tsx scripts/demo-full.ts --simulator",
-    "test:real-lightning": "ORYNT_REGTEST_ENV=.regtest/env.json pnpm --filter @orynt/api test:integration -- test/lnd.itest.ts",
+    "test:real-lightning": "ORYNT_REGTEST_ENV=$PWD/.regtest/env.json pnpm --filter @orynt/api exec vitest run --config vitest.integration.config.ts test/lnd.itest.ts",
     "test:all": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration",
     "build:all": "pnpm --filter @orynt/verifier build && pnpm --filter @orynt/sdk build && pnpm --filter @orynt/web build && pnpm --filter @orynt/site build && pnpm --filter @orynt/api build",
     "start": "node apps/api/dist/server.mjs",
