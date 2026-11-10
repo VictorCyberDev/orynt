@@ -91,7 +91,7 @@ export const ObligationRevise = z.object({
 });
 export const ObligationListQuery = PageQuery.extend({ state: z.string().optional(), q: z.string().max(100).optional(), needs: z.enum(["my_approval", "attention"]).optional() });
 
-export const ApproveBody = z.object({ intent_digest: Hex(32), signed_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/, "must be an ISO-8601 UTC timestamp like 2026-11-09T12:00:00Z"), signature: Hex(64) });
+export const ApproveBody = z.object({ intent_digest: Hex(32), signed_at: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?Z$/, "must be an ISO-8601 UTC timestamp like 2026-11-09T12:00:00Z"), signature: Hex(64), mfa_code: z.string().regex(/^\d{6}$/).optional() });
 export const ReasonBody = z.object({ reason: z.string().min(1).max(500) });
 
 export const Receipt = z.record(z.string(), z.unknown()).describe("orynt.receipt/1 — see @orynt/core ReceiptSchema");

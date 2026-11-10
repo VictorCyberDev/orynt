@@ -14,6 +14,7 @@ import { dispatchedLast24h } from "./obligations";
 import { providerFor, type ConnectionRow } from "./providers";
 import { cas, lockObligation } from "./state";
 import { emitEvent } from "./webhooks";
+import { requireVerifiedEmail } from "./gates";
 
 const FEE_LIMIT_PPM = 10_000n; // 1% of amount, min 1000 msat — bounds routing fees the wallet may spend
 
@@ -55,6 +56,7 @@ export interface ExecResult { obligationId: string; httpStatus: 200 | 202 }
 
 export async function executeObligation(d: Deps, ctx: Ctx, obligationId: string, mode: "execute" | "retry" = "execute"): Promise<ExecResult> {
   const fromState: State = mode === "retry" ? "DEFINITIVELY_FAILED" : "APPROVED";
+  await requireVerifiedEmail(d, ctx);
   // ---- Phase 0: cheap wallet preflight OUTSIDE any lock ---------------------------------------------------------
   const pre = (await d.pool.query("SELECT o.wallet_connection_id, o.state FROM payout_obligations o WHERE o.id=$1 AND o.org_id=$2", [obligationId, ctx.orgId])).rows[0];
   if (!pre) throw new OryntError("not_found", 404, "Payout not found.");

@@ -56,6 +56,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   // Tolerate an empty body sent with a JSON content-type (common with curl and SDKs on body-less POSTs); malformed JSON is still a 400.
   app.addContentTypeParser("application/json", { parseAs: "string" }, (_req, body, done) => {
     const text = String(body);
+    (_req as unknown as { rawBody?: string }).rawBody = text; // billing webhook signatures are computed over the exact bytes
     if (text.trim() === "") return done(null, undefined);
     try { done(null, JSON.parse(text)); } catch { const err = new Error("Request body is not valid JSON.") as Error & { statusCode: number }; err.statusCode = 400; done(err, undefined); }
   });
@@ -172,6 +173,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
           }
         }
         const out = await run();
+        if ((out as { contentType?: string }).contentType) reply.type((out as { contentType?: string }).contentType!);
         return reply.status(out.status ?? spec.success.status).send(out.body);
       },
     });

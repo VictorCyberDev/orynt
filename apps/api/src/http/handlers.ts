@@ -16,7 +16,7 @@ export interface HandlerArgs {
   deps: Deps; ctx: Ctx | null; principal: auth.Principal | null; params: Record<string, string>; query: Record<string, any>; body: any;
   req: FastifyRequest; reply: FastifyReply; setSession: (reply: FastifyReply, token: string) => unknown;
 }
-type Out = { status?: number; body: unknown };
+type Out = { status?: number; body: unknown; contentType?: string };
 type H = (a: HandlerArgs) => Promise<Out>;
 
 const need = <T,>(v: T | null): T => { if (!v) throw new OryntError("unauthenticated", 401, "Not signed in."); return v; };
@@ -32,9 +32,10 @@ const sessionFor = async (a: HandlerArgs, r: { userId: string; orgId: string; to
   return { body: await auth.meOf(a.deps, { ...need(p), csrf: r.csrf }) };
 };
 
-export const handlers: Record<string, H> = {
+import { saasHandlers } from "./handlers-saas";
+export const coreHandlers: Record<string, H> = {
   register: async (a) => { const r = await auth.register(a.deps, a.body, a.req.headers["user-agent"]); const o = await sessionFor(a, r); return { status: 201, body: o.body }; },
-  login: async (a) => sessionFor(a, await auth.login(a.deps, a.body.email, a.body.password, a.req.headers["user-agent"])),
+  login: async (a) => sessionFor(a, await auth.login(a.deps, a.body.email, a.body.password, a.req.headers["user-agent"], a.body.mfa_code)),
   logout: async (a) => { if (a.principal?.sessionId) await auth.revokeSession(a.deps, a.principal.sessionId); a.reply.clearCookie("orynt_session", { path: "/" }); return { body: { ok: true } }; },
   switchWorkspace: async (a) => { await auth.switchWorkspace(a.deps, need(a.principal), a.body.workspace_id); const p = await auth.principalFromSession(a.deps, a.req.cookies["orynt_session"]!); return { body: await auth.meOf(a.deps, need(p)) }; },
   me: async (a) => ({ body: await auth.meOf(a.deps, need(a.principal)) }),
@@ -72,10 +73,10 @@ export const handlers: Record<string, H> = {
   getObligation: async (a) => view(a, a.params["id"]!),
   reviseObligation: async (a) => { await ob.reviseObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
   submitObligation: async (a) => { await ob.submitObligation(a.deps, need(a.ctx), a.params["id"]!); return view(a, a.params["id"]!); },
-  approveObligation: async (a) => { await ob.approveObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
+  approveObligation: async (a) => { await (await import("../services/accounts")).mfaRequiredAndValid(a.deps, need(a.principal).actor.userId, a.body.mfa_code); await ob.approveObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
   rejectObligation: async (a) => { await ob.rejectObligation(a.deps, need(a.ctx), a.params["id"]!, a.body.reason); return view(a, a.params["id"]!); },
   cancelObligation: async (a) => { await ob.cancelObligation(a.deps, need(a.ctx), a.params["id"]!, a.body.reason); return view(a, a.params["id"]!); },
-  executeObligation: async (a) => { const r = await ex.executeObligation(a.deps, need(a.ctx), a.params["id"]!, "execute"); return view(a, r.obligationId, r.httpStatus); },
+  executeObligation: async (a) => { await (await import("../services/accounts")).mfaRequiredAndValid(a.deps, a.principal?.actor.kind === "user" ? a.principal.actor.userId : undefined, a.req.headers["x-orynt-mfa-code"] as string | undefined); const r = await ex.executeObligation(a.deps, need(a.ctx), a.params["id"]!, "execute"); return view(a, r.obligationId, r.httpStatus); },
 
   getPayment: async (a) => {
     const c = need(a.ctx);
@@ -127,3 +128,5 @@ export const handlers: Record<string, H> = {
     return { status: ok ? 200 : 503, body: { status: ok ? "ready" : "not_ready", checks } };
   },
 };
+
+export const handlers: Record<string, H> = { ...coreHandlers, ...saasHandlers };

@@ -20,6 +20,8 @@ export const PROBLEM_CODES = [
   "wallet_unavailable",
   "wallet_insufficient_permissions",
   "mainnet_disabled",
+  "entitlement_exceeded",
+  "mfa_required",
   "send_blocked_unresolved",
   "internal",
 ] as const;

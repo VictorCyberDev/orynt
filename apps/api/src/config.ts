@@ -21,6 +21,16 @@ export interface Config {
   trustProxy: boolean;
   /** true: on startup every DISPATCHING payout is immediately treated as interrupted (safe only if no other instance can be mid-call). false: use the age threshold. */
   assumeSingleInstance: boolean;
+  requireEmailVerification: boolean;
+  /** plan assigned to new workspaces; anything but "developer" is refused in production */
+  defaultPlan: string;
+  appBaseUrl: string;
+  mailProvider: "log" | "resend";
+  resendApiKey: string | null;
+  mailFrom: string;
+  billingProvider: "sandbox" | "stripe" | "paystack";
+  billingWebhookSecret: string | null;
+  billingApiKey: string | null;
   reconcileInitialDelaySeconds: number;
 }
 
@@ -44,6 +54,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
   const failpoints = e["ORYNT_FAILPOINTS"] === "1";
   if (failpoints && prod) throw new Error("ORYNT_FAILPOINTS must not be enabled in production");
   const allowMainnet = e["ORYNT_ALLOW_MAINNET"] === "1";
+  if (prod && (e["ORYNT_DEFAULT_PLAN"] ?? "developer") !== "developer") throw new Error("ORYNT_DEFAULT_PLAN must be developer in production: paid plans are granted only by verified billing events");
   return {
     env, port: Number(e["PORT"] ?? 8787), host: e["HOST"] ?? "127.0.0.1",
     databaseUrl: e["DATABASE_URL"] ?? "postgres://orynt:orynt@127.0.0.1:5432/orynt_dev",
@@ -54,6 +65,15 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     allowPrivateWebhookTargets: !prod,
     logLevel: e["LOG_LEVEL"] ?? (env === "test" ? "silent" : "info"),
     trustProxy: e["ORYNT_TRUST_PROXY"] === "1",
+    defaultPlan: e["ORYNT_DEFAULT_PLAN"] ?? "developer",
+    requireEmailVerification: (e["ORYNT_REQUIRE_EMAIL_VERIFICATION"] ?? (prod ? "1" : "0")) === "1",
+    appBaseUrl: e["ORYNT_APP_URL"] ?? "http://127.0.0.1:8787",
+    mailProvider: (e["ORYNT_MAIL_PROVIDER"] ?? "log") as "log" | "resend",
+    resendApiKey: e["RESEND_API_KEY"] ?? null,
+    mailFrom: e["ORYNT_MAIL_FROM"] ?? "Orynt <no-reply@orynt.example>",
+    billingProvider: (e["ORYNT_BILLING_PROVIDER"] ?? "sandbox") as "sandbox" | "stripe" | "paystack",
+    billingWebhookSecret: e["ORYNT_BILLING_WEBHOOK_SECRET"] ?? null,
+    billingApiKey: e["ORYNT_BILLING_API_KEY"] ?? null,
     assumeSingleInstance: (e["ORYNT_ASSUME_SINGLE_INSTANCE"] ?? (prod ? "0" : "1")) === "1",
     rateLimitPerMinute: Number(e["ORYNT_RATE_LIMIT_PER_MIN"] ?? 600),
     sendTimeoutSeconds: Number(e["ORYNT_SEND_TIMEOUT_SECONDS"] ?? 30),

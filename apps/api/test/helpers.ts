@@ -16,7 +16,7 @@ export async function createEnv(over: Record<string, string> = {}): Promise<Test
   await admin.query(`CREATE DATABASE ${dbName}`);
   await admin.end();
   const url = ADMIN_URL.replace(/\/[^/]+$/, "/" + dbName);
-  const config = loadConfig({ ORYNT_ENV: "test", DATABASE_URL: url, ORYNT_FAILPOINTS: "1", ORYNT_WORKER: "0", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "0", ORYNT_SEND_TIMEOUT_SECONDS: "5", ...over } as NodeJS.ProcessEnv);
+  const config = loadConfig({ ORYNT_ENV: "test", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_BILLING_WEBHOOK_SECRET: "whsec_test_secret_for_billing", DATABASE_URL: url, ORYNT_FAILPOINTS: "1", ORYNT_WORKER: "0", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "0", ORYNT_SEND_TIMEOUT_SECONDS: "5", ...over } as NodeJS.ProcessEnv);
   const built = await buildApp(config);
   return { ...built, config, dbName, teardown: async () => {
     await built.app.close(); await built.pool.end();

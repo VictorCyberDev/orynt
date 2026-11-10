@@ -5,6 +5,7 @@ import { appendAudit, rowToEntry, signedCheckpoint } from "./audit";
 import { actorTag, iso, type Ctx, type Deps } from "./context";
 import { bindingFor, validApprovals } from "./dto";
 import { lockObligation } from "./state";
+import { track } from "./analytics";
 
 export async function issueReceipt(d: Deps, ctx: Ctx, paymentId: string): Promise<Receipt> {
   const it = (await d.pool.query("SELECT * FROM payment_intents WHERE id=$1 AND org_id=$2", [paymentId, ctx.orgId])).rows[0];
@@ -12,7 +13,7 @@ export async function issueReceipt(d: Deps, ctx: Ctx, paymentId: string): Promis
   const existing = (await d.pool.query("SELECT receipt FROM receipt_exports WHERE intent_id=$1", [paymentId])).rows[0];
   if (existing) return existing.receipt as Receipt;
 
-  return withTx(d.pool, async (tx) => {
+  const issued = await withTx(d.pool, async (tx) => {
     const o = await lockObligation(tx, ctx.orgId, it.obligation_id);
     const again = (await tx.query("SELECT receipt FROM receipt_exports WHERE intent_id=$1", [paymentId])).rows[0];
     if (again) return again.receipt as Receipt;
@@ -55,4 +56,6 @@ export async function issueReceipt(d: Deps, ctx: Ctx, paymentId: string): Promis
     await appendAudit(tx, ctx.orgId, stream, actorTag(ctx.actor), "receipt.issued", stream, { receipt_id: body.receipt_id, payment_hash: rev.payment_hash });
     return receipt;
   });
+  await track(d, "receipt_issued", ctx.orgId); // after the transaction: never touch the pool from inside one
+  return issued;
 }

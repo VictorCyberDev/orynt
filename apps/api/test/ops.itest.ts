@@ -8,7 +8,7 @@ import { hmacSha256Hex } from "@orynt/core";
 import { verifyWebhook, WebhookSignatureError } from "@orynt/sdk";
 import { world, toApproved, execute, getOb, createEnv, type World } from "./helpers";
 import { pumpWebhooks, signPayload } from "../src/services/webhooks";
-import { migrateDown, migrateUp, pendingMigrations } from "../src/db/migrate";
+import { loadMigrations, migrateDown, migrateUp, pendingMigrations } from "../src/db/migrate";
 import { createPool } from "../src/db/pool";
 import { vetWebhookTarget, isPrivateAddress } from "../src/lib/ssrf";
 import { callbackSecretFor } from "../src/http/callbacks";
@@ -101,11 +101,10 @@ describe("migrations", () => {
     const e = await createEnv();
     try {
       expect(await pendingMigrations(e.pool)).toEqual([]);
-      expect(await migrateDown(e.pool, 1)).toEqual(["002"]);
-      expect((await e.pool.query("SELECT to_regclass('public.memberships_approval_key_uq') AS t")).rows[0].t).toBeNull();
-      expect(await migrateDown(e.pool, 1)).toEqual(["001"]);
+      const all = loadMigrations().map((m) => m.version);
+      expect(await migrateDown(e.pool, all.length)).toEqual([...all].reverse()); // every migration's down script runs cleanly
       expect((await e.pool.query("SELECT to_regclass('public.payout_obligations') AS t")).rows[0].t).toBeNull();
-      expect(await migrateUp(e.pool)).toEqual(["001", "002"]);
+      expect(await migrateUp(e.pool)).toEqual(all);
       expect((await e.pool.query("SELECT to_regclass('public.payout_obligations') AS t")).rows[0].t).not.toBeNull();
       await e.pool.query("UPDATE schema_migrations SET checksum='tampered' WHERE version='001'");
       await expect(migrateUp(e.pool)).rejects.toThrow(/checksum drift/);

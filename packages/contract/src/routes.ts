@@ -26,13 +26,13 @@ const Id = z.object({ id: S.Uuid });
 const ok = (schema: z.ZodTypeAny, status = 200) => ({ status, schema });
 const Empty = z.object({ ok: z.literal(true) });
 
-export const routes: RouteSpec[] = [
+export const coreRoutes: RouteSpec[] = [
   // ---- auth -----------------------------------------------------------------------------------------
   { id: "register", method: "POST", path: "/v1/auth/register", summary: "Create an account and a workspace", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true,
     body: z.object({ email: z.string().email().max(200), password: z.string().min(12).max(200), name: z.string().min(1).max(120), workspace_name: z.string().min(1).max(120) }),
     success: ok(S.Me, 201) },
   { id: "login", method: "POST", path: "/v1/auth/login", summary: "Sign in", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true,
-    body: z.object({ email: z.string().email(), password: z.string().max(200) }), success: ok(S.Me) },
+    body: z.object({ email: z.string().email(), password: z.string().max(200), mfa_code: z.string().regex(/^\d{6}$/).optional() }), success: ok(S.Me) },
   { id: "logout", method: "POST", path: "/v1/auth/logout", summary: "Sign out", tags: ["auth"], auth: "any", success: ok(Empty) },
   { id: "switchWorkspace", method: "POST", path: "/v1/auth/switch", summary: "Switch the active workspace of this session", tags: ["auth"], auth: "any", body: z.object({ workspace_id: S.Uuid }), success: ok(S.Me) },
   { id: "me", method: "GET", path: "/v1/me", summary: "Current principal, role and permissions", tags: ["auth"], auth: "any", success: ok(S.Me) },
@@ -116,3 +116,54 @@ export const routes: RouteSpec[] = [
   { id: "healthLive", method: "GET", path: "/health/live", summary: "Liveness", tags: ["ops"], auth: "public", rate: "public", success: ok(z.object({ status: z.literal("ok") })) },
   { id: "healthReady", method: "GET", path: "/health/ready", summary: "Readiness (database + migrations)", tags: ["ops"], auth: "public", rate: "public", success: ok(z.object({ status: z.string(), checks: z.record(z.string(), z.string()) })) },
 ];
+
+const Any = z.record(z.string(), z.unknown());
+const Tok = z.object({ token: z.string().min(20).max(200) });
+const Pw = z.string().min(12).max(200);
+const Role = S.RoleEnum;
+export const saasRoutes: RouteSpec[] = [
+  // ---- account lifecycle ----
+  { id: "verifyEmail", method: "POST", path: "/v1/auth/verify-email", summary: "Confirm an email address with the emailed single-use token", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true, body: Tok, success: ok(Empty) },
+  { id: "resendVerification", method: "POST", path: "/v1/auth/resend-verification", summary: "Send another verification email", tags: ["auth"], auth: "any", success: ok(Empty) },
+  { id: "forgotPassword", method: "POST", path: "/v1/auth/forgot", summary: "Request a password-reset email (same response whether or not the account exists)", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true, body: z.object({ email: z.string().email() }), success: ok(Empty, 202) },
+  { id: "resetPassword", method: "POST", path: "/v1/auth/reset", summary: "Set a new password with the emailed token (signs out every session)", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true, body: Tok.extend({ password: Pw }), success: ok(Empty) },
+  { id: "acceptInvite", method: "POST", path: "/v1/auth/accept-invite", summary: "Accept a workspace invitation", tags: ["auth"], auth: "public", rate: "auth", noCsrf: true, body: Tok.extend({ name: z.string().min(1).max(120).optional(), password: Pw }), success: ok(S.Me) },
+  { id: "inviteMember", method: "POST", path: "/v1/invitations", summary: "Invite a person by email (expires in 7 days)", tags: ["team"], auth: "member:manage", body: z.object({ email: z.string().email(), role: Role }), success: ok(Empty, 202) },
+  { id: "mfaBegin", method: "POST", path: "/v1/me/mfa/begin", summary: "Start TOTP authenticator setup", tags: ["auth"], auth: "any", success: ok(Any) },
+  { id: "mfaConfirm", method: "POST", path: "/v1/me/mfa/confirm", summary: "Confirm TOTP setup with a current code", tags: ["auth"], auth: "any", body: z.object({ code: z.string().regex(/^\d{6}$/) }), success: ok(Empty) },
+  { id: "closeAccount", method: "POST", path: "/v1/me/close", summary: "Close your own account", tags: ["auth"], auth: "any", body: z.object({ password: z.string().max(200) }), success: ok(Empty) },
+  { id: "exportOrgData", method: "GET", path: "/v1/export", summary: "Export all organisation data (no secrets)", tags: ["team"], auth: "member:manage", success: ok(Any) },
+  // ---- billing ----
+  { id: "listPlans", method: "GET", path: "/v1/plans", summary: "Public plan catalogue (prices are hypotheses)", tags: ["billing"], auth: "public", rate: "public", success: ok(Any) },
+  { id: "billingOverview", method: "GET", path: "/v1/billing", summary: "Current plan, status, entitlements and usage", tags: ["billing"], auth: "obligation:read", success: ok(Any) },
+  { id: "billingCheckout", method: "POST", path: "/v1/billing/checkout", summary: "Start a hosted checkout for a plan", tags: ["billing"], auth: "billing:manage", body: z.object({ plan_id: z.string() }), success: ok(Any) },
+  { id: "billingSandboxComplete", method: "POST", path: "/v1/billing/sandbox/complete", summary: "SANDBOX ONLY: complete a checkout through the real webhook path", tags: ["billing"], auth: "billing:manage", body: z.object({ plan_id: z.string() }), success: ok(Any) },
+  { id: "billingCancel", method: "POST", path: "/v1/billing/cancel", summary: "Cancel at the end of the paid period", tags: ["billing"], auth: "billing:manage", success: ok(Empty) },
+  { id: "billingWebhook", method: "POST", path: "/v1/billing/webhook/:provider", summary: "Billing-provider webhook (signature-verified, idempotent)", tags: ["billing"], auth: "public", rate: "public", noCsrf: true, params: z.object({ provider: z.enum(["stripe", "paystack", "sandbox"]) }), body: Any, success: ok(Any) },
+  // ---- batches ----
+  { id: "previewBatch", method: "POST", path: "/v1/batches/preview", summary: "Validate a payout CSV without creating anything", tags: ["batches"], auth: "obligation:create", body: z.object({ csv: z.string().max(400_000) }), success: ok(Any) },
+  { id: "createBatch", method: "POST", path: "/v1/batches", summary: "Create a batch of draft payouts from CSV", tags: ["batches"], auth: "obligation:create", body: z.object({ label: z.string().min(1).max(120), csv: z.string().max(400_000), wallet_connection_id: S.Uuid.optional() }), success: ok(Any, 201) },
+  { id: "getBatch", method: "GET", path: "/v1/batches/:id", summary: "Batch status with per-item states", tags: ["batches"], auth: "obligation:read", params: Id, success: ok(Any) },
+  { id: "submitBatch", method: "POST", path: "/v1/batches/:id/submit", summary: "Submit every draft item for approval", tags: ["batches"], auth: "obligation:submit", params: Id, success: ok(Any) },
+  { id: "executeBatch", method: "POST", path: "/v1/batches/:id/execute", summary: "Execute every approved item (each one single-use, individually guarded)", tags: ["batches"], auth: "payment:execute", params: Id, success: ok(Any) },
+  // ---- recurring ----
+  { id: "listSchedules", method: "GET", path: "/v1/schedules", summary: "Recurring schedules", tags: ["schedules"], auth: "obligation:read", success: ok(Any) },
+  { id: "createSchedule", method: "POST", path: "/v1/schedules", summary: "Create a recurring schedule (opens an invoice-needed task each cycle; never pays by itself)", tags: ["schedules"], auth: "obligation:create", body: z.object({ counterparty_id: S.Uuid, amount_sats: z.string(), memo: z.string().max(500).default(""), cadence: z.enum(["weekly", "monthly"]), first_due: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), wallet_connection_id: S.Uuid.optional() }), success: ok(Any, 201) },
+  { id: "scheduleAction", method: "POST", path: "/v1/schedules/:id/:action", summary: "Pause, resume or cancel a schedule", tags: ["schedules"], auth: "obligation:create", params: z.object({ id: S.Uuid, action: z.enum(["pause", "resume", "cancel"]) }), success: ok(Empty) },
+  { id: "runDueSchedules", method: "POST", path: "/v1/schedules/run-due", summary: "Open invoice-needed tasks for due schedules now", tags: ["schedules"], auth: "obligation:create", success: ok(Any) },
+  { id: "listCycles", method: "GET", path: "/v1/schedule-cycles", summary: "Schedule cycles (invoice-needed tasks)", tags: ["schedules"], auth: "obligation:read", success: ok(Any) },
+  { id: "fulfilCycle", method: "POST", path: "/v1/schedule-cycles/:id/invoice", summary: "Provide the invoice for a cycle → creates a normal draft payout", tags: ["schedules"], auth: "obligation:create", params: Id, body: z.object({ invoice: z.string().min(20).max(4000) }), success: ok(S.ObligationDto, 201) },
+  // ---- reports ----
+  { id: "payoutReport", method: "GET", path: "/v1/reports/payouts", summary: "Payout report (JSON or CSV). Real settlements only are summed; no fiat values.", tags: ["reports"], auth: "report:read", query: z.object({ from: z.string().optional(), to: z.string().optional(), counterparty_id: S.Uuid.optional(), state: z.string().optional(), format: z.enum(["json", "csv"]).default("json") }), success: ok(Any) },
+  { id: "recipientStatement", method: "GET", path: "/v1/reports/recipients/:id", summary: "Statement for one recipient", tags: ["reports"], auth: "report:read", params: Id, success: ok(Any) },
+  // ---- support, analytics, recipients, incident workbench ----
+  { id: "createTicket", method: "POST", path: "/v1/support", summary: "Open a support request (safe diagnostics attached automatically)", tags: ["support"], auth: "support:create", body: z.object({ category: z.enum(["payment", "wallet", "billing", "account", "security", "other"]), subject: z.string().min(3).max(160), body: z.string().min(10).max(4000) }), success: ok(Any, 201) },
+  { id: "listTickets", method: "GET", path: "/v1/support", summary: "Your organisation's support requests", tags: ["support"], auth: "support:create", success: ok(Any) },
+  { id: "publicSupport", method: "POST", path: "/v1/public/support", summary: "Support request without an account", tags: ["public"], auth: "public", rate: "public", noCsrf: true, body: z.object({ email: z.string().email(), category: z.enum(["account", "billing", "security", "other"]), subject: z.string().min(3).max(160), body: z.string().min(10).max(4000) }), success: ok(Any, 201) },
+  { id: "funnel", method: "GET", path: "/v1/analytics/funnel", summary: "Counts of your organisation's activation events (no personal data)", tags: ["reports"], auth: "audit:read", success: ok(Any) },
+  { id: "recipientAction", method: "POST", path: "/v1/counterparties/:id/:action", summary: "Suspend or reactivate a recipient", tags: ["counterparties"], auth: "policy:manage", params: z.object({ id: S.Uuid, action: z.enum(["suspend", "reactivate"]) }), success: ok(S.Counterparty) },
+  { id: "incidentNote", method: "POST", path: "/v1/incidents/:id/notes", summary: "Add an investigation note", tags: ["incidents"], auth: "incident:resolve", params: Id, body: z.object({ note: z.string().min(2).max(2000) }), success: ok(Any, 201) },
+  { id: "incidentNotes", method: "GET", path: "/v1/incidents/:id/notes", summary: "Investigation notes", tags: ["incidents"], auth: "obligation:read", params: Id, success: ok(Any) },
+  { id: "incidentAssign", method: "POST", path: "/v1/incidents/:id/assign", summary: "Assign an investigator", tags: ["incidents"], auth: "incident:resolve", params: Id, body: z.object({ user_id: S.Uuid.nullable() }), success: ok(Any) },
+];
+export const routes: RouteSpec[] = [...coreRoutes, ...saasRoutes];

@@ -9,6 +9,9 @@ import { providerFor, simulatorFor, type ConnectionRow } from "./providers";
 import { newSigningSecret, sealSecret } from "./webhooks";
 import { resolveIncidents } from "./incidents";
 import { lockObligation } from "./state";
+import { checkEntitlement } from "./entitlements";
+import { track } from "./analytics";
+import { requireVerifiedEmail } from "./gates";
 
 // ---- connections --------------------------------------------------------------------------------------------------------
 export async function connectionDto(d: Deps, row: Record<string, any>) {
@@ -33,6 +36,8 @@ async function probe(d: Deps, row: ConnectionRow) {
 }
 
 export async function createConnection(d: Deps, ctx: Ctx, input: { label: string; kind: "lnd" | "simulator"; lnd?: { rest_url: string; macaroon_hex: string; tls_cert_pem?: string } }) {
+  await checkEntitlement(d, ctx.orgId, "wallets");
+  if (input.kind === "lnd") await requireVerifiedEmail(d, ctx); // the practice wallet needs no verification; a real wallet does
   if (input.kind === "simulator" && d.config.env === "production") throw new OryntError("validation_failed", 422, "The simulator is not available in production.");
   if (input.kind === "lnd" && !input.lnd) throw new OryntError("validation_failed", 422, "LND connection details are required.");
   if (input.kind === "lnd") {
@@ -53,6 +58,7 @@ export async function createConnection(d: Deps, ctx: Ctx, input: { label: string
     await appendAudit(tx, ctx.orgId, "org", actorTag(ctx.actor), "connection.created", `connection:${id}`, { kind: input.kind, network: info.network, node_pubkey: info.nodePubkey, can_send: caps.canSendPayments, can_lookup: caps.canLookupPayments });
   });
   if (input.kind === "simulator") simulatorFor(id, info.network);
+  await track(d, "wallet_connected", ctx.orgId);
   return connectionDto(d, (await d.pool.query("SELECT * FROM wallet_connections WHERE id=$1", [id])).rows[0]);
 }
 export async function listConnections(d: Deps, orgId: string) {
@@ -151,6 +157,7 @@ export async function revokeApiKey(d: Deps, ctx: Ctx, id: string) {
 const whDto = (r: Record<string, any>) => ({ id: r.id, url: r.url, events: r.events, status: r.status, created_at: isoMs(r.created_at) });
 export async function listWebhooks(d: Deps, orgId: string) { return { data: (await d.pool.query("SELECT * FROM webhook_endpoints WHERE org_id=$1 ORDER BY created_at DESC", [orgId])).rows.map(whDto) }; }
 export async function createWebhook(d: Deps, ctx: Ctx, i: { url: string; events: string[] }) {
+  await checkEntitlement(d, ctx.orgId, "webhooks");
   try { await vetWebhookTarget(i.url, d.config.allowPrivateWebhookTargets); } catch (e) { throw new OryntError("validation_failed", 422, `Webhook URL rejected: ${(e as Error).message}`); }
   const id = (await d.pool.query("SELECT gen_random_uuid() AS id")).rows[0].id as string;
   const secret = newSigningSecret();

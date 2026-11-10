@@ -14,7 +14,7 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
 
 (async () => {
   execSync(`psql "${PGADMIN}" -c "CREATE DATABASE ${DB}"`, { stdio: "ignore" });
-  const server = spawn("npx", ["tsx", "src/server.ts"], { cwd: path.join(ROOT, "apps/api"), env: { ...process.env, ORYNT_ENV: "development", ORYNT_FAILPOINTS: "1", ORYNT_SEED_DEMO: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "10", PORT: String(PORT), DATABASE_URL: PGADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error", ORYNT_ALLOWED_ORIGINS: BASE }, stdio: ["ignore", "inherit", "inherit"], detached: true });
+  const server = spawn("npx", ["tsx", "src/server.ts"], { cwd: path.join(ROOT, "apps/api"), env: { ...process.env, ORYNT_ENV: "development", ORYNT_DEFAULT_PLAN: "enterprise", ORYNT_FAILPOINTS: "1", ORYNT_SEED_DEMO: "1", ORYNT_RECONCILE_INITIAL_DELAY_SECONDS: "10", PORT: String(PORT), DATABASE_URL: PGADMIN.replace(/\/[^/]+$/, "/" + DB), LOG_LEVEL: "error", ORYNT_ALLOWED_ORIGINS: BASE }, stdio: ["ignore", "inherit", "inherit"], detached: true });
   let browser;
   const cleanup = async () => { try { await browser?.close(); } catch {} try { process.kill(-server.pid, "SIGTERM"); } catch {} await new Promise((r) => setTimeout(r, 500)); try { execSync(`psql "${PGADMIN}" -c "DROP DATABASE IF EXISTS ${DB} WITH (FORCE)"`, { stdio: "ignore" }); } catch {} };
   try {

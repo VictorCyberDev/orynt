@@ -9,6 +9,8 @@ import { actorTag, type Ctx, type Deps } from "./context";
 import { bindingFor, validApprovals } from "./dto";
 import { cas, lockObligation } from "./state";
 import { emitEvent } from "./webhooks";
+import { checkEntitlement } from "./entitlements";
+import { track } from "./analytics";
 
 export async function dispatchedLast24h(tx: Tx, orgId: string, excludeObligationId: string): Promise<bigint> {
   const r = await tx.query(
@@ -58,8 +60,9 @@ async function claimInvoice(tx: Tx, orgId: string, hash: string, obligationId: s
 }
 export const releaseClaim = (tx: Tx, orgId: string, obligationId: string) => tx.query("DELETE FROM invoice_claims WHERE org_id=$1 AND obligation_id=$2", [orgId, obligationId]);
 
-export async function createObligation(d: Deps, ctx: Ctx, i: { counterparty_id?: string; counterparty_name?: string; amount_msat: string; memo: string; external_ref: string; invoice: string; wallet_connection_id?: string }): Promise<string> {
-  return withTx(d.pool, async (tx) => {
+export async function createObligation(d: Deps, ctx: Ctx, i: { counterparty_id?: string; counterparty_name?: string; amount_msat: string; memo: string; external_ref: string; invoice: string; wallet_connection_id?: string; batch_id?: string }): Promise<string> {
+  await checkEntitlement(d, ctx.orgId, "payouts");
+  const created = await withTx(d.pool, async (tx) => {
     let cpId = i.counterparty_id;
     if (!cpId) {
       const name = i.counterparty_name!.trim();
@@ -77,9 +80,13 @@ export async function createObligation(d: Deps, ctx: Ctx, i: { counterparty_id?:
       `INSERT INTO obligation_revisions(obligation_id,revision,counterparty_id,bound_payee_pubkey,amount_msat,memo,external_ref,invoice,payment_hash,payee_pubkey,network,invoice_expires_at,revision_hash,created_by)
        VALUES ($1,1,$2,$3,$4,$5,$6,$7,$8,$9,$10,to_timestamp($11),$12,$13)`,
       [id, v.cp.id, v.cp.bound_payee_pubkey ?? "", input.amountMsat, input.memo, input.externalRef, input.invoice, v.inv.paymentHash, v.inv.payeePubkey, v.inv.network, v.inv.expiresAt, v.rhFor(1), ctx.actor.userId ?? (await systemUser(tx, ctx))]);
-    await appendAudit(tx, ctx.orgId, `obligation:${id}`, actorTag(ctx.actor), "obligation.created", `obligation:${id}`, { revision: 1, amount_msat: input.amountMsat.toString(), payment_hash: v.inv.paymentHash, payee_pubkey: v.inv.payeePubkey, counterparty: v.cp.name, network: v.inv.network });
+    if (v.cp.suspended_at) throw new OryntError("invalid_state", 409, `${v.cp.name} is suspended. Reactivate the recipient before creating payouts.`);
+    if (i.batch_id) await tx.query("UPDATE payout_obligations SET batch_id=$2 WHERE id=$1", [id, i.batch_id]);
+    await appendAudit(tx, ctx.orgId, `obligation:${id}`, actorTag(ctx.actor), "obligation.created", `obligation:${id}`, { revision: 1, amount_msat: input.amountMsat.toString(), payment_hash: v.inv.paymentHash, payee_pubkey: v.inv.payeePubkey, counterparty: v.cp.name, network: v.inv.network, batch_id: i.batch_id ?? null });
     return id;
   });
+  await track(d, "payout_created", ctx.orgId);
+  return created;
 }
 
 /** API keys act on behalf of the user who created them; fall back to that user for FK columns. */

@@ -3,6 +3,9 @@ import { DEFAULT_POLICY_RULES, OryntError, hashCanonical, permissionsFor, policy
 import { withTx, type Tx } from "../db/pool";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { appendAudit } from "./audit";
+import { checkEntitlement } from "./entitlements";
+import { track } from "./analytics";
+import { sendVerification } from "./accounts";
 import type { Actor, Deps } from "./context";
 import { iso } from "./context";
 
@@ -26,7 +29,8 @@ export async function createSession(d: Deps, userId: string, orgId: string, user
   return { token, csrf };
 }
 
-export async function seedWorkspaceDefaults(tx: Tx, orgId: string, userId: string) {
+export async function seedWorkspaceDefaults(tx: Tx, orgId: string, userId: string, plan = "developer") {
+  await tx.query("INSERT INTO subscriptions(org_id, plan_id, status, provider) VALUES ($1,$2,'active','none') ON CONFLICT (org_id) DO NOTHING", [orgId, plan]);
   const digest = hashCanonical(policyDigestInput(DEFAULT_POLICY_RULES));
   await tx.query("INSERT INTO approval_policies(org_id,name,revision,rules,digest,active,created_by) VALUES ($1,'Default policy',1,$2,$3,true,$4)", [orgId, JSON.stringify(DEFAULT_POLICY_RULES), digest, userId]);
 }
@@ -41,15 +45,17 @@ export async function register(d: Deps, input: { email: string; password: string
     if ((await tx.query("SELECT 1 FROM organizations WHERE slug=$1", [slug])).rowCount) slug += "-" + randomBytes(3).toString("hex");
     const org = (await tx.query("INSERT INTO organizations(name,slug) VALUES ($1,$2) RETURNING id", [input.workspace_name.trim(), slug])).rows[0];
     await tx.query("INSERT INTO memberships(org_id,user_id,role) VALUES ($1,$2,'owner')", [org.id, user.id]);
-    await seedWorkspaceDefaults(tx, org.id, user.id);
+    await seedWorkspaceDefaults(tx, org.id, user.id, d.config.defaultPlan);
     await appendAudit(tx, org.id, "org", `user:${user.id}`, "workspace.created", `org:${org.id}`, { name: input.workspace_name });
     return { userId: user.id as string, orgId: org.id as string };
   });
   const s = await createSession(d, r.userId, r.orgId, ua);
+  await track(d, "signup_completed", r.orgId); await track(d, "organization_created", r.orgId);
+  await sendVerification(d, r.userId).catch(() => {});
   return { ...r, ...s };
 }
 
-export async function login(d: Deps, email: string, password: string, ua?: string) {
+export async function login(d: Deps, email: string, password: string, ua?: string, mfaCode?: string) {
   const u = (await d.pool.query("SELECT * FROM users WHERE lower(email)=lower($1)", [email])).rows[0];
   const ok = await verifyPassword(password, u?.password_hash ?? DUMMY_HASH);
   const fail = () => new OryntError("unauthenticated", 401, "Email or password is incorrect.");
@@ -61,6 +67,8 @@ export async function login(d: Deps, email: string, password: string, ua?: strin
     await d.pool.query("UPDATE users SET failed_logins = CASE WHEN locked_until IS NOT NULL AND locked_until <= now() THEN 1 ELSE failed_logins + 1 END, locked_until = CASE WHEN (CASE WHEN locked_until IS NOT NULL AND locked_until <= now() THEN 1 ELSE failed_logins + 1 END) >= 5 THEN now() + interval '15 minutes' ELSE CASE WHEN locked_until <= now() THEN NULL ELSE locked_until END END WHERE id=$1", [u.id]);
     throw fail();
   }
+  const { mfaRequiredAndValid } = await import("./accounts");
+  await mfaRequiredAndValid(d, u.id, mfaCode); // after the password is proven; a wrong/missing code is a 401 mfa_required
   await d.pool.query("UPDATE users SET failed_logins=0, locked_until=NULL WHERE id=$1", [u.id]);
   const m = (await d.pool.query("SELECT org_id FROM memberships WHERE user_id=$1 AND status='active' ORDER BY created_at LIMIT 1", [u.id])).rows[0];
   if (!m) throw new OryntError("forbidden", 403, "Your access to every workspace has been revoked.");
@@ -129,6 +137,7 @@ export async function listMembers(d: Deps, orgId: string) {
 }
 export async function addMember(d: Deps, p: Principal, input: { email: string; name: string; role: Role; temporary_password: string }) {
   if (input.role === "owner" && p.role !== "owner") throw new OryntError("forbidden", 403, "Only an owner can add another owner.");
+  await checkEntitlement(d, p.orgId, "members");
   const pw = await hashPassword(input.temporary_password);
   return withTx(d.pool, async (tx) => {
     let u = (await tx.query("SELECT id FROM users WHERE lower(email)=lower($1)", [input.email])).rows[0];
@@ -159,6 +168,7 @@ export async function updateMember(d: Deps, p: Principal, membershipId: string, 
 // ---- API keys -----------------------------------------------------------------------------------------------------------
 export async function createApiKey(d: Deps, p: Principal, input: { name: string; role: "operator" | "developer" | "viewer" }) {
   if (p.actor.kind !== "user") throw new OryntError("forbidden", 403, "API keys cannot mint API keys.");
+  await checkEntitlement(d, p.orgId, "api_keys");
   // no privilege escalation: a key may hold only permissions its creator holds right now
   const mine = new Set<string>(permissionsFor(p.role));
   if (!permissionsFor(input.role).every((perm) => mine.has(perm))) throw new OryntError("forbidden", 403, `Your role (${p.role}) cannot create a key with role ${input.role}: it would grant permissions you don't hold.`);

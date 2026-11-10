@@ -19,10 +19,13 @@ export const PERMISSIONS = [
   "apikey:manage",
   "webhook:manage",
   "audit:read",
+  "billing:manage",
+  "report:read",
+  "support:create",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
-const READ: Permission[] = ["obligation:read", "receipt:read", "connection:read", "audit:read"];
+const READ: Permission[] = ["obligation:read", "receipt:read", "connection:read", "audit:read", "report:read", "support:create"];
 const OPERATE: Permission[] = [
   ...READ,
   "obligation:create",
