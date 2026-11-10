@@ -164,7 +164,8 @@ describe("billing, webhooks and server-enforced entitlements", () => {
     // charge.success must not store the transaction reference as the subscription id
     expect(ps({ event: "charge.success", data: { id: 1, reference: "TXN_REF", paid_at: new Date().toISOString(), metadata: { org_id: "o", plan_id: "growth" }, customer: { customer_code: "CUS_1" } } }).subscriptionId).toBeUndefined();
     // payloads without an id: distinct failures get distinct event ids, an identical retry gets the same one
-    const fail = (code: string) => ({ event: "invoice.payment_failed", data: { subscription: { subscription_code: "SUB_1" }, invoice_code: code, createdAt: new Date().toISOString() } });
+    const stamp = "2026-11-10T12:00:00.000Z"; // fixed: an identical retry must be byte-identical
+    const fail = (code: string) => ({ event: "invoice.payment_failed", data: { subscription: { subscription_code: "SUB_1" }, invoice_code: code, createdAt: stamp } });
     const a = ps(fail("INV_1")), b = ps(fail("INV_2"));
     expect(a.eventId).not.toBe(b.eventId); expect(a.eventId).not.toContain("undefined"); expect(ps(fail("INV_1")).eventId).toBe(a.eventId);
     // not_renew means "cancel at period end", only disable cancels now
