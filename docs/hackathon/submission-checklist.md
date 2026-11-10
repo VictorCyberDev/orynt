@@ -40,7 +40,7 @@ The Rules tab (`R`) says participants "should reside in Africa". The Overview (`
 - [ ] If keeping: say "working title" in the Devpost text, README, video and deck; do not buy domains or file marks; do not use an org name that collides with the existing `orynt` GitHub account
 - [ ] If renaming: cost is repo/package scope `@orynt/*`, `packages/ui/brand/*`, `orynt-verify`, HTTP problem URIs `https://orynt.dev/problems/...`, all docs, and the deck/video; decide by 2026-11-12 or keep the name
 - [ ] Manual searches in `name-clearance.md` section 5 (USPTO TSDR for the three serials, WIPO, EUIPO/TMview, OAPI) scheduled after the hackathon, or done now by the owner
-- [ ] Note the HTTP problem-type URI points at `orynt.dev`, a domain owned by someone else; change it before any real release
+- [x] The HTTP problem-type URI no longer points at `orynt.dev` (owned by someone else): it is now the non-resolvable `urn:orynt:problem:<code>` unless `ORYNT_PROBLEM_BASE_URL` is set to a URL on a domain the owner controls. Rename of `@orynt/*` etc. is still an open owner decision
 
 ### A4. Licence and open-source obligations
 

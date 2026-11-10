@@ -25,6 +25,8 @@ export interface Config {
   /** plan assigned to new workspaces; anything but "developer" is refused in production */
   defaultPlan: string;
   appBaseUrl: string;
+  /** Base for RFC 9457 problem `type` URIs. Null → non-resolvable URN `urn:orynt:problem:<code>` (never a domain we do not control). Set to an https URL on a domain you own once docs are hosted there. */
+  problemBaseUrl: string | null;
   mailProvider: "log" | "resend";
   resendApiKey: string | null;
   mailFrom: string;
@@ -68,6 +70,7 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     defaultPlan: e["ORYNT_DEFAULT_PLAN"] ?? "developer",
     requireEmailVerification: (e["ORYNT_REQUIRE_EMAIL_VERIFICATION"] ?? (prod ? "1" : "0")) === "1",
     appBaseUrl: e["ORYNT_APP_URL"] ?? "http://127.0.0.1:8787",
+    problemBaseUrl: e["ORYNT_PROBLEM_BASE_URL"]?.replace(/\/+$/, "") ?? null,
     mailProvider: (e["ORYNT_MAIL_PROVIDER"] ?? "log") as "log" | "resend",
     resendApiKey: e["RESEND_API_KEY"] ?? null,
     mailFrom: e["ORYNT_MAIL_FROM"] ?? "Orynt <no-reply@orynt.example>",

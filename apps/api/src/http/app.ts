@@ -75,7 +75,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   });
 
   const problem = (reply: FastifyReply, req: FastifyRequest, status: number, code: ProblemCode, detail: string, extra: Partial<Problem> = {}) =>
-    reply.status(status).type("application/problem+json").send({ type: `https://orynt.dev/problems/${code}`, title: PROBLEM_TITLES[code] ?? code, status, code, detail, instance: req.url.split("?")[0], request_id: req.id, ...extra });
+    reply.status(status).type("application/problem+json").send({ type: config.problemBaseUrl ? `${config.problemBaseUrl}/${code}` : `urn:orynt:problem:${code}`, title: PROBLEM_TITLES[code] ?? code, status, code, detail, instance: req.url.split("?")[0], request_id: req.id, ...extra });
 
   app.setErrorHandler((err, req, reply) => {
     if (err instanceof OryntError) { inc("orynt_http_problems_total", { code: err.code }); return problem(reply, req, err.status, err.code, err.message, err.extra ? ({ ...err.extra } as Partial<Problem>) : {}); }
