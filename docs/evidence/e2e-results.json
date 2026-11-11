@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-11T11:20:19.933Z",
+  "ran_at": "2026-11-11T11:28:35.409Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
-  "total": 165,
+  "total": 166,
   "failed": 0,
   "results": [
     {
@@ -136,6 +136,11 @@
     },
     {
       "name": "billing page labels the sandbox provider as not charging real money",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "billing: paid customers see the billing history card and the portal button",
       "ok": true,
       "detail": ""
     },

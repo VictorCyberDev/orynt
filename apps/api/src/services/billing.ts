@@ -483,3 +483,122 @@ export async function cancelSubscription(d: Deps, orgId: string, actorId: string
     );
   });
 }
+
+const CAPACITY: Array<[keyof Awaited<ReturnType<typeof usage>>, string, string]> = [
+  ["members", "members", "members"],
+  ["wallets", "wallets", "wallet connections"],
+  ["webhooks", "webhooks", "webhook endpoints"],
+  ["api_keys", "api_keys", "API keys"],
+];
+/**
+ * Upgrade or downgrade between PAID plans (free → paid goes through checkout; paid → free is cancellation).
+ * A downgrade is refused while current usage exceeds the target plan, so a customer never ends up silently over-limit or locked out of existing resources.
+ * Sandbox: applied through the same signed-event pipeline as a real webhook. Real providers: the plan change itself happens in the provider's hosted portal
+ * (we do not guess provider price-swap APIs); our entitlements change only when the provider's verified event arrives.
+ */
+export async function changePlan(d: Deps, orgId: string, planId: string, email: string) {
+  const target = (await d.pool.query("SELECT * FROM plan_definitions WHERE id=$1 AND public", [planId]))
+    .rows[0];
+  if (!target) throw new OryntError("not_found", 404, "Unknown plan.");
+  if (target.price_usd_cents === null)
+    throw new OryntError("invalid_state", 409, "This plan is by arrangement — contact sales.");
+  const eff = await effectivePlan(d, orgId);
+  if (eff.plan_id === planId) throw new OryntError("conflict", 409, "You are already on this plan.");
+  if (target.price_usd_cents === 0)
+    throw new OryntError(
+      "invalid_state",
+      409,
+      "To return to the free Developer plan, cancel your subscription instead.",
+    );
+  const current = (
+    await d.pool.query("SELECT price_usd_cents FROM plan_definitions WHERE id=$1", [eff.plan_id])
+  ).rows[0];
+  // a "by arrangement" plan has no list price: moving off it to a priced plan is a downgrade
+  const currentPrice = current ? (current.price_usd_cents === null ? Infinity : current.price_usd_cents) : 0;
+  const downgrade = target.price_usd_cents < currentPrice;
+  if (downgrade) {
+    const u = await usage(d, orgId);
+    const over = CAPACITY.filter(([k, ek]) => {
+      const lim = Number(target.entitlements[ek]);
+      return lim !== -1 && u[k] > lim;
+    }).map(([k, ek, label]) => ({ dimension: label, used: u[k], allowed: Number(target.entitlements[ek]) }));
+    if (over.length)
+      throw new OryntError(
+        "entitlement_exceeded",
+        409,
+        `You use more than the ${target.name} plan allows (${over.map((o) => `${o.used} ${o.dimension}, limit ${o.allowed}`).join("; ")}). Remove the excess first, then downgrade.`,
+        { over_limit: over, plan: planId },
+      );
+  }
+  const sub = (await d.pool.query("SELECT provider, status FROM subscriptions WHERE org_id=$1", [orgId]))
+    .rows[0];
+  if (d.config.billingProvider === "sandbox") {
+    const r = await sandboxComplete(d, orgId, planId);
+    return { mode: "applied", direction: downgrade ? "downgrade" : "upgrade", result: r };
+  }
+  if (!sub || sub.provider === "none" || sub.status === "canceled")
+    return { direction: "upgrade", ...(await startCheckout(d, orgId, planId, email)) };
+  return { direction: downgrade ? "downgrade" : "upgrade", ...(await startPortal(d, orgId)) };
+}
+
+/** Provider-hosted customer portal (payment method, invoices, plan changes). Stripe only — the request shape is from Stripe's documentation and is UNVERIFIED against the live API. */
+export async function startPortal(d: Deps, orgId: string) {
+  const s = (
+    await d.pool.query("SELECT provider, provider_customer_id FROM subscriptions WHERE org_id=$1", [orgId])
+  ).rows[0];
+  if (d.config.billingProvider === "sandbox")
+    return {
+      mode: "sandbox",
+      url: null,
+      note: "The sandbox provider has no hosted portal: use the plan buttons. Nothing is charged.",
+    };
+  if (!s?.provider_customer_id || s.provider !== d.config.billingProvider)
+    throw new OryntError(
+      "invalid_state",
+      409,
+      "There is no billing customer to open a portal for yet. Choose a plan first.",
+    );
+  if (s.provider !== "stripe")
+    throw new OryntError(
+      "invalid_state",
+      501,
+      `${s.provider} has no hosted customer portal that Orynt can open.`,
+    );
+  if (!d.config.billingApiKey)
+    throw new OryntError("wallet_unavailable", 503, "Billing is not configured on this server.");
+  const r = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${d.config.billingApiKey}`,
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      customer: s.provider_customer_id,
+      return_url: `${d.config.appBaseUrl}/app/billing`,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  const j = (await r.json().catch(() => ({}))) as { url?: string };
+  if (!r.ok || !j.url)
+    throw new OryntError("internal", 502, "The billing provider could not open the portal.");
+  return { mode: "redirect", url: j.url };
+}
+
+/** What billing events were applied to this organisation (from the tamper-evident audit log). Provider invoice documents live at the provider; Orynt does not issue invoices. */
+export async function billingHistory(d: Deps, orgId: string) {
+  const rows = (
+    await d.pool.query(
+      "SELECT at, type, data FROM audit_events WHERE org_id=$1 AND stream='org' AND type LIKE 'billing.%' ORDER BY seq DESC LIMIT 100",
+      [orgId],
+    )
+  ).rows;
+  return {
+    data: rows.map((r) => ({
+      at: new Date(r.at).toISOString(),
+      event: String(r.type).replace("billing.", ""),
+      plan: r.data?.plan ?? null,
+      provider_event_id: r.data?.event_id ?? null,
+    })),
+    note: "These are the verified provider events applied to your subscription. Invoices and receipts for card payments are issued by your billing provider.",
+  };
+}

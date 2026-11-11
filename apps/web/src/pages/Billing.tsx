@@ -31,10 +31,29 @@ export function Billing() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const d = b.data;
+  const paid = !!d && d.current.plan_id !== "developer" && d.current.status !== "canceled";
   const pick = async (plan: Plan) => {
     setBusy(plan.id);
     setErr(null);
     try {
+      if (paid) {
+        // paid → another paid plan: the server refuses a downgrade that would leave the organisation over the new limits and says exactly what to remove
+        const r = await api.request<{ mode: string; url?: string | null; direction?: string }>(
+          "POST",
+          "/v1/billing/change-plan",
+          { body: { plan_id: plan.id } },
+        );
+        if (r.data.mode === "redirect" && r.data.url) {
+          window.location.href = r.data.url;
+          return;
+        }
+        toast(
+          "ok",
+          `${plan.name} is now your plan (${r.data.direction ?? "changed"}).${d?.billing_provider === "sandbox" ? " Sandbox: no real money moved." : ""}`,
+        );
+        b.reload();
+        return;
+      }
       const r = await api.request<{ mode: string; url: string | null }>("POST", "/v1/billing/checkout", {
         body: { plan_id: plan.id },
       });
@@ -45,6 +64,22 @@ export function Billing() {
       await api.request("POST", "/v1/billing/sandbox/complete", { body: { plan_id: plan.id } });
       toast("ok", `Sandbox checkout complete — ${plan.name} is active. No real money moved.`);
       b.reload();
+    } catch (e) {
+      setErr(errorText(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  const portal = async () => {
+    setBusy("portal");
+    setErr(null);
+    try {
+      const r = await api.request<{ mode: string; url: string | null; note?: string }>(
+        "POST",
+        "/v1/billing/portal",
+      );
+      if (r.data.url) window.location.href = r.data.url;
+      else toast("info", r.data.note ?? "No hosted portal is available for this provider.");
     } catch (e) {
       setErr(errorText(e));
     } finally {
@@ -184,11 +219,55 @@ export function Billing() {
               </Card>
             ))}
           </div>
+          {paid ? (
+            <Card
+              title="Manage billing"
+              aside={
+                <Button busy={busy === "portal"} onClick={portal}>
+                  Open billing portal
+                </Button>
+              }
+            >
+              <BillingHistory />
+            </Card>
+          ) : null}
           <p className="muted small">
             {d.notes.join(" ")} Plan prices and limits are hypotheses being tested, not offers.
           </p>
         </>
       ) : null}
     </div>
+  );
+}
+
+function BillingHistory() {
+  const h = useAsync(
+    () =>
+      api
+        .request<{ data: Array<{ at: string; event: string; plan: string | null }>; note: string }>(
+          "GET",
+          "/v1/billing/history",
+        )
+        .then((r) => r.data),
+    [],
+  );
+  if (h.loading) return <Skeleton rows={2} />;
+  if (h.error) return <ErrorNote>{h.error}</ErrorNote>;
+  return (
+    <>
+      {h.data?.data.length ? (
+        <ul className="plain" aria-label="Billing history">
+          {h.data.data.slice(0, 10).map((e, i) => (
+            <li key={i}>
+              <strong>{e.event.replace(/_/g, " ")}</strong>
+              {e.plan ? ` — ${e.plan}` : ""} <span className="muted">{when(e.at)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No billing events yet.</p>
+      )}
+      <p className="muted small">{h.data?.note}</p>
+    </>
   );
 }

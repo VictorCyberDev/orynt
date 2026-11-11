@@ -103,6 +103,17 @@ export const saasHandlers: Record<string, H> = {
     if (r === "applied") await track(a.deps, "subscription_activated", need(a.ctx).orgId);
     return { body: { result: r, billing: await bill.billingOverview(a.deps, need(a.ctx).orgId) } };
   },
+  billingChangePlan: async (a) => {
+    await stepUpFromHeader(a);
+    const email = (
+      await a.deps.pool.query("SELECT email FROM users WHERE id=$1", [need(a.principal).actor.userId])
+    ).rows[0].email;
+    const r = await bill.changePlan(a.deps, need(a.ctx).orgId, a.body.plan_id, email);
+    await track(a.deps, "plan_changed", need(a.ctx).orgId);
+    return { body: { ...r, billing: await bill.billingOverview(a.deps, need(a.ctx).orgId) } };
+  },
+  billingPortal: async (a) => ({ body: await bill.startPortal(a.deps, need(a.ctx).orgId) }),
+  billingHistory: async (a) => ({ body: await bill.billingHistory(a.deps, need(a.ctx).orgId) }),
   billingCancel: async (a) => {
     await bill.cancelSubscription(a.deps, need(a.ctx).orgId, need(a.principal).actor.id);
     return { body: ok };

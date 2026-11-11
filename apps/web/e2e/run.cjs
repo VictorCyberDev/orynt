@@ -353,9 +353,14 @@ const axeSrc = fs.readFileSync(
       /No card is charged/.test(await ow.page.locator("main").innerText()),
     );
     await ow.page.getByRole("button", { name: "Choose Business" }).click();
-    await ow.page.waitForSelector("text=Sandbox checkout complete");
+    await ow.page.waitForSelector("text=is now your plan");
     await ow.page.reload();
     await ow.page.waitForSelector("text=Current plan");
+    check(
+      "billing: paid customers see the billing history card and the portal button",
+      (await ow.page.getByRole("button", { name: "Open billing portal" }).count()) > 0 &&
+        (await ow.page.locator("[aria-label='Billing history']").count()) > 0,
+    );
     check(
       "plan change via sandbox checkout takes effect (server-side entitlement)",
       /business/i.test(await ow.page.locator("#cur, section").first().innerText()) &&
