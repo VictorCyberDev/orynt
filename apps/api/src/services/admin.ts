@@ -94,6 +94,7 @@ export async function createPolicy(d: Deps, ctx: Ctx, name: string, rules: Polic
     await tx.query("UPDATE approval_policies SET active=false WHERE org_id=$1 AND active", [ctx.orgId]);
     const digest = hashCanonical(policyDigestInput(rules));
     const r = (await tx.query("INSERT INTO approval_policies(org_id,name,revision,rules,digest,active,created_by) VALUES ($1,$2,$3,$4,$5,true,$6) RETURNING *", [ctx.orgId, name, rev, JSON.stringify(rules), digest, ctx.actor.userId])).rows[0];
+    await tx.query("UPDATE organizations SET policy_reviewed_at=COALESCE(policy_reviewed_at, now()) WHERE id=$1", [ctx.orgId]);
     await appendAudit(tx, ctx.orgId, "org", actorTag(ctx.actor), "policy.published", `policy:${r.id}`, { name, revision: rev, digest, note: "Payouts approved under an earlier policy must be re-approved before sending." });
     return polDto(r);
   });

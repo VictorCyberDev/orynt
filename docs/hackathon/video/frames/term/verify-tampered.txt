@@ -1,0 +1,34 @@
+ ✔ schema                       valid orynt.receipt/1
+ ✘ attestation.signature        issuer signature over the receipt body
+ ✔ issuer.trusted               issuer key cli is a supplied trust root
+ ✔ invoice.signature            BOLT11 signature valid; payee key recovered independently
+ ✔ invoice.payment_hash         invoice payment hash equals agreement payment hash
+ ✔ invoice.payee                invoice-signing node key equals agreement payee key
+ ✔ invoice.network              invoice network regtest equals receipt network regtest
+ ✔ invoice.amount               invoice amount equals approved amount
+ ✔ invoice.expiry               invoice expiry equals bound expiry
+ ✔ destination.binding          counterparty was not bound to a node key at approval time
+ ✘ agreement.hash               revision hash recomputed from agreement fields
+ ✔ intent.binding               intent binding fields equal the agreement, policy and workspace
+ ✔ intent.digest                intent digest recomputed from binding
+ ✔ attempts.present             at least one recorded execution attempt
+ ✔ approval.92a70c5c-7de9-4dd0-8316-5dbc1d960409 Approver Moussa (approver) signed this exact intent before execution
+ ✔ approval.threshold           1 valid approval(s), policy requires 1
+ ✔ settlement.preimage          sha256(preimage) equals the invoice payment hash — proof that the payee's node released the preimage
+ ✔ settlement.amount            settled amount 30000000 msat vs approved 30000000 msat
+ ✔ settlement.environment       real provider with SETTLED state
+ ✔ require.real                 real provider
+ ! network.note                 regtest is a test network: the value moved was not real-world money
+ ✔ time.order                   approvals ≤ dispatch ≤ settlement ≤ issuance (within clock skew)
+ ✔ time.not_future              receipt is not issued in the future
+ ✔ audit.chain                  7 audit entries link correctly
+ ✔ audit.head                   checkpoint head equals the last entry in the segment
+ ✔ audit.binding                audit segment and checkpoint belong to this obligation and workspace
+ ✔ audit.genesis                segment starts at the beginning of the obligation's history (no truncated head)
+ ✔ audit.checkpoint_signature   checkpoint signed by the issuer key
+ ✔ audit.contains_settlement    audit segment records this settlement
+ ✔ expect.network               expected network regtest
+
+VERDICT: REJECTED
+  30000000 msat on regtest (REAL_PROVIDER), payment_hash 3e8c6003bfb65100334666fa850e3cc3ed0503bb587f65fd9b39c1f746c4cd20
+tampered exit=1

@@ -6,6 +6,7 @@ import * as bat from "../services/batches";
 import * as sch from "../services/schedules";
 import * as rep from "../services/reports";
 import * as sup from "../services/support";
+import * as onb from "../services/onboarding";
 import { orgFunnel, track } from "../services/analytics";
 import { obligationDto, publicObligation } from "../services/dto";
 import { withTx } from "../db/pool";
@@ -75,6 +76,17 @@ export const saasHandlers: Record<string, H> = {
     if (conns.length !== 1) throw new OryntError("validation_failed", 422, conns.length ? "More than one wallet is connected: choose which wallet will pay." : "Connect a wallet first.");
     return { body: await (await import("../services/lnurl")).resolveLightningAddress(a.deps, a.body.address, a.body.amount_msat, conns[0].network) };
   },
+  getOrg: async (a) => ({ body: await onb.getOrg(a.deps, need(a.ctx).orgId) }),
+  updateOrg: async (a) => ({ body: await onb.updateOrg(a.deps, need(a.ctx), a.body) }),
+  getOnboarding: async (a) => ({ body: await onb.onboarding(a.deps, need(a.ctx).orgId, need(a.principal).actor.userId) }),
+  ackOnboardingStep: async (a) => {
+    const step = a.params["step"] as "plan" | "policy";
+    const role = need(a.principal).actor.role;
+    if (role === "system" || !(step === "plan" ? ["owner", "admin"] : ["owner", "admin"]).includes(role)) throw new OryntError("forbidden", 403, "Only an owner or admin can confirm this step.");
+    await onb.acknowledge(a.deps, need(a.ctx), step);
+    return { body: await onb.onboarding(a.deps, need(a.ctx).orgId, need(a.principal).actor.userId) };
+  },
+  completeOnboarding: async (a) => ({ body: await onb.complete(a.deps, need(a.ctx)) }),
   funnel: async (a) => ({ body: { data: await orgFunnel(a.deps, need(a.ctx).orgId) } }),
 
   recipientAction: async (a) => {

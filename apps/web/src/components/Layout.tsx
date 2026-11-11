@@ -14,7 +14,7 @@ export const MarkSprite = () => (
 );
 
 const nav: Array<[string, string, string, string]> = [
-  ["/", "nav.overview", "Overview", "◐"], ["/payouts", "nav.payouts", "Payouts", "↗"], ["/approvals", "nav.approvals", "Approvals", "✓"], ["/incidents", "nav.incidents", "Incidents", "!"],
+  ["/", "nav.overview", "Overview", "◐"], ["/start", "nav.start", "Get started", "★"], ["/payouts", "nav.payouts", "Payouts", "↗"], ["/approvals", "nav.approvals", "Approvals", "✓"], ["/incidents", "nav.incidents", "Incidents", "!"],
   ["/batches", "nav.batches", "Batches", "⇶"], ["/schedules", "nav.schedules", "Recurring", "↻"], ["/reports", "nav.reports", "Reports", "▤"],
   ["/connections", "nav.connections", "Wallets", "◇"], ["/team", "nav.team", "Team & policy", "☰"], ["/activity", "nav.activity", "Activity", "≡"], ["/developers", "nav.developers", "Developers", "</>"], ["/billing", "nav.billing", "Plan & billing", "$"], ["/support", "nav.support", "Help & support", "☎"], ["/settings", "nav.settings", "Settings", "⚙"],
 ];

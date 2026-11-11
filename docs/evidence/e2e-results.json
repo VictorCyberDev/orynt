@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-10T13:27:36.348Z",
+  "ran_at": "2026-11-11T10:32:44.132Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
-  "total": 138,
+  "total": 151,
   "failed": 0,
   "results": [
     {
@@ -70,6 +70,36 @@
       "detail": ""
     },
     {
+      "name": "onboarding: page renders the checklist with a server-derived environment note",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "onboarding: profile step is open before the form is saved (server says so)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "onboarding: 'Finish setup' is disabled while steps are open",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "onboarding: after saving, the SERVER reports the profile step done",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "onboarding: progress survives a reload (stored server-side)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "onboarding: the Overview page links back to setup while it is unfinished",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "wizard flags an invalid invoice in plain words",
       "ok": true,
       "detail": ""
@@ -111,6 +141,21 @@
     },
     {
       "name": "axe serious/critical @375px dark /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @375px /start",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /start",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /start",
       "ok": true,
       "detail": ""
     },
@@ -360,6 +405,11 @@
       "detail": ""
     },
     {
+      "name": "no horizontal overflow @768px /start",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "no horizontal overflow @768px /payouts",
       "ok": true,
       "detail": ""
@@ -451,6 +501,21 @@
     },
     {
       "name": "axe serious/critical @1440px dark /overview",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /start",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /start",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /start",
       "ok": true,
       "detail": ""
     },

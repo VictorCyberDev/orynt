@@ -96,6 +96,22 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
 
     // --- 4. wizard: mint a simulator invoice as owner, paste it, review, submit
     const ow = await ctxFor("demo-owner@orynt.local");
+
+    // --- 3b. onboarding checklist: state comes from the server; the profile step flips only after a real save
+    await ow.page.goto(BASE + "/app/start");
+    await ow.page.waitForSelector("main h1");
+    check("onboarding: page renders the checklist with a server-derived environment note", /Get started/.test(await ow.page.locator("main h1").innerText()) && await ow.page.locator("text=Where you are working").count() > 0);
+    const onbBefore = await (await ow.ctx.request.get(BASE + "/v1/onboarding")).json();
+    check("onboarding: profile step is open before the form is saved (server says so)", onbBefore.steps.find((x) => x.id === "profile").done === false);
+    check("onboarding: 'Finish setup' is disabled while steps are open", await ow.page.getByRole("button", { name: "Finish setup" }).isDisabled());
+    await ow.page.locator("#onb-country").fill("NG"); await ow.page.locator("#onb-tz").fill("Africa/Lagos"); await ow.page.locator("#onb-purpose").fill("Contributor payouts");
+    await ow.page.getByRole("button", { name: "Save profile" }).click();
+    await ow.page.waitForSelector("text=Profile complete.");
+    const onbAfter = await (await ow.ctx.request.get(BASE + "/v1/onboarding")).json();
+    check("onboarding: after saving, the SERVER reports the profile step done", onbAfter.steps.find((x) => x.id === "profile").done === true);
+    await ow.page.reload(); await ow.page.waitForSelector("text=Profile complete.");
+    check("onboarding: progress survives a reload (stored server-side)", true);
+    check("onboarding: the Overview page links back to setup while it is unfinished", (await (async () => { await ow.page.goto(BASE + "/app/"); await ow.page.waitForSelector("main h1"); return ow.page.locator("text=Finish setting up").count(); })()) > 0);
     const conns = await (await ow.ctx.request.get(BASE + "/v1/connections")).json();
     const csrf = (await (await ow.ctx.request.get(BASE + "/v1/me")).json()).csrf_token;
     const inv = await (await ow.ctx.request.post(`${BASE}/v1/dev/simulator/${conns.data[0].id}/invoice`, { headers: { "x-csrf-token": csrf }, data: { amount_msat: "7500000", behavior: "succeed" } })).json();
@@ -127,7 +143,7 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
     await ow.ctx.close();
 
     // --- 5. responsive screenshots, overflow and accessibility across routes/viewports/themes
-    const routes = [["", "overview"], ["payouts", "payouts"], ["approvals", "approvals"], ["connections", "wallets"], ["team", "team"], ["activity", "activity"], ["developers", "developers"], ["settings", "settings"], ["guide", "guide"], ["incidents", "incidents"], ["billing", "billing"], ["reports", "reports"], ["batches", "batches"], ["schedules", "schedules"], ["support", "support"]];
+    const routes = [["", "overview"], ["start", "start"], ["payouts", "payouts"], ["approvals", "approvals"], ["connections", "wallets"], ["team", "team"], ["activity", "activity"], ["developers", "developers"], ["settings", "settings"], ["guide", "guide"], ["incidents", "incidents"], ["billing", "billing"], ["reports", "reports"], ["batches", "batches"], ["schedules", "schedules"], ["support", "support"]];
     const unknownId = await (async () => { const r = await (await op.ctx.request.get(BASE + "/v1/obligations?state=SIMULATED_SETTLED&limit=1")).json(); return r.data[0]?.id; })();
     await op.ctx.close();
     for (const [w, h, vp] of VIEWPORTS) {

@@ -13,6 +13,7 @@ const KIND: Record<string, { tone: Tone; label: string; cta: string }> = {
 export function Overview() {
   const { t } = useI18n();
   const o = useAsync(() => api.overview(), []);
+  const onb = useAsync(() => api.request<{ completed: boolean; progress: { done: number; total: number }; next: string | null }>("GET", "/v1/onboarding").then((r) => r.data), []);
   usePolling(o.reload, 8000);
   const d = o.data;
   const settledStates = ["SETTLED", "SIMULATED_SETTLED"];
@@ -20,6 +21,7 @@ export function Overview() {
   return (
     <div className="page">
       <header className="page-h"><div><h1>{t("home.title", "Your payments, under control.")}</h1><p className="lede">What needs you now, and the truth about everything in motion.</p></div><Link className="btn btn-primary" to="/payouts/new">{t("btn.newPayout", "New payout")}</Link></header>
+      {onb.data && !onb.data.completed ? <Card><div className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 12 }}><div><strong>Finish setting up</strong><p className="muted">{onb.data.progress.done} of {onb.data.progress.total} steps done.</p></div><Link className="btn btn-secondary" to="/start">Continue setup</Link></div></Card> : null}
       {o.error ? <ErrorNote>{o.error}</ErrorNote> : null}
       {o.loading && !d ? <Skeleton rows={4} /> : null}
       {d ? (

@@ -1,0 +1,51 @@
+
+> orynt@0.1.0 demo:full /home/user/orynt
+> tsx scripts/demo-full.ts
+
+Orynt demo:full — mode: REAL-REGTEST  (real Lightning payments between real nodes on local regtest; test coins only)
+
+━━ Setup: fresh PostgreSQL database, API server, verifier bundle
+  ✔ API ready on http://127.0.0.1:8788 with database orynt_demo_1794392785121
+
+━━ Workspace, team and wallet
+  ✔ wallet connected on regtest; discovered permissions: send=true lookup=true
+  ✔ connection is a REAL LND node (least-privilege macaroon)
+
+━━ A. A normal payout: approved by someone else, sent once, settled
+  ✔ PO-0001 approved by a different person than its creator
+  ✔ state SETTLED (REAL_PROVIDER)
+  ✔ payee node (bob) independently shows the invoice SETTLED with the same preimage
+  ✔ sha256(preimage) == payment hash
+
+━━ B. The wallet's answer is lost AFTER it accepted the payment
+  ✔ HTTP 202: state UNKNOWN — NOT failed
+  ✔ second send REFUSED: “Sending again is blocked: the first attempt may already have paid. Orynt must check the wallet's own record first.”
+  ✔ wallet's own record found by payment hash → SETTLED
+  ✔ receipt will say it was settled after an uncertain moment
+  ✔ LND shows exactly one successful payment for this hash
+
+━━ C. The API process is KILLED (SIGKILL) right after LND accepted the payment
+[failpoint] execute.after_provider_response: killing process (simulated SIGKILL)
+  ✔ process died mid-request (no response was ever sent)
+  … restarted; startup recovery ran
+  ✔ after restart the payout is UNKNOWN — never FAILED, never retryable
+  ✔ reconciled from LND's record → SETTLED
+
+━━ D. Receipts, independent verification, tampering, replay
+  (issuer key fetched from the same server for demo convenience — a real verifier must obtain it out-of-band)
+  ✔ verifier → exit 0 VERIFIED (real, trusted issuer)
+     ✔ destination.binding          counterparty was not bound to a node key at approval time
+     ✔ approval.ff2d10a1-f5b1-40bf-a852-e658199cfbc6 approver (approver) signed this exact intent before execution
+     ✔ approval.threshold           1 valid approval(s), policy requires 1
+     ✔ settlement.preimage          sha256(preimage) equals the invoice payment hash — proof that the payee's node released the preimage
+     ✔ time.order                   approvals ≤ dispatch ≤ settlement ≤ issuance (within clock skew)
+    VERDICT: VERIFIED
+  ✔ receipt for the uncertain payment verifies too (settled after reconciliation)
+  ✔ one changed character → verifier REJECTS (exit 1)
+  ✔ without a trust root the verifier refuses to call it VERIFIED (exit 3)
+  ✔ presenting the same receipt twice → REPLAY rejected
+  ✔ receipt for payment A cannot be passed off as payment B
+  ✔ audit hash chains intact (42 entries, 4 streams)
+  second sends blocked this run: 1
+
+ALL ASSERTIONS PASSED (real-regtest). Evidence: docs/evidence/demo-real-regtest-2026-11-11T10-26-29-483Z.md

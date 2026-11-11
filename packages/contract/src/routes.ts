@@ -166,5 +166,10 @@ export const saasRoutes: RouteSpec[] = [
   { id: "incidentNote", method: "POST", path: "/v1/incidents/:id/notes", summary: "Add an investigation note", tags: ["incidents"], auth: "incident:resolve", params: Id, body: z.object({ note: z.string().min(2).max(2000) }), success: ok(Any, 201) },
   { id: "incidentNotes", method: "GET", path: "/v1/incidents/:id/notes", summary: "Investigation notes", tags: ["incidents"], auth: "obligation:read", params: Id, success: ok(Any) },
   { id: "incidentAssign", method: "POST", path: "/v1/incidents/:id/assign", summary: "Assign an investigator", tags: ["incidents"], auth: "incident:resolve", params: Id, body: z.object({ user_id: S.Uuid.nullable() }), success: ok(Any) },
+  { id: "getOrg", method: "GET", path: "/v1/org", summary: "Organisation profile", tags: ["team"], auth: "obligation:read", success: ok(Any) },
+  { id: "updateOrg", method: "PATCH", path: "/v1/org", summary: "Update the organisation profile", tags: ["team"], auth: "member:manage", body: z.object({ name: z.string().min(1).max(120).optional(), country: z.string().regex(/^[A-Z]{2}$/).optional(), timezone: z.string().min(1).max(64).optional(), purpose: z.string().min(3).max(300).optional() }), success: ok(Any) },
+  { id: "getOnboarding", method: "GET", path: "/v1/onboarding", summary: "First-customer activation checklist (every step derived from backend state)", tags: ["team"], auth: "obligation:read", success: ok(Any) },
+  { id: "ackOnboardingStep", method: "POST", path: "/v1/onboarding/steps/:step/confirm", summary: "Record the explicit decision for the plan or policy step", tags: ["team"], auth: "obligation:read", params: z.object({ step: z.enum(["plan", "policy"]) }), success: ok(Any) },
+  { id: "completeOnboarding", method: "POST", path: "/v1/onboarding/complete", summary: "Close onboarding (refused unless every step is done)", tags: ["team"], auth: "member:manage", success: ok(Any) },
 ];
 export const routes: RouteSpec[] = [...coreRoutes, ...saasRoutes];

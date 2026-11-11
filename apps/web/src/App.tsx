@@ -19,6 +19,7 @@ import { Settings } from "./pages/Settings";
 import { VerifyReceipt } from "./pages/VerifyReceipt";
 import { Guide } from "./pages/Guide";
 import { Billing } from "./pages/Billing";
+import { Start } from "./pages/Start";
 import { Batches, Reports, Schedules, Support } from "./pages/Work";
 import { AcceptInvite, Forgot, ResetPassword, SupportPublic, VerifyEmail } from "./pages/Links";
 
@@ -48,6 +49,7 @@ export function App() {
           {me ? (
             <Route element={<Layout />}>
               <Route index element={<Overview />} />
+              <Route path="start" element={<Start />} />
               <Route path="payouts" element={<Payouts />} />
               <Route path="payouts/new" element={<NewPayout />} />
               <Route path="payouts/:id" element={<PayoutDetail />} />

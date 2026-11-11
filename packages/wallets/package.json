@@ -15,6 +15,13 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@orynt/core": "workspace:*"
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@orynt/core": "workspace:*",
+    "ws": "8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
   }
 }

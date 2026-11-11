@@ -1,147 +1,129 @@
-# Dakar Bitcoin Hack 2026: rules checklist
+# Dakar Bitcoin Hack 2026: rules checklist (re-verified 2026-11-11)
 
-Verified against pages retrieved **2026-11-09 (~14:20 UTC)** via Firecrawl (WebFetch is blocked with HTTP 403 by Devpost):
+**Re-verified 2026-11-11 about 10:20-10:30 UTC** from the official Devpost pages (Firecrawl, `maxAge: 0`; WebFetch is blocked with HTTP 403 by Devpost). The previous retrieval was 2026-11-09 about 14:20 UTC. Source labels used below:
 
-- Rules: https://dakar-bitcoin-hack-2026.devpost.com/rules (`R`)
-- Dates: https://dakar-bitcoin-hack-2026.devpost.com/details/dates (`D`)
-- Overview: https://dakar-bitcoin-hack-2026.devpost.com/ (`O`)
-- Resources: https://dakar-bitcoin-hack-2026.devpost.com/resources (`Res`); Updates page (`U`) had no announcements.
+- `R` Rules: https://dakar-bitcoin-hack-2026.devpost.com/rules
+- `O` Overview: https://dakar-bitcoin-hack-2026.devpost.com/
+- `D` Dates: https://dakar-bitcoin-hack-2026.devpost.com/details/dates
+- `U` Updates: https://dakar-bitcoin-hack-2026.devpost.com/updates
+- `Res` Resources: https://dakar-bitcoin-hack-2026.devpost.com/resources
+- `F` Discussion forum topic "Eligibility question — can non-student professionals enter?": https://dakar-bitcoin-hack-2026.devpost.com/forum_topics/45847-eligibility-question-can-non-student-professionals-enter
 
-Owner: registration ID **3424410**, working **solo**, **not yet submitted**. I could not verify the registration ID or submission status (needs Devpost login; "My projects" link is behind sign-in).
+Submission status: **NOT SUBMITTED.** Nothing has been submitted, posted or sent to the organisers by this repository's tooling. The owner's Devpost registration is not verifiable without a login, and the registration ID is deliberately not recorded in this public repository.
 
-## 0. Read this first
+## 0. What changed since 2026-11-09, and what is now resolved
 
-1. **The Rules tab (`R`) is a short summary, not legal Official Rules.** It has no clauses on IP, AI use, pre-existing work, teams, language or disqualification. The Overview (`O`) contradicts it on several points (below). **Ask the organisers (contact@dakarbitcoindays.com) before relying on either.**
-2. **Deadline: Fri 2026-11-20, 3:00 PM EST = 20:00 UTC = 21:00 WAT (Lagos, UTC+1) = 20:00 GMT in Dakar (UTC+0, no DST).** 11 days remain from 2026-11-09 (`O` says "11 more days to deadline"). EST on that date is UTC-5 (US daylight time ended before 2026-11-20).
-3. **Eligibility conflict that could disqualify you:** `R` says participants "should reside in Africa"; `O` says "Students only", "Companies/professional organizations excluded", "Above legal age of majority", "All countries/territories, excluding standard exceptions". You must confirm that you qualify under the **stricter** reading (African resident + student?) before spending more time.
-4. **Submission conflict:** `O` says "At least, a bitcoin/lightning wallet implementation". Orynt is not a wallet (brief: "does not custody funds"). `R` does not say this. Confirm with organisers whether a wallet is mandatory.
-
-## 1. Dates (source `D`, timezone shown on page: EST)
-
-| Period | Begins | Ends | UTC conversion |
+| Item | 2026-11-09 | 2026-11-11 | Status |
 |---|---|---|---|
-| Submissions | October 26, 4:00AM EDT | **November 20, 3:00PM EST** | ends 2026-11-20 20:00 UTC |
-| Public Voting | November 09, 4:00AM EST | November 24, 12:00PM EST | 09:00 UTC 2026-11-09 to 17:00 UTC 2026-11-24 |
-| Judging | November 21, 4:00AM EST | November 26, 12:00PM EST | 09:00 UTC 2026-11-21 to 17:00 UTC 2026-11-26 |
-| Winners Announced | | November 28, 12:00PM EST | 17:00 UTC 2026-11-28 |
+| Deadline | `D`/`O`: Nov 20, 2026 @ 3:00pm EST | **unchanged.** `O` countdown: "9 more days to deadline" (consistent with 2026-11-11) | **Confirmed** |
+| Eligibility conflict (`R` "reside in Africa" vs `O` "Students only") | unresolved | **Partly resolved, against non-students.** An organiser account labelled **Manager** answered a non-student professional on the forum (`F`): "This hackathon is strictly for students." (reply shown as "about 9 hours ago" at retrieval, i.e. about 2026-11-11 01:30 UTC). `R` and `O` pages themselves were **not edited**: `R` still says only "reside in Africa" | **The "Students only" reading is the organisers' stated position.** Whether the owner qualifies is an owner fact this repository cannot know (student status, residence) |
+| Wallet implementation requirement (`O` "What to Submit") | unresolved | **Unchanged and still unanswered** by the organisers. `R` does not list it | **Unresolved** |
+| Participants | 203 | 226 | info |
+| Updates (`U`) | none | One post: "Public voting is now open" (Popular Choice award; "you may not tamper with the vote process through manual or automated means, or attempt to compensate voters, at risk of disqualification") | info |
+| Prizes | `R` sats vs `O` USD disagree | unchanged, still disagree | Unresolved, do not quote externally |
 
-Notes:
-- `R` says only "From October 26th to November 20th 2026" (no time, no timezone). `D` and `O` give 3:00 PM EST.
-- Public Voting started today, before the submission deadline. Whether public votes affect winner selection is **not stated** (`O`/`R` describe judges only).
-- Devpost shows times in the viewer's preference timezone setting; the page was rendered as EST. Re-check the countdown while logged in.
-- Practical buffer (my advice, not a rule): submit at least 24 h early, i.e. by 2026-11-19 20:00 UTC.
+**Bottom line for the owner.** The submission window is open and the deadline stands, but the organisers have publicly said the event is "strictly for students". If you are not a student (or not resident in Africa), submitting risks ineligibility and wasted effort; if you are a student resident in Africa, the remaining question is the wallet wording. Decide before spending more time, and see `organizer-inquiry.md` (ready to send, **not sent**).
 
-## 2. Who may enter
+## 1. Exact wording on the official pages (2026-11-11)
 
-| Item | What the page says | Source | Status |
+### `R` Rules page (complete text of the main content)
+
+- Dates: "From **October 26th** to **November 20th 2026**."
+- Eligibility: "The participants should reside **in Africa**."
+- "The project should at least have: A **presentation** (text or video); A **public github repo**; A **MVP** accessible through internet (or a demo video)"
+- Prizes: "1st prize: **500.000 sats**; 2nd prize: **250.000 sats**; 3rd prize: **100.000 sats**"
+- Judging: "The judges will mainly focused on solutions that offers a **MVP** that can be tested and which gives a glimpse on its potential. Besides that, we will also judge the **originality**, the **usefulness** of the solution and the **technicality.**" Then "We are looking for: Usefulness and social impact; Security by design; UX/UI quality; MVP; A clear pitch".
+
+### `O` Overview page
+
+- "Who can participate": "Above legal age of majority in country of residence"; "Students only"; "Companies/professional organizations excluded from participation"; "All countries/territories, excluding standard exceptions".
+- Deadline line: "Deadline: Nov 20, 2026 @ 3:00pm EST". "9 more days to deadline".
+- "The hackathon will be a public non-profit event gathering more than 100 participants to develop business and technical innovative solutions using Bitcoin FOSS and close source tools, during 1 month. For this event, organizers are volunteers and results are open-source."
+- "The only thing you need to do is to participate, to build in public and to communicate about your journey."
+- "What to Build": "We are expecting Bitcoin, nostr and AI-centered solutions which main aim would be to answer local and regional population needs. Those solutions can be (these are just examples): Wallets; Learning tools; Exchanges; A contribution to Bitcoin core or lightning; A messaging app built on top of Nostr; An authentication method using NWC; Bitcoin & AI".
+- "What to Submit": "A brief presentation of the proposed solution (can be text or video)"; "A prototype, Minimum Viable Product (MVP) or Proof of Concept (Poc)"; "**At least, a bitcoin/lightning wallet implementation**".
+- Prizes: "$900 in cryptocurrency": 1st "$500 of BTC", 2nd "$250 of BTC", 3rd "$150 of BTC" (one winner each).
+- Judging criteria (verbatim headings): "Usefulness & Local Impact"; "Security by Design"; "UX/UI Quality"; "Working MVP"; "Clear Pitch & Docs" (descriptions in section 4).
+- Contact: "Email the hackathon manager" -> contact@dakarbitcoindays.com.
+
+### `D` Dates page (timezone shown: EST)
+
+| Period | Begins | Ends |
+|---|---|---|
+| Submissions | October 26 at 4:00AM EDT | **November 20 at 3:00PM EST** |
+| Public Voting | November 09 at 4:00AM EST | November 24 at 12:00PM EST |
+| Judging | November 21 at 4:00AM EST | November 26 at 12:00PM EST |
+| Winners Announced | | November 28 at 12:00PM EST |
+
+### `F` Forum (the only organiser statement found)
+
+Question (from a participant in Nigeria): whether a non-student professional may enter as a solo participant, and how prizes are paid. Reply by the account labelled "Manager": "Hello Abidemi, This hackathon is strictly for students. But follow BTrust social media pages for any update on future hackathons. Regards." Prize payment method was **not answered**. The question itself quotes the Rules page as saying the event is "open to developers and builders of any skill level"; that sentence is **not** on the `R` page as retrieved today.
+
+### `Res` Resources
+
+Tools listed: Bitcoin Core, Bitcoin Dev Kit, BTCPayServer, Electrum server, Lightning Dev Kit, Fulcrum server, Lightning Core, C-Lightning, USSD, LNURLPoS, mempool.space, Mobile Money APIs, Sparrow Wallet, Nostr, Nostr Wallet Connect, AI. LND is not listed; nothing prohibits it. Channels: Discord (https://discord.gg/tyS2Mt7C), Telegram (https://t.me/+QArsWD3suKE2Yjg0), X (https://x.com/dakarbtcdays).
+
+## 2. Deadline, converted
+
+**Fri 2026-11-20 3:00 PM EST = 20:00 UTC = 21:00 WAT (Lagos, UTC+1) = 20:00 GMT (Dakar, UTC+0, no DST).** US daylight time ended 2026-11-01, so EST (UTC-5) applies on 2026-11-20. `R` gives no time or timezone ("From October 26th to November 20th 2026"); `D` and `O` do. Devpost renders times in the viewer's profile timezone: confirm the countdown while logged in. Advice (not a rule): submit at least 24 h early, by 2026-11-19 20:00 UTC. Public voting runs 2026-11-09 to 2026-11-24 (Popular Choice per `U`); whether votes count toward the three prizes is not stated.
+
+## 3. Who may enter
+
+| Item | What the pages say | Source | Status |
 |---|---|---|---|
-| Residency | "The participants should reside **in Africa**." | `R` | Conflicts with `O` ("All countries/territories, excluding standard exceptions") |
-| Age | "Above legal age of majority in country of residence" | `O` | Stated |
-| Students | "**Students only**" | `O` | Stated on `O` only; not on `R`. High risk if you are not a student |
-| Companies | "Companies/professional organizations excluded from participation" | `O` | Stated. Submit as an individual; do not enter under a company name (INTERP) |
-| Sanctions/"standard exceptions" | "excluding standard exceptions" | `O` | Undefined on the pages |
-| Solo allowed? | **Not stated** on any retrieved page | | Ask. Devpost generally has team and individual flows but I could not retrieve rule text on it |
-| Team size limit | Not stated | | |
-| Participants registered | 203 (at retrieval) | `O` | info |
+| Students | "Students only" | `O`; confirmed as the organisers' position by the Manager reply | **Binding in practice.** Owner must confirm they are a student |
+| Residence | "The participants should reside in Africa." | `R` | Owner must confirm country. `O` says "All countries/territories, excluding standard exceptions" (undefined) |
+| Age | "Above legal age of majority in country of residence" | `O` | Owner to confirm |
+| Companies | "Companies/professional organizations excluded from participation" | `O` | Enter as an individual; never under a company name |
+| Solo allowed? | Not stated anywhere; the forum asker assumed it | | Ask (inquiry question 3) |
+| Team size | Not stated | | |
 
-## 3. Required submission artifacts
+## 4. Required artifacts and judging criteria
 
-| Artifact | `R` (Rules tab) | `O` (Overview) | Orynt implication |
+| Artifact | `R` | `O` | Orynt implication |
 |---|---|---|---|
-| Presentation | "A presentation (text or video)" | "A brief presentation of the proposed solution (can be text or video)" | Both agree. Video length limit **not stated** |
-| Public GitHub repo | "A **public github repo**" | Not listed under "What to Submit", but "results are open-source" | Repo must be public by deadline. Licence not specified |
-| Working MVP | "A MVP accessible through internet (or a demo video)" | "A prototype, Minimum Viable Product (MVP) or Proof of Concept (Poc)" | A hosted URL is preferred; **demo video is accepted as an alternative** (`R`). Orynt is regtest-only, so a demo video of regtest is consistent with `R` |
-| Wallet implementation | not mentioned | "**At least, a bitcoin/lightning wallet implementation**" | Unresolved conflict. Orynt wraps a wallet adapter (LND REST) but is not a wallet |
-| 3-minute demo | not mentioned | Under criterion "Clear Pitch & Docs": "3-minute demo: problem → solution → impact → next steps" | Treat as a target, not a verified hard limit |
-| README | not mentioned | "README with setup, architecture diagram, constraints, metrics to track, and what you'll ship in the next iteration" | Plan it as a required deliverable |
-| One-command setup | not mentioned | "One-command setup (Docker or script), seed data, and a testable happy path. Avoid mockups when a minimal integration is possible." | Note EXECUTION-REGISTER: docker daemon not available locally; script path needed |
-| Build in public | not mentioned | "to **build in public** and to **communicate** about your journey" | Stated as the only thing you "need to do"; no required platform/frequency stated |
+| Presentation | "A presentation (text or video)" | "A brief presentation ... (can be text or video)" | Deck PDF (`deck/`) and text on Devpost; video optional but a captioned silent cut exists (`video/`) |
+| Public GitHub repo | "A public github repo" | not listed, but "results are open-source" | Repo `VictorCyberDev/orynt` is **public** (checked via the GitHub API 2026-11-11), but its default branch `main` holds only the baseline (README, LICENSE, .gitignore): all work is on branch `claude/busy-goodall-ajeb0p` / draft PR #1. See `submission-checklist.md` |
+| MVP | "A MVP accessible through internet (or a demo video)" | "A prototype, MVP or Proof of Concept" | Not hosted. A demo video is accepted by `R`. Real regtest demo is local only |
+| Wallet implementation | not mentioned | "At least, a bitcoin/lightning wallet implementation" | **Unresolved.** Orynt is payout-authorization software that integrates with an existing LND wallet; it is not a wallet. Do not describe the LND adapter as a wallet implementation |
+| 3-minute demo | not mentioned | under "Clear Pitch & Docs" | Target, not a stated hard limit |
+| README | not mentioned | "README with setup, architecture diagram, constraints, metrics to track, and what you'll ship in the next iteration" | Root `README.md` and `docs/architecture/ARCHITECTURE.md` |
+| One-command setup | not mentioned | "One-command setup (Docker or script), seed data, and a testable happy path. Avoid mockups when a minimal integration is possible." | Scripted (`pnpm demo:full`); the Docker image is verified on GitHub CI only, not locally |
+| Build in public | not mentioned | "to build in public and to communicate about your journey" | Owner's post, none written or sent |
 
-## 4. Judging criteria and weights
+Judging criteria on `O` (verbatim): **Usefulness & Local Impact** "Solve a real, well-scoped local problem. Identify your primary user, show how it changes their daily workflow, and estimate reach (e.g., merchants served per week)." **Security by Design** "Build with a minimal attack surface: threat model, least-privilege access, safe secret handling, validated inputs, no PII in logs. Prefer proven Bitcoin/Lightning libraries and secure defaults." **UX/UI Quality** "Fast, frictionless flows on low bandwidth and mid-range phones. Clear labels, helpful errors, accessible contrast/size, and simple copy free of jargon." **Working MVP** "End-to-end demo that actually runs. One-command setup (Docker or script), seed data, and a testable happy path. Avoid mockups when a minimal integration is possible." **Clear Pitch & Docs** "3-minute demo: problem → solution → impact → next steps. README with setup, architecture diagram, constraints, metrics to track, and what you'll ship in the next iteration." No weights are published. Judges listed on `O`: Mouhamadou Kouta (Banxaas), Kelvin Isievwore (Head of Engineering, Btrust), Peter Tyonum (Btrust grantee), Yogen Ghodke (AI Solutions Engineer, Hexaware Technologies).
 
-**No weights, points or scoring rubric are stated on any retrieved page.**
-
-`R`: "The judges will mainly focused on solutions that offers a MVP that can be tested and which gives a glimpse on its potential. Besides that, we will also judge the originality, the usefulness of the solution and the technicality." Then "We are looking for: Usefulness and social impact; Security by design; UX/UI quality; MVP; A clear pitch".
-
-`O` criteria (verbatim headings and descriptions):
-
-1. **Usefulness & Local Impact:** "Solve a real, well-scoped local problem. Identify your primary user, show how it changes their daily workflow, and estimate reach (e.g., merchants served per week)."
-2. **Security by Design:** "Build with a minimal attack surface: threat model, least-privilege access, safe secret handling, validated inputs, no PII in logs. Prefer proven Bitcoin/Lightning libraries and secure defaults."
-3. **UX/UI Quality:** "Fast, frictionless flows on low bandwidth and mid-range phones. Clear labels, helpful errors, accessible contrast/size, and simple copy free of jargon."
-4. **Working MVP:** "End-to-end demo that actually runs. One-command setup (Docker or script), seed data, and a testable happy path. Avoid mockups when a minimal integration is possible."
-5. **Clear Pitch & Docs:** "3-minute demo: problem → solution → impact → next steps. README with setup, architecture diagram, constraints, metrics to track, and what you'll ship in the next iteration."
-
-Judges listed on `O`: Mouhamadou Kouta (Banxaas), Kelvin Isievwore (Head of Engineering, Btrust), Peter Tyonum (Btrust grantee), Yogen Ghodke (AI Solutions Engineer, Hexaware Technologies).
-
-INTERP: Orynt's security-by-design and MVP fit the criteria well. Its weak points are criterion 1 (an African *local* problem and reach estimate: the brief names none) and criterion 3 (low-bandwidth, mid-range phones: the brief is operator-console oriented).
+Honest fit: strong on Security by Design and Working MVP (real regtest evidence now exists). Weak on Usefulness & Local Impact (no user, no reach estimate, no African-specific feature) and UX/UI for low bandwidth (no measurement). The "What to Build" examples include "Wallets" and "An authentication method using NWC"; Orynt is none of those, so the track fit is "Bitcoin/Lightning tooling for organisations that pay people", stated plainly.
 
 ## 5. Prizes (quoted; the two pages disagree)
 
-- `R`: "1st prize: **500.000 sats**; 2nd prize: **250.000 sats**; 3rd prize: **100.000 sats**".
-- `O`: "$900 in cryptocurrency": "1st Place $500 of BTC (1 winner); 2nd Place $250 of BTC (1 winner); 3rd Place $150 of BTC (1 winner)".
-- Not stated: payout method, timing, taxes, KYC, whether prizes are cumulative, whether non-African/non-student winners are paid.
-- Sats vs USD denomination is unreconciled; do not quote either figure externally without organiser confirmation.
+`R`: "1st prize: 500.000 sats; 2nd prize: 250.000 sats; 3rd prize: 100.000 sats". `O`: "$900 in cryptocurrency", "$500 of BTC", "$250 of BTC", "$150 of BTC". Payout method, timing, taxes, KYC: not stated (a forum asker's question about payment method was not answered). Do not quote either figure externally.
 
 ## 6. IP, open source, pre-existing work, AI, language, disqualification
 
 | Topic | What is stated | Status |
 |---|---|---|
-| Open source | `O`: "For this event, organizers are volunteers and **results are open-source**." `R`: public GitHub repo required | Stated loosely. **Licence not specified.** Ask whether any OSI licence is acceptable and whether "results are open-source" obliges you to licence the *whole* project (INTERP: yes for what is in the repo) |
-| IP ownership / licence grant to organisers | Not stated | Ask |
-| Pre-existing work / start date of coding | Not stated. Submissions window opens Oct 26 | Ask whether code written before 2026-10-26 is allowed and must be disclosed. Check git history: the repo baseline commit is `6684fcb` (date not checked here) |
-| AI-assisted code | **Not stated.** "Machine Learning/AI" is a listed theme and "Bitcoin & AI" is an example project type (`O`), so AI as a *topic* is welcome; AI as a *coding aid* is unaddressed | Ask; disclose in README regardless (advice) |
-| Language of submission | Not stated; pages are in English | Use English; consider adding French summary (Dakar). Advice only |
-| Disqualification conditions | **Not stated** on retrieved pages ("standard exceptions" undefined) | Ask |
-| Mainnet/real funds | Not addressed | Orynt is regtest-only by design |
-| Tools allowed | `Res` lists Bitcoin Core, BDK, BTCPayServer, Electrum, LDK, Fulcrum, Lightning Core, C-Lightning, USSD, LNURLPoS, mempool.space, Mobile Money APIs, Sparrow, Nostr, NWC, AI. LND is not listed. Judging text: "Prefer proven Bitcoin/Lightning libraries" and the overview says "Bitcoin FOSS and close source tools" are allowed | LND not prohibited per retrieved text |
-| Contact | contact@dakarbitcoindays.com; Discord, Telegram, X (@dakarbtcdays) per `Res` | |
+| Open source | `O`: "results are open-source"; `R`: public repo. No licence named | Repo is Apache-2.0. Ask whether any OSI licence is acceptable |
+| IP / licence grant to organisers | Not stated | Ask |
+| Pre-existing work | Not stated; submissions opened Oct 26 | Disclose honestly (repo history starts 2026-11-09 per the existing disclosure; owner to add anything earlier) |
+| AI-assisted code | Not stated ("Machine Learning/AI" is a theme; AI as a coding aid is unaddressed) | Disclose regardless (done in README and Devpost text) |
+| Language | Not stated | English |
+| Disqualification | Not stated beyond Devpost's vote-tampering warning in `U` | Ask |
+| Mainnet / real funds | Not addressed | Regtest only |
 
 ## 7. Checklist for the owner
 
-### Eligibility (do before more build time)
-- [ ] I reside in Africa (confirm country): _____
-- [ ] I am of legal age in my country of residence
-- [ ] I am a student (needed if "Students only" on `O` applies): yes / no / unclear
-- [ ] I am entering as an individual, not as a company or professional organisation
-- [ ] My country is not under the undefined "standard exceptions" (ask what they are)
-- [ ] Organisers confirmed in writing that solo entry is allowed
-- [ ] Organisers confirmed which eligibility text prevails (`R` vs `O`)
-- [ ] Registration ID 3424410 visible under "My projects" when logged in
+### Eligibility (before any more submission work)
+- [ ] I am a **student** (the organisers' forum answer: "strictly for students"): yes / no. Evidence they might ask for: ____
+- [ ] I reside in Africa (country: ____)
+- [ ] I am above the age of majority where I live
+- [ ] I enter as an individual, not as a company
+- [ ] Organisers confirmed in writing (email or public forum reply) that the above is sufficient and that solo entry is allowed
+- [ ] My Devpost registration is visible under "My projects" when logged in (not verifiable here)
 
-### Before deadline (2026-11-20 20:00 UTC)
-- [ ] Project created on Devpost and **submitted**, not left as draft (confirm on gallery)
-- [ ] Public GitHub repository, visible logged-out, contains the code
-- [ ] Open-source licence file added (organiser confirmation of licence expectations)
-- [ ] Presentation (text or video) attached
-- [ ] MVP link reachable from the internet, **or** demo video attached (`R`)
-- [ ] Demo video within 3 minutes (`O` target; no hard limit stated)
-- [ ] README: setup, architecture diagram, constraints, metrics to track, next iteration
-- [ ] One-command setup (Docker or script), seed data, testable happy path
-- [ ] Threat model document, least-privilege, secret handling, input validation, no PII in logs
-- [ ] UX checked on low bandwidth and a mid-range phone viewport
-- [ ] Primary user and local-impact statement with reach estimate (no invented figures)
-- [ ] Wallet requirement resolved with organisers (`O` "wallet implementation")
-- [ ] AI-assistance disclosure included in README
-- [ ] Honest limits stated (regtest only, not a custodian, tamper-evident log, app-level enforcement)
-- [ ] Submitted at least 24 h early; screenshot of the submitted state saved
+### Before the deadline (2026-11-20 20:00 UTC)
+Full list with link/asset visibility checks: `submission-checklist.md`.
 
-### Public voting (open now)
-- [ ] Ask whether public voting influences prizes; if it does, plan an honest "build in public" post. No vote solicitation tactics are required by any retrieved rule
+## 8. Ambiguities to put to the organisers
 
-## 8. Rules ambiguities to confirm with organisers
-
-Send to contact@dakarbitcoindays.com (and ask in Discord for a public answer):
-
-1. Which text governs eligibility: "reside in Africa" (`R`) or "All countries/territories... Students only... Companies excluded" (`O`)? Is non-student entry allowed?
-2. Is solo entry allowed? Maximum team size?
-3. Is "at least a bitcoin/lightning wallet implementation" (`O`) mandatory? Is a payout-authorization layer in front of an LND wallet acceptable?
-4. Prizes: 500k/250k/100k sats (`R`) or $500/$250/$150 in BTC (`O`)? Payment method and timing?
-5. Do public votes (open 2026-11-09 to 2026-11-24) count toward winners, and what weight do judging criteria carry?
-6. Exact deadline moment and timezone: 3:00 PM EST 2026-11-20 = 20:00 UTC? Is a late edit after submission allowed?
-7. Is a demo video acceptable instead of a hosted MVP, and is there a maximum length?
-8. Required licence for the public repo? Who owns the IP? Does "results are open-source" bind the team?
-9. Is pre-existing code (started before 2026-10-26) allowed? What must be disclosed?
-10. Is AI-assisted coding permitted, and must it be disclosed?
-11. Language requirements for the presentation/README?
-12. Disqualification grounds and the meaning of "standard exceptions"?
-13. Are projects that run only on Bitcoin regtest (no mainnet) acceptable as an "MVP"?
+See `organizer-inquiry.md` (ready to send; **not sent**). Summary: wallet requirement and whether a payout-authorization layer on top of LND is acceptable; whether the page text "reside in Africa" and "Students only" are both binding; solo entry; demo video instead of hosted MVP; regtest-only acceptable; licence and IP; AI-assisted development disclosure; whether public votes count toward prizes; prize payment method; exact deadline moment.
