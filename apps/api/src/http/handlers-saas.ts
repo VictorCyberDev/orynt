@@ -8,6 +8,7 @@ import * as rep from "../services/reports";
 import * as sup from "../services/support";
 import * as onb from "../services/onboarding";
 import * as mail from "../services/mail";
+import * as wb from "../services/workbench";
 import { orgFunnel, track } from "../services/analytics";
 import { obligationDto, publicObligation } from "../services/dto";
 import { withTx } from "../db/pool";
@@ -20,6 +21,7 @@ type H = (a: HandlerArgs) => Promise<Out>;
 const need = <T,>(v: T | null): T => { if (!v) throw new OryntError("unauthenticated", 401, "Not signed in."); return v; };
 const ok = { ok: true };
 
+const incidentNotesBody = async (a: HandlerArgs) => ({ body: { data: (await a.deps.pool.query("SELECT n.author, n.note, n.created_at FROM incident_notes n JOIN incidents i ON i.id=n.incident_id WHERE n.incident_id=$1 AND i.org_id=$2 ORDER BY n.created_at", [a.params["id"], need(a.ctx).orgId])).rows } });
 export const saasHandlers: Record<string, H> = {
   verifyEmail: async (a) => { await acc.verifyEmail(a.deps, a.body.token); await track(a.deps, "email_verified", null); return { body: ok }; },
   resendVerification: async (a) => { await acc.sendVerification(a.deps, need(a.principal).actor.userId!); return { body: ok }; },
@@ -110,7 +112,9 @@ export const saasHandlers: Record<string, H> = {
     await a.deps.pool.query("INSERT INTO incident_notes(incident_id,org_id,author,note) VALUES ($1,$2,$3,$4)", [inc.id, c.orgId, c.actor.name, a.body.note]);
     return { status: 201, body: ok };
   },
-  incidentNotes: async (a) => ({ body: { data: (await a.deps.pool.query("SELECT n.author, n.note, n.created_at FROM incident_notes n JOIN incidents i ON i.id=n.incident_id WHERE n.incident_id=$1 AND i.org_id=$2 ORDER BY n.created_at", [a.params["id"], need(a.ctx).orgId])).rows } }),
+  incidentDetail: async (a) => { const { _audit, ...r } = await wb.incidentDetail(a.deps, need(a.ctx).orgId, need(a.principal).role, a.params["id"]!); void _audit; return { body: r }; },
+  incidentEvidence: async (a) => ({ body: await wb.incidentEvidence(a.deps, need(a.ctx).orgId, need(a.principal).role, a.params["id"]!) }),
+  incidentNotes: async (a) => { if (!(await a.deps.pool.query("SELECT 1 FROM incidents WHERE id=$1 AND org_id=$2", [a.params["id"], need(a.ctx).orgId])).rowCount) throw new OryntError("not_found", 404, "Incident not found."); return incidentNotesBody(a); },
   incidentAssign: async (a) => {
     const c = need(a.ctx);
     if (a.body.user_id && !(await a.deps.pool.query("SELECT 1 FROM memberships WHERE org_id=$1 AND user_id=$2 AND status='active'", [c.orgId, a.body.user_id])).rowCount) throw new OryntError("validation_failed", 422, "That person is not a member of this workspace.");
