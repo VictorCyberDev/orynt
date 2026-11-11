@@ -62,3 +62,18 @@ duplicate concurrent execute ✔ · duplicate webhook/provider event ✔ · time
 
 ## Defects found and fixed during the build (evidence the tests bite)
 Pool starvation deadlock under 20 concurrent executes (found by the concurrency test) · CSP blocked inlined fonts (found in browser) · relative static path crashed startup (smoke run) · empty JSON body rejected (demo) · replay ledger skipped simulator receipts (demo) · double shebang in verifier bundle (hackathon agent) · plus the 15 review findings in `docs/security/threat-model.md`.
+
+## R3 additions (2026-11-11) — see `docs/R3-CLOSURE-REGISTER.md` and `docs/OWNER-REPORT-R3.md`
+| Area | Status | Evidence |
+|---|---|---|
+| Onboarding checklist (backend-derived), org profile | SIMULATOR-VERIFIED; regtest assertions on a real wallet | `onboarding.itest` (9), `lnd.itest`, E2E |
+| Exception workbench + evidence export | VERIFIED COMPLETE (simulator and real regtest) | `workbench.itest` (4), `lnd.itest`, E2E + axe |
+| Organisation administration (sessions, ownership transfer, closure) | SIMULATOR-VERIFIED, API only (no UI) | `orgadmin.itest` (3) |
+| Internal support console | SIMULATOR-VERIFIED | `staff.itest` (5) |
+| Mail pipeline (lease, backoff, Resend/Brevo, Svix webhook, redaction, quotas, nine notification kinds) | IMPLEMENTED, NOT COMMISSIONED (verified against a local controlled service) | `mail.itest` (9, mutation-checked) |
+| Billing journeys (plan change with downgrade guard, portal, history) | SIMULATOR-VERIFIED; refunds/provider invoices NOT STARTED | `billing-journeys.itest` (6), `saas.itest` |
+| Security review batch 1+2 | PARTIAL (see `docs/security/threat-model-r3-review.md`) | `security-r3.itest` (13) |
+| NWC / BTCPay adapters | IMPLEMENTED, NOT COMMISSIONED (contract-tested only; not wired) | `packages/wallets` (257 passing, 2 skipped) |
+| Production deployment package | IMPLEMENTED, NOT COMMISSIONED | `infra/production/`, CI `docker` job |
+| Prettier gate | VERIFIED COMPLETE | `pnpm format:check` in CI |
+| Dakar package refreshed (video silent, deck PDF) | NOT SUBMITTED; eligibility is an owner decision | `docs/hackathon/` |
