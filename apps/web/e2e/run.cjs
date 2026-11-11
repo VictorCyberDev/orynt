@@ -310,11 +310,15 @@ const axeSrc = fs.readFileSync(
     check("onboarding: progress survives a reload (stored server-side)", true);
     check(
       "onboarding: the Overview page links back to setup while it is unfinished",
-      (await (async () => {
+      await (async () => {
         await ow.page.goto(BASE + "/app/");
         await ow.page.waitForSelector("main h1");
-        return ow.page.locator("text=Finish setting up").count();
-      })()) > 0,
+        // the prompt appears after its own request returns, so wait for it rather than counting once
+        return ow.page
+          .waitForSelector("text=Finish setting up", { timeout: 15000 })
+          .then(() => true)
+          .catch(() => false);
+      })(),
     );
     const conns = await (await ow.ctx.request.get(BASE + "/v1/connections")).json();
     const csrf = (await (await ow.ctx.request.get(BASE + "/v1/me")).json()).csrf_token;
@@ -359,7 +363,10 @@ const axeSrc = fs.readFileSync(
     check(
       "billing: paid customers see the billing history card and the portal button",
       (await ow.page.getByRole("button", { name: "Open billing portal" }).count()) > 0 &&
-        (await ow.page.locator("[aria-label='Billing history']").count()) > 0,
+        (await ow.page
+          .waitForSelector("[aria-label='Billing history']", { timeout: 15000 }) // the list loads in its own request
+          .then(() => true)
+          .catch(() => false)),
     );
     check(
       "plan change via sandbox checkout takes effect (server-side entitlement)",
