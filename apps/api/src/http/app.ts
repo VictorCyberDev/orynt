@@ -89,8 +89,10 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   });
   // ---- static front ends (built by `pnpm build`): the marketing site at / and the app at /app/ ------------------------------
   const here = dirname(fileURLToPath(import.meta.url));
-  const webDist = resolve(process.env["ORYNT_WEB_DIST"] ?? join(here, "../../../web/dist"));
-  const siteDist = resolve(process.env["ORYNT_SITE_DIST"] ?? join(here, "../../../site/dist"));
+  // works both from source (apps/api/src/http) and from the bundle (apps/api/dist): take the first candidate that really holds an index.html
+  const pick = (envVal: string | undefined, name: string) => resolve(envVal ?? [join(here, "../../../" + name + "/dist"), join(here, "../../" + name + "/dist"), join(here, "../../../../apps/" + name + "/dist")].find((c) => existsSync(join(c, "index.html"))) ?? join(here, "../../../" + name + "/dist"));
+  const webDist = pick(process.env["ORYNT_WEB_DIST"], "web");
+  const siteDist = pick(process.env["ORYNT_SITE_DIST"], "site");
   const CSP = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
   app.addHook("onSend", async (_req, reply) => { if (String(reply.getHeader("content-type") ?? "").startsWith("text/html")) { reply.header("content-security-policy", CSP); reply.header("x-frame-options", "DENY"); } });
   const hasWeb = existsSync(join(webDist, "index.html")), hasSite = existsSync(join(siteDist, "index.html"));

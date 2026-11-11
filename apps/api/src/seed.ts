@@ -33,9 +33,9 @@ export async function seedDemo({ app, pool }: BuiltApp, log: (m: string) => void
   };
   const reg = await call("POST", "/v1/auth/register", null, { email: DEMO.users.owner, password: DEMO.password, name: "Demo Owner", workspace_name: DEMO.workspace });
   const owner: Sess = { cookie: cookieOf(reg.res), csrf: reg.json.csrf_token, userId: reg.json.user.id, orgId: reg.json.workspace.id, priv: privFor(DEMO.users.owner) };
+  await pool.query("UPDATE subscriptions SET plan_id='growth', status='active', provider='sandbox' WHERE org_id=$1", [owner.orgId]); // demo only: plan granted directly, not by a billing event
   for (const [k, role] of [["operator", "operator"], ["approver1", "approver"], ["approver2", "approver"], ["viewer", "viewer"]] as const)
     await call("POST", "/v1/members", owner, { email: DEMO.users[k], name: "Demo " + k.replace(/(\d)/, " $1"), role, temporary_password: DEMO.password });
-  await pool.query("UPDATE subscriptions SET plan_id='growth', provider='sandbox' WHERE org_id=$1", [owner.orgId]); // demo only: plan granted directly, not by a billing event
   const operator = await login(DEMO.users.operator), a1 = await login(DEMO.users.approver1);
   await regKey(owner); await regKey(a1); // approver2 deliberately has no key: demo the first-approval key setup in the UI
   const conn = (await call("POST", "/v1/connections", owner, { label: "Practice wallet (seed)", kind: "simulator" })).json;
