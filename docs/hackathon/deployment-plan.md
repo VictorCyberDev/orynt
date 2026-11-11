@@ -1,6 +1,6 @@
 # Orynt public demo: free-tier deployment plan (NOT EXECUTED)
 
-Status: draft source — video/deck unrendered; real-regtest evidence pending. **Nothing is deployed. There is no live URL. Devpost status: NOT SUBMITTED.**
+**Nothing is deployed. There is no live URL. Devpost status: NOT SUBMITTED.** (Updated 2026-11-11: the Docker image is now verified to build and start on GitHub CI; it was never built locally. The Dockerfile sets `ORYNT_WEB_DIST` and `ORYNT_SITE_DIST`, which `pnpm start` does not; see `demo-runbook.md` section 5. The demo seed needs `ORYNT_DEFAULT_PLAN=enterprise` on a fresh database. Real regtest evidence exists; a public instance still cannot demo payments because production mode refuses the simulator.)
 Reconciled 2026-11-09 with the committed branch (HEAD `78990af`). **No deployment, purchase, account creation, domain registration or paid plan may happen without the owner's explicit approval.** **Docker was unavailable in the build environment.** A `Dockerfile`, `infra/docker-compose.yml` and templates `infra/deploy/render.yaml` and `infra/deploy/fly.toml` now exist, but the image was never built and the templates were never used: treat all of them as UNVERIFIED. Native Node commands below are also unexecuted on any host.
 
 ## 1. Do you need a hosted URL at all?

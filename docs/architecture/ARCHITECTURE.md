@@ -2,24 +2,59 @@
 
 Orynt is an authorization-to-settlement layer in front of a Lightning wallet the customer controls. It never holds funds.
 
+Rendered diagram (also usable as a Devpost gallery image): [`orynt-architecture.svg`](orynt-architecture.svg) (PNG copy: `orynt-architecture.png`). It uses three fills: verified by running it, labelled practice mode, and not commissioned / not verified against the real thing.
+
 ```mermaid
 flowchart LR
-  subgraph Browser
-    UI[Operations app<br/>apps/web] -- "Ed25519 approval signature<br/>(key stays in browser)" --> API
+  subgraph Clients
+    UI["Browser: operations app (apps/web)<br/>approver Ed25519 key stays in the browser"]
+    SDK["Developer systems<br/>@orynt/sdk, API keys (never approve)"]
   end
-  SDK[Developer systems<br/>@orynt/sdk, API keys] --> API
-  subgraph Orynt server (one process)
-    API[Fastify API<br/>contract-driven routes] --> SVC[Services<br/>obligations · execution · reconcile · receipts]
-    SVC --> PG[(PostgreSQL<br/>state, audit hash chains,<br/>outbox, leases)]
-    W[Worker<br/>reconcile · recovery · webhooks] --> SVC
+  subgraph Server["Orynt server (one Node process)"]
+    API["Fastify API<br/>contract-first routes, roles, policy"]
+    SVC["Services<br/>obligations, approvals, execution,<br/>reconcile, receipts, audit chain"]
+    W["Worker (in-process)<br/>reconcile, recovery, webhooks, mail"]
+    PG[("PostgreSQL 16<br/>state, audit hash chains,<br/>outbox, leases, idempotency")]
+    WP["Wallet provider contract<br/>(packages/wallets)"]
   end
-  SVC -- "sendPayment / lookupPayment<br/>(by payment hash)" --> WP[Wallet provider contract<br/>packages/wallets]
-  WP --> LND[(LND REST<br/>real node, regtest)]
-  WP --> SIM[(Simulator<br/>labelled, never REAL)]
-  API -. webhooks (HMAC, at-least-once) .-> Recv[Customer receiver]
-  Receipt[[Receipt JSON]] --> V[orynt-verify CLI / library<br/>offline, explicit trust roots]
-  API --> Receipt
+  UI --> API
+  SDK --> API
+  API --> SVC
+  W --> SVC
+  SVC --> PG
+  SVC --> WP
+  WP --> LND["LND REST adapter<br/>VERIFIED on regtest (v0.20.1-beta)"]
+  WP --> SIM["Simulator<br/>labelled, never REAL"]
+  WP -.-> NWC["NWC / BTCPay adapters<br/>contract-tested vs local fakes only, not wired in"]
+  LND --> NODE[("Your Lightning node<br/>funds and keys stay here<br/>regtest only")]
+  SVC --> R[["Signed receipt JSON"]]
+  R --> V["orynt-verify CLI / library<br/>offline, explicit trust roots, --require-real"]
+  API -- "HMAC-signed, at-least-once" --> HOOK["Customer webhook receiver"]
+  W -.-> BILL["Billing provider (Stripe/Paystack parsers, sandbox)<br/>NOT COMMISSIONED"]
+  W -.-> MAIL["E-mail provider (outbox / Resend client)<br/>NOT COMMISSIONED"]
+  classDef ok fill:#e3f1ee,stroke:#0e7c73;
+  classDef sim fill:#efe8f7,stroke:#6b3fa0;
+  classDef nc fill:#f1f1f1,stroke:#6b7280,stroke-dasharray:5 3;
+  class LND,V ok;
+  class SIM sim;
+  class NWC,BILL,MAIL nc;
 ```
+
+### Component status (what was actually run)
+
+| Component | Status | Evidence |
+|---|---|---|
+| API, services, worker, PostgreSQL schema and migrations | verified on real PostgreSQL 16 (integration suite, 102 pass at the 2026-11-10 register run) | `docs/EXECUTION-REGISTER.md` |
+| LND REST adapter | **verified on regtest** (LND v0.20.1-beta, Bitcoin Core 29.5): 15 real-LND tests and `pnpm demo:full` incl. SIGKILL recovery, re-run 2026-11-11 | `docs/evidence/real-lightning-test-2026-11-11.txt`, `docs/evidence/demo-real-regtest-2026-11-11T10-26-29-483Z.md` |
+| Simulator wallet | verified; labelled everywhere; can never produce a real settlement | `adversarial.itest`, `docs/evidence/demo-simulator-*.md` |
+| NWC / BTCPay adapters | implemented in `packages/wallets/src/{nwc,btcpay}`, **contract-tested against local fakes only, not wired into the API, never run against a real wallet or server; no claim of support** | `docs/product/nwc-adapter.md`, `docs/product/btcpay-adapter.md`, `docs/product/wallet-capability-matrix.md` |
+| Core Lightning | not started | same |
+| Receipts + `orynt-verify` | verified: 26 verifier tests; real receipts verify with `--require-real` | `docs/evidence/verifier-real-2026-11-11.txt` |
+| Webhooks (HMAC, retry, replay/dedupe) | verified in the integration suite against a local receiver | `apps/api/test/ops.itest.ts` |
+| Billing provider (Stripe/Paystack parsers, sandbox) | **implemented, not commissioned**: signatures checked against locally computed values only; no provider account, no live webhook, no charge | `docs/OWNER-REPORT-R2.md` section E |
+| E-mail provider | **implemented, not commissioned**: mail goes to an outbox; no sending domain or key; no real delivery | `docs/OWNER-REPORT-R2.md` sections B, K |
+| Hosting, backups/PITR, TLS, monitoring | **do not exist** (Dockerfile builds and starts on GitHub CI only; deploy templates unverified) | `docs/ops/production-readiness.md` |
+
 
 ## Packages
 
@@ -75,7 +110,7 @@ PostgreSQL only. Money is `bigint` msat (max 2.1e18 < 9.22e18) parsed as `BigInt
 
 - **TypeScript monorepo, Fastify, `pg`, no ORM.** SQL is where the safety properties live; an ORM would hide them.
 - **Contract-first routes.** One zod table drives validation, OpenAPI and SDK types, preventing drift (`packages/contract`).
-- **Own BOLT11 decoder** (tested against the spec's vectors and cross-checked against LND when run): the verifier must not trust a node or a library for the facts it certifies.
+- **Own BOLT11 decoder** (tested against the spec's vectors and cross-checked against real LND-issued invoices on regtest in `lnd.itest`): the verifier must not trust a node or a library for the facts it certifies.
 - **Approvals are Ed25519 signatures over an intent digest, made in the browser.** Orynt can verify but not forge. Trade-off: the key is in `localStorage` (a stolen profile could sign). Production should use WebAuthn/hardware keys.
 - **Single process with an in-process worker.** Simple and sufficient for a pilot; multi-instance needs only the existing leases/locks, but has not been exercised.
-- **LND first; NWC and BTCPay not implemented.** Their real behaviour could not be verified here, so no adapter is shipped (see `docs/EXECUTION-REGISTER.md`).
+- **LND first.** LND is the only wallet verified against a real node (regtest). NWC and BTCPay adapters exist as packages and are contract-tested against local fakes only (not wired into the API); no real wallet or server was available to verify them, so they carry no claim of support (`docs/product/nwc-adapter.md`, `btcpay-adapter.md`) (see `docs/product/wallet-capability-matrix.md`).

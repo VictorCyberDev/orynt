@@ -11,11 +11,12 @@
  * Nothing here is mocked. The injected fault is the same failpoint `pnpm demo:full` uses (ORYNT_FAILPOINTS=1, development mode only).
  * Wallet credentials are never rendered on a captured page (only the wallet label is shown).
  */
-import { spawn, execSync, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import pg from "pg";
+import type { Page } from "playwright";
 import { lndAddInvoice } from "@orynt/wallets";
 
 const ROOT = resolve(import.meta.dirname, "../../../..");
@@ -38,11 +39,12 @@ const start = async () => {
 const stop = () => { try { if (server?.pid) process.kill(-server.pid, "SIGTERM"); } catch { /* gone */ } };
 
 interface S { cookie: string; csrf: string }
+type Json = Record<string, string | boolean | undefined>; // shape of the few response fields read below
 const call = async (method: string, path: string, s: S | null, body?: unknown) => {
   const hd: Record<string, string> = body !== undefined ? { "content-type": "application/json" } : {};
   if (s) { hd["cookie"] = s.cookie; if (method !== "GET") hd["x-csrf-token"] = s.csrf; }
   const res = await fetch(BASE + path, { method, headers: hd, body: body === undefined ? undefined : JSON.stringify(body) });
-  const text = await res.text(); let json: any = null; try { json = text ? JSON.parse(text) : null; } catch { /* */ }
+  const text = await res.text(); let json: Json = {}; try { json = text ? JSON.parse(text) : null; } catch { /* */ }
   return { status: res.status, json, res };
 };
 const session = async (path: string, body: object): Promise<S> => {
@@ -63,14 +65,15 @@ const session = async (path: string, body: object): Promise<S> => {
   const browser = await chromium.launch();
   const VW = 1280, VH = 720;
   const login = async (email: string) => {
+    // eslint-disable-next-line no-restricted-syntax -- screen pixel ratio for 1920x1080 screenshots; not a monetary value
     const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1.5, acceptDownloads: true });
     const page = await ctx.newPage();
     await page.goto(BASE + "/app/login"); await page.getByLabel("Email").fill(email); await page.getByLabel("Password").fill(PW);
     await page.getByRole("button", { name: "Sign in" }).click(); await page.waitForSelector("nav[aria-label=Main]"); await page.waitForSelector("main h1");
     return { ctx, page };
   };
-  const shot = async (page: any, name: string) => { await page.waitForTimeout(500); await page.screenshot({ path: join(OUT, name + ".png") }); console.log("shot", name); };
-  const newPayout = async (page: any, who: string, sats: number, memo: string, firstShot?: boolean) => {
+  const shot = async (page: Page, name: string) => { await page.waitForTimeout(500); await page.screenshot({ path: join(OUT, name + ".png") }); console.log("shot", name); };
+  const newPayout = async (page: Page, who: string, sats: number, memo: string, firstShot?: boolean) => {
     const inv = await lndAddInvoice(bobCfg(), BigInt(sats) * 1000n, memo);
     await page.goto(BASE + "/app/payouts/new"); await page.locator("#inv").fill(inv.paymentRequest);
     await page.waitForSelector("text=What this invoice says");
@@ -112,6 +115,7 @@ const session = async (path: string, body: object): Promise<S> => {
   await op.page.waitForSelector("text=We lost the wallet's answer", { timeout: 30000 });
   await shot(op.page, "08-unknown-send-disabled");
   await op.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)); await shot(op.page, "09-unknown-timeline");
+  await op.page.locator("text=What you can do now").first().scrollIntoViewIfNeeded(); await shot(op.page, "09b-unknown-actions-send-disabled");
   await op.page.evaluate(() => window.scrollTo(0, 0));
   await op.page.getByRole("button", { name: /Check the wallet's record now/ }).click();
   await op.page.waitForFunction(() => /Settled/.test(document.querySelector(".status-panel h2")?.textContent || ""), null, { timeout: 30000 });

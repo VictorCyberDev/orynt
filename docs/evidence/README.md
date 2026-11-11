@@ -18,4 +18,4 @@ Everything here was produced by commands in this repository; re-run the command 
 | `../security/threat-model.md`, `threat-model-r2-delta.md` | independent **AI** review + fixes | findings and regression tests | n/a; **no human audit** |
 
 ## Not present / not done
-Mainnet or testnet run; any wallet other than LND exercised against a real node; NWC and BTCPay adapters against a real wallet/server (contract-tested against local fakes at most, if present at all; see `docs/product/wallet-capability-matrix.md`); human security audit; pen test; real e-mail delivery; live billing; hosted deployment; backups/PITR; customer interviews, pilots or revenue; manual screen-reader or human usability testing.
+Mainnet or testnet run; any wallet other than LND exercised against a real node; NWC and BTCPay adapters against a real wallet/server (contract-tested against local fakes only and not wired into the API; see `docs/product/nwc-adapter.md`, `docs/product/btcpay-adapter.md`); human security audit; pen test; real e-mail delivery; live billing; hosted deployment; backups/PITR; customer interviews, pilots or revenue; manual screen-reader or human usability testing.

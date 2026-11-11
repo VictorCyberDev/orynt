@@ -1,148 +1,155 @@
-# Orynt demo runbook (judges and owner)
+# Orynt demo runbook: real-regtest edition (judges and owner)
 
-Status: draft source — video/deck unrendered; real-regtest evidence pending. **Devpost status: NOT SUBMITTED.** Nothing is deployed; there is no live URL.
-Reconciled 2026-11-09 with the committed branch (HEAD `78990af`). Authoritative status table: `docs/EXECUTION-REGISTER.md`.
-**Real Lightning on regtest has never been run by anyone.** The build sandbox refused to execute the downloaded `bitcoind`/`lnd` binaries. Every statement about the real path below is "to be verified by running `pnpm demo:full` on the owner's machine".
+**Devpost status: NOT SUBMITTED.** Nothing is deployed; there is no live URL. Rewritten 2026-11-11 after the real run: every command below was executed on 2026-11-11 in the build environment (Linux x86_64, Node 22.23, pnpm 10.28, PostgreSQL 16) and the output described is what it actually printed. Authoritative status: `docs/EXECUTION-REGISTER.md`; evidence map: `docs/hackathon/evidence-index.md`.
 
-## 1. Commands and files (checked against the repository, 2026-11-09)
+**What this proves and what it does not.** It proves the control plane (approvals, single send, UNKNOWN discipline, reconciliation, receipts, verifier) against **two real LND v0.20.1-beta nodes and Bitcoin Core 29.5 on a local regtest chain**. Coins are worthless test coins. It does **not** prove anything about testnet, mainnet, other wallets (NWC/BTCPay/Core Lightning are not verified), other LND versions, or production operation. Ports used: 8788 (demo API), bitcoind/LND local ports from `.regtest/env.json`.
 
-| Command | File it runs | Status |
-|---|---|---|
-| `pnpm db:start` | `infra/postgres/start-local.sh` | Exists; Debian/Ubuntu `pg_lsclusters` only, otherwise set `DATABASE_URL` / `TEST_ADMIN_DATABASE_URL` |
-| `pnpm regtest:fetch` | `infra/regtest/fetch.sh`, pins in `infra/regtest/versions.env` | Written; downloads Bitcoin Core 32.1 and LND v0.20.1-beta (Linux x86_64) and refuses unless SHA-256 matches the pin (PGP not verified). **Never executed to completion by an agent here; first real run is yours** |
-| `pnpm regtest:up` / `pnpm regtest:down` | `infra/regtest/up.mjs`, `down.mjs` | Written, **never executed** (`bash -n` / `node --check` only). Starts `bitcoind -regtest`, alice (payer) and bob (payee) LND nodes, funds alice, opens a 5,000,000-sat channel, bakes a least-privilege and a read-only macaroon, writes `.regtest/env.json` |
-| `pnpm demo:full` | `scripts/demo-full.ts` (REAL regtest mode) | Written, **never run in real mode** |
-| `pnpm demo:full:sim` | same script with `--simulator` | **Verified end to end** (all assertions passed, labelled SIMULATED). Evidence: `docs/evidence/demo-simulator-2026-11-09T15-28-43-507Z.md` and `receipt-simulator-*.json` |
-| `pnpm test:real-lightning` | `apps/api/test/lnd.itest.ts` | 8 tests, **all skipped** until `.regtest/env.json` exists |
-| `pnpm test:integration` | `apps/api/test/*.itest.ts` | 55 pass, 8 skipped (register, 2026-11-09) |
-| `pnpm test` | unit tests | core 24, verifier 26, contract 1 |
-| `pnpm build:all` | verifier, sdk, web, site, api bundles | Exists (register: build ✔ for site/web; re-run it) |
-| `pnpm start` | `node apps/api/dist/server.mjs` | Exists; serves API, marketing site at `/` and the app at `/app/` |
-| `node apps/web/e2e/run.cjs` | Playwright E2E | Register: 100/100, screenshots in `docs/evidence/screenshots/{375,768,1440}`. Note `pnpm test:e2e` still names `run.mjs`; call the `.cjs` directly |
-| `pnpm restore:rehearsal` | `infra/postgres/restore-rehearsal.sh` | Register: PASSED |
-| `Dockerfile`, `infra/docker-compose.yml`, `infra/deploy/{render.yaml,fly.toml}` | | Exist but **UNVERIFIED** (no Docker daemon was available) |
+## 1. Prerequisites
 
-`ORYNT_ENV` is now **mandatory**: the server refuses to start if it is unset (`development`, `test` or `production`). The scripts above set it for you; when you start the server by hand you must set it.
+- Linux x86_64 (the pinned binaries are `x86_64-linux-gnu` / `linux-amd64`), Node.js 22+, pnpm 10.28 (`corepack enable`), network access to `bitcoincore.org` and `github.com` for the first download (about 45 MB + LND archive; SHA-256 checked).
+- PostgreSQL 16 reachable as `postgres://orynt:orynt@127.0.0.1:5432/...` with a role that has `CREATEDB` (tests and `demo:full` create throw-away databases). On Debian/Ubuntu `pnpm db:start` creates the cluster role and databases; elsewhere create role `orynt` (password `orynt`, `CREATEDB`) and set `DATABASE_URL` / `TEST_ADMIN_DATABASE_URL`.
+- No Docker is needed. (The Docker image is verified on GitHub CI only; `docker compose` was never run locally.)
 
-## 2. Prerequisites
-
-- Node.js 22+, pnpm 10.28 (`corepack enable`), PostgreSQL 16 reachable as `postgres://orynt:orynt@127.0.0.1:5432/orynt_dev`; the role needs `CREATEDB` (tests and `demo-full` create throw-away databases).
-- Real path only: Linux x86_64 with permission to execute the downloaded `bitcoind` and `lnd`, and free local ports (see `infra/regtest/README.md`; "expect to fix small issues on first run: port clashes, REST field names").
-
-## 3. PRIMARY path (the recording path): real Lightning on local regtest
+## 2. The real-regtest path (primary)
 
 ```bash
 pnpm install
-pnpm db:start
-pnpm regtest:fetch      # download + SHA-256 check of bitcoind and lnd
-pnpm regtest:up         # bitcoind + alice + bob + funded channel -> .regtest/env.json
-pnpm test:real-lightning   # optional but recommended first: the 8 gated adapter tests, fix issues here
-pnpm demo:full          # REAL mode; writes docs/evidence/demo-real-regtest-<UTC stamp>.{md,json} and receipt-real-regtest-*.json
-pnpm regtest:down
+pnpm db:start                       # prints: postgres ready: postgres://orynt:orynt@127.0.0.1:5432/orynt_dev
+bash infra/regtest/fetch.sh         # downloads bitcoind 29.5 + lnd v0.20.1-beta into .regtest/bin, refuses on SHA-256 mismatch
+node infra/regtest/up.mjs           # starts bitcoind + alice + bob, funds alice, opens a 5,000,000-sat channel, writes .regtest/env.json
+pnpm test:real-lightning            # 15 real-LND tests
+pnpm demo:full                      # the whole story with real payments; writes docs/evidence/demo-real-regtest-<stamp>.*
+node infra/regtest/down.mjs         # stop the network (add --wipe to delete its data)
 ```
 
-Expected, **to be verified by running `scripts/demo-full` on the owner's machine** (from `scripts/demo-full.ts`; the simulator run printed the same shape):
+What each prints (2026-11-11 run):
 
-| Stage | What the script does | Printed assertion |
+| Command | Exit | Output |
 |---|---|---|
-| Setup | Fresh database, API on port 8788 (`ORYNT_ENV=development ORYNT_FAILPOINTS=1`), builds the verifier bundle | `API ready ...` |
-| Workspace | Owner, operator, approver; connects **alice** with the least-privilege macaroon over LND REST | `wallet connected on regtest; discovered permissions: send=true lookup=true`; `connection is a REAL LND node (least-privilege macaroon)` |
-| A. Normal payout | Bob creates a 30,000-sat invoice; the operator creates and submits; the approver (a different person) signs the intent digest; operator executes | `approved by a different person than its creator`; `state SETTLED (REAL_PROVIDER)`; bob's node shows the invoice SETTLED with the same preimage; `sha256(preimage) == payment hash` |
-| B. Lost response | New 31,000-sat payout; failpoint `execute.after_provider_response` armed; execute | `HTTP 202: state UNKNOWN - NOT failed`; second execute refused with `send_blocked_unresolved`; reconcile finds LND's record: `SETTLED`; `LND shows exactly one successful payment for this hash` |
-| C. Real SIGKILL (real mode only) | New 32,000-sat payout; failpoint `exit` kills the API after LND accepted; restart; startup recovery | `after restart the payout is UNKNOWN or RECONCILING - never FAILED`; reconcile: `SETTLED` |
-| D. Receipts | Fetch receipts for A and B, run `node packages/verifier/dist/orynt-verify.mjs` with the issuer key and `--require-real` | exit 0 `VERIFIED`; one changed character: exit 1 `REJECTED`; no trust root: exit 3; replay of the same receipt rejected; receipt for A cannot be passed off as B; audit chains intact |
+| `bash infra/regtest/fetch.sh` | 0 | `.../bitcoin.tar.gz: OK`, `.../lnd.tar.gz: OK`, then the two binary paths. A mismatch prints `CHECKSUM MISMATCH ... refusing to use it` and exits non-zero (do not bypass). PGP/guix attestations are **not** verified, only the pinned SHA-256 |
+| `node infra/regtest/up.mjs` | 0 | `started bitcoind (pid ...)`, `started lnd-alice`, `started lnd-bob`, then `regtest ready. alice 03eafc76... → bob 03c1cb1b...  (env: .regtest/env.json)`. Pass `--fresh` to wipe previous data first. It aborts if any node reports a non-regtest chain |
+| `pnpm test:real-lightning` | 0 | vitest, `Test Files 1 passed (1)`, **`Tests 15 passed (15)`** in about 22 s: real payment settles as REAL and its receipt passes the verifier with `--require-real`; response lost after LND accepted -> UNKNOWN -> second send refused -> reconcile settles, LND shows one payment; insufficient liquidity is a proven failure; read-only credential cannot submit; expired invoice refused; destination/network substitution refused; 10 concurrent executes -> one payment; our node restarts mid-uncertainty; payee offline -> proven failure -> retry settles once; real LNURL-pay. Full log: `docs/evidence/real-lightning-test-2026-11-11.txt` |
+| `pnpm demo:full` | 0 | the transcript below; last line `ALL ASSERTIONS PASSED (real-regtest). Evidence: docs/evidence/demo-real-regtest-<stamp>.md` |
 
-Honesty rules for the recording: in B the loss of the response is an **injected fault** (failpoint) after a real regtest payment; in C the process kill is real. The issuer trust key is fetched from the same server for convenience (the script prints this); a real verifier must obtain it out of band. Amounts are 30,000 to 32,000 sats, so the default policy needs **one** approver (above 100,000 sats it needs two); the script does not demonstrate a two-approver payout or a refused self-approval. Those are shown in tests (`operators, viewers, API keys and the maker cannot approve`) and in the web console (see `video-script-3min.md`).
+### 2.1 What `pnpm demo:full` prints, stage by stage
 
-If a stage fails on first contact with real nodes, that is expected (register: LND error classification "unproven"). Fix, re-run, and keep the failing transcript too.
+| Stage | What happens | Printed assertions |
+|---|---|---|
+| Setup | fresh database, API on port 8788 (`ORYNT_ENV=development`, `ORYNT_FAILPOINTS=1`), verifier bundle built | `API ready on http://127.0.0.1:8788 with database orynt_demo_...` |
+| Workspace | owner, operator, approver; alice connected with the least-privilege macaroon over LND REST | `wallet connected on regtest; discovered permissions: send=true lookup=true`; `connection is a REAL LND node (least-privilege macaroon)` |
+| A. Normal payout | bob mints a 30,000-sat invoice; operator creates and submits; the approver (a different person) signs the intent digest; operator executes | `PO-0001 approved by a different person than its creator`; `state SETTLED (REAL_PROVIDER)`; `payee node (bob) independently shows the invoice SETTLED with the same preimage`; `sha256(preimage) == payment hash` |
+| B. Lost response | 31,000-sat payout; failpoint `execute.after_provider_response` armed (**an injected fault**, after LND really accepted the payment) | `HTTP 202: state UNKNOWN — NOT failed`; `second send REFUSED: "Sending again is blocked: the first attempt may already have paid. ..."`; `wallet's own record found by payment hash → SETTLED`; `LND shows exactly one successful payment for this hash` |
+| C. SIGKILL | 32,000-sat payout; failpoint `exit` kills the API after LND accepted; server restarted | `[failpoint] ... killing process`; `process died mid-request (no response was ever sent)`; `after restart the payout is UNKNOWN — never FAILED, never retryable`; `reconciled from LND's record → SETTLED` |
+| D. Receipts | receipts for A and B fetched; `orynt-verify` run with the issuer key and `--require-real`; tamper, no-trust-root, replay, wrong-payment checks; audit chain verified | `verifier → exit 0 VERIFIED (real, trusted issuer)` with the approval/preimage/time-order lines; `one changed character → verifier REJECTS (exit 1)`; `without a trust root ... (exit 3)`; `presenting the same receipt twice → REPLAY rejected`; `receipt for payment A cannot be passed off as payment B`; `audit hash chains intact (42 entries, 4 streams)`; `second sends blocked this run: 1` |
 
-### 3.1 Manual verifier use (works today on simulator receipts; real receipts pending)
+Honesty notes. In B the loss of the response is an **injected fault**; the payment before it is a real regtest payment. In C the process kill is a real `SIGKILL`, sent to the API process by a failpoint (`process.kill(pid, "SIGKILL")`) at the chosen moment, right after LND accepted the payment; it is not an external operator killing the process. The issuer trust key is fetched from the same server **for demo convenience**; a real verifier must obtain it out of band. All amounts are 30,000 to 32,000 sats, so the default policy needs **one** approver (above 100,000 sats it needs two); the script does not demonstrate a two-approver payout or a refused self-approval; those are covered by the integration test "operators, viewers, API keys and the maker cannot approve" (practice wallet). Evidence of this exact run: `docs/evidence/demo-real-regtest-2026-11-11T10-26-29-483Z.{md,json,transcript.txt}` and `receipt-real-regtest-2026-11-11T10-26-29-483Z-{A,B,A-TAMPERED}.json`. The `commit` field in the JSON is the repository HEAD at run time; the working tree may contain uncommitted changes from parallel work.
 
-```bash
-pnpm --filter @orynt/verifier build            # bundle: node packages/verifier/dist/orynt-verify.mjs (shebang bug is fixed)
-node packages/verifier/dist/orynt-verify.mjs docs/evidence/receipt-simulator-2026-11-09T15-28-43-507Z-A.json \
-     --trust-key "$ISSUER_KEY"; echo "exit=$?"     # simulator receipt => exit 4 VERIFIED_SIMULATED
-node packages/verifier/dist/orynt-verify.mjs docs/evidence/receipt-simulator-2026-11-09T15-28-43-507Z-A-TAMPERED.json \
-     --trust-key "$ISSUER_KEY"; echo "exit=$?"     # exit 1 REJECTED
-```
-
-Exit codes: 0 VERIFIED, 1 REJECTED, 2 usage/IO error, 3 integrity OK but issuer not trusted, 4 VERIFIED_SIMULATED. `$ISSUER_KEY` is the issuer public key (`GET /v1/public/issuer-keys` on the running server, informational only; it is also the `issuer.public_key` field inside the receipt, which is why it must be supplied out of band to mean anything). Alternative without building: `pnpm exec tsx packages/verifier/src/cli.ts ...`. The committed tampered sample changes the memo text by one character ("demo 30000 sats" to "demo 30001 sats"); any change breaks the issuer signature over the whole receipt body.
-
-## 4. FALLBACK path (clearly SIMULATED): `pnpm demo:full:sim`
+## 3. Verifier commands (offline, no server)
 
 ```bash
-pnpm install
-pnpm db:start
-pnpm demo:full:sim      # labelled SIMULATOR; writes docs/evidence/demo-simulator-<stamp>.{md,json} + receipts
+pnpm --filter @orynt/verifier build          # produces packages/verifier/dist/orynt-verify.mjs
+ST=2026-11-11T10-26-29-483Z
+K=$(node -e "console.log(JSON.parse(require('fs').readFileSync('docs/evidence/receipt-real-regtest-$ST-A.json','utf8')).issuer.public_key)")
+V="node packages/verifier/dist/orynt-verify.mjs"
+$V docs/evidence/receipt-real-regtest-$ST-A.json --trust-key $K --require-real --expect-network regtest; echo "exit=$?"
 ```
 
-What it proves and what it does not:
-- Proves (verified 2026-11-09): the same API, state machine, approvals, reconciliation, receipts and verifier behave as in the story: payout settled as `SIMULATED_SETTLED`, response lost then 202 `UNKNOWN`, duplicate refused, reconcile, receipts exit 4 `VERIFIED_SIMULATED`, one changed character exit 1, replay rejected.
-- Does **not** prove anything about real Lightning. Output is stamped SIMULATED and must never be presented as real evidence. Scenario C (SIGKILL) is skipped because simulator state is in memory.
+Taking the issuer key from inside the receipt (as above) only demonstrates the mechanics: it is self-asserted. Obtain the key out of band for a real check (`GET /v1/public/issuer-keys` on the issuing server, informational).
 
-Browsing the console against a seeded simulator workspace:
+| Command | Exit | Verdict printed | Meaning |
+|---|---|---|---|
+| receipt A, `--trust-key $K --require-real --expect-network regtest` | **0** | `VERDICT: VERIFIED` after 29 check lines (schema, issuer signature, BOLT11 signature, intent digest, approval signature, `settlement.preimage` sha256 matches, `require.real`, audit chain, checkpoint signature); one warning `! network.note regtest is a test network: the value moved was not real-world money`; then the list "This receipt cannot prove" | real regtest payment verified against a supplied trust root |
+| receipt B (settled after an uncertain moment), same flags | **0** | `VERDICT: VERIFIED` | `reconciled_after_uncertainty: true` is in the receipt |
+| `receipt-real-regtest-$ST-A-TAMPERED.json` (memo changed by one character), same flags | **1** | `VERDICT: REJECTED`; `✘ attestation.signature`, `✘ agreement.hash` | tamper demo: any change breaks the issuer signature and the agreement hash |
+| receipt A without `--trust-key` | **3** | `VERDICT: INTEGRITY_ONLY`; `! issuer.trusted no trust root supplied: the issuer key is self-asserted` | never called VERIFIED without a trust root |
+| `receipt-simulator-2026-11-09T15-28-43-507Z-A.json` with its own key and `--require-real` | **1** | `VERDICT: REJECTED`; `✘ require.real --require-real: receipt comes from the simulator` | simulator output is refused as proof of payment |
+| the same simulator receipt without `--require-real` | **4** | `VERIFIED_SIMULATED` | verified, but not a real payment |
+
+Exit codes: 0 VERIFIED, 1 REJECTED, 2 usage/IO error, 3 integrity OK but issuer not trusted, 4 VERIFIED_SIMULATED. Replay protection: add `--seen-file <path>`; a second presentation of the same receipt is rejected (shown by `demo:full`). Full transcripts of the commands above: `docs/evidence/verifier-real-2026-11-11.txt`.
+
+### 3.1 Tamper demo by hand
 
 ```bash
-pnpm db:start && pnpm build:all
-ORYNT_ENV=development ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start
-# site: http://127.0.0.1:8787/    app: http://127.0.0.1:8787/app/
-# sign in: demo-owner@orynt.local / demo-password-123  (also demo-operator, demo-approver1, demo-approver2, demo-viewer @orynt.local)
+sed 's/Design work, regtest demo/Design work, regtest demp/' docs/hackathon/video/frames/ui/receipt-A.json > /tmp/receipt-tampered.json   # one character
+$V /tmp/receipt-tampered.json --trust-key $(cat docs/hackathon/video/frames/ui/issuer-key.txt) --require-real; echo "exit=$?"     # exit 1, REJECTED
 ```
 
-The seed (`apps/api/src/seed.ts`) creates "Demo workspace (SEED DATA)" on a labelled simulator wallet, with payouts in several states including one UNKNOWN. The password is public in the source: local use only. The production server (`ORYNT_ENV=production`) refuses the simulator, failpoints and the seed.
+(`receipt-A.json` there is the receipt of the browser-driven real regtest payment captured for the video; its memo is "Design work, regtest demo".)
 
-## 5. Judge quick path (simulator, about 5 minutes)
+## 4. The same story in the browser (real regtest)
+
+`pnpm exec tsx docs/hackathon/video/tools/capture-real-ui.mts` starts a fresh API (from source, as `demo:full` does), creates a workspace through the API, connects alice with the least-privilege macaroon, and then drives the operations app in Chromium: operator pastes bob's real regtest invoice, Orynt decodes it, the approver creates a browser key and signs, the operator presses Send (real LND payment, settled), a second payout has its response lost by an injected fault (UNKNOWN, Send disabled with the reason written out), "Check the wallet's record now" settles it, receipts download, the in-browser verifier shows VERIFIED, then REJECTED after one character changes. Screenshots land in `docs/hackathon/video/frames/ui/`. Requires the network from section 2 to be running and `pnpm build:all` done. Credentials are never rendered on a captured page.
+
+## 5. Practice mode (labelled simulator, no Bitcoin software)
+
+Everything in the seeded workspace is labelled "SEED DATA / Practice wallet - no real value"; receipts are stamped `SIMULATOR` and verify only as `VERIFIED_SIMULATED` (exit 4).
+
+```bash
+pnpm install && pnpm db:start && pnpm build:all
+# tested 2026-11-11 against a fresh database. Three variables beyond the obvious ones are REQUIRED today:
+ORYNT_ENV=development ORYNT_DEFAULT_PLAN=enterprise ORYNT_WEB_DIST=apps/web/dist ORYNT_SITE_DIST=apps/site/dist \
+ORYNT_SEED_DEMO=1 ORYNT_FAILPOINTS=1 pnpm start
+# site: http://127.0.0.1:8787/      app: http://127.0.0.1:8787/app/
+# sign in: demo-owner@orynt.local / demo-password-123 (also demo-operator, demo-approver1, demo-approver2, demo-viewer @orynt.local)
+```
+
+- `ORYNT_DEFAULT_PLAN=enterprise`: without it the demo seed fails at start (`entitlement_exceeded`: the free developer plan allows 3 team members, the seed adds 5). Found while testing this quickstart; not yet fixed in the code.
+- `ORYNT_WEB_DIST` / `ORYNT_SITE_DIST`: the bundled `apps/api/dist/server.mjs` looks for the web and site builds relative to its own location and finds nothing (`/` and `/app/` return 404 without them). The Dockerfile sets these two variables; `pnpm start` does not. Found while testing this quickstart; not yet fixed in the code.
+- The seed password is public in the source: local use only. `ORYNT_ENV=production` refuses the simulator, failpoints and the seed.
+
+Scripted practice run: `pnpm demo:full:sim` (labelled SIMULATED, evidence `docs/evidence/demo-simulator-*.md`; scenario C is skipped because simulator state is in memory).
+
+## 6. Judge quick path (about 10 minutes, real regtest)
 
 ```bash
 pnpm install && pnpm db:start
-pnpm test:integration                                    # 55 pass, 8 skipped (real-LND tests need regtest)
-pnpm test                                                # unit: core 24, verifier 26, contract 1
-pnpm demo:full:sim                                       # the whole story, labelled SIMULATED
-pnpm --filter @orynt/api test:integration -t "response lost AFTER the wallet accepted"
-pnpm --filter @orynt/api test:integration -t "20 concurrent execute requests"
+bash infra/regtest/fetch.sh && node infra/regtest/up.mjs
+pnpm test:real-lightning                     # 15 pass
+pnpm demo:full                               # all assertions pass, exit 0
+pnpm test                                    # unit: core 24, verifier 26, contract 1
+pnpm test:integration                        # 102 pass when ORYNT_REGTEST_ENV is set (real-LND tests included), otherwise the 15 real-LND tests are skipped
 ```
 
-(`-t` forwarding was checked on the contract package and on the API integration suite.)
+Counts are from the register run of 2026-11-10; `pnpm test:real-lightning` and `pnpm demo:full` were re-run on 2026-11-11. Other test files may have been added since by ongoing work, so a fresh `pnpm test:integration` can report a larger total.
 
-## 6. What is real and what is simulated
+## 7. What is real and what is simulated
 
-| Item | Simulator path (`demo:full:sim`, tests, seed) | Real path (`demo:full`) |
+| Item | Practice mode (`demo:full:sim`, tests, seed) | Real regtest (`demo:full`, `test:real-lightning`) |
 |---|---|---|
-| Control plane: state machine, policy, signed approvals, single-use reservation, reconciler, receipts, audit chain | Real code on real PostgreSQL | Same |
-| Wallet | **SIMULATOR** (`packages/wallets/src/simulator.ts`), labelled in API, UI and receipts | Real **LND over REST** on regtest. `PENDING-REAL`: never run |
-| Result states and verdicts | `SIMULATED_SETTLED`; receipt `environment: SIMULATOR`; verifier exit 4 | `SETTLED`; `REAL_PROVIDER`; exit 0 with `--require-real` |
-| Bitcoin network and funds | None | Local regtest chain; coins worthless |
-| Lost response | Scripted simulator behaviour / failpoint | Failpoint after a real payment (B); real process kill (C) |
-| Invoices | Minted by a dev route, signed by a fixed fake node key | Created by bob's LND |
-| Approval keys | Generated by scripts/seed; console keeps its key in browser `localStorage` | Same |
-| Issuer key | Development key | Development key unless `ORYNT_ISSUER_KEY` set |
-| Mainnet | Refused (policy `allowedNetworks=["regtest"]`, `ORYNT_ALLOW_MAINNET` unset) | Same |
-| Hosting | Local only; nothing deployed | Local only |
+| Control plane: state machine, policy, signed approvals, reservation, reconciler, receipts, audit chain | real code on real PostgreSQL | same |
+| Wallet | labelled simulator (`packages/wallets/src/simulator.ts`) | real LND over REST, regtest |
+| Result states | `SIMULATED_SETTLED`; receipt `environment: SIMULATOR`; verifier exit 4 | `SETTLED`; `REAL_PROVIDER`; exit 0 with `--require-real` |
+| Bitcoin network and funds | none | local regtest chain; worthless coins |
+| Lost response | scripted behaviour / failpoint | failpoint after a real payment (B); real process kill (C) |
+| Approval keys | scripts/seed; console keeps its key in browser storage | same |
+| Issuer key | development key (derived from a public constant unless `ORYNT_ISSUER_KEY` is set) | same |
+| Mainnet / testnet | refused / never run | refused / never run |
+| Hosting | local only | local only |
 
-Known limit also written in the threat model: a tenant could register a fake LND-compatible server and obtain a "REAL" receipt for a payment it controls on both sides (`docs/security/threat-model.md`, open item). A receipt proves a preimage was produced, not that the payee is independent.
+Known limit (also in the threat model and in every receipt): a tenant could register a fake LND-compatible server and obtain a "REAL" receipt for a payment it controls on both sides. A receipt proves a preimage was produced, not that the payee is independent.
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `ORYNT_ENV must be set explicitly` | New mandatory variable | `ORYNT_ENV=development` for local use |
-| `pg_lsclusters not found` | Not Debian/Ubuntu PostgreSQL | Create role `orynt` (password `orynt`, `CREATEDB`) and DB `orynt_dev`; export `DATABASE_URL`, `TEST_ADMIN_DATABASE_URL` |
-| `permission denied to create database` | Role lacks `CREATEDB` | `ALTER ROLE orynt CREATEDB;` |
-| `Real mode needs a regtest network` from `demo:full` | `.regtest/env.json` missing | `pnpm regtest:fetch && pnpm regtest:up`, or use `pnpm demo:full:sim` |
-| `fetch.sh` refuses: checksum mismatch | Download differs from the pin | Do not bypass; re-download, or update the pin only after checking the publisher's checksum file |
-| `regtest:up` fails on ports / REST field names / permission to execute binaries | First-ever execution of these scripts | Read `infra/regtest/README.md`; fix and keep notes in `docs/evidence/` |
-| `[pg pool] idle client error: terminating connection due to administrator command` | Expected: one test kills DB connections | Ignore if the suite passes |
-| HTTP 409 `send_blocked_unresolved` | Working as designed (payout UNKNOWN/RECONCILING/PENDING or already settled) | Reconcile; read `detail` |
-| HTTP 409 `wallet_insufficient_permissions` | Macaroon lacks `offchain:write`, or capability check older than 24 h | Use the least-privilege macaroon from `.regtest/env.json`; `POST /v1/connections/:id/check` |
-| HTTP 409 `network_mismatch` / `mainnet_disabled` | Wallet not on regtest | Point at regtest nodes; never enable mainnet |
-| HTTP 409 `invoice_expired` ("expires too soon") | Under 120 s of invoice life left | Create a fresh invoice |
-| `failpoints are disabled` / 404 on `/v1/dev/*` | `ORYNT_FAILPOINTS` not `1`, or production env | Start with `ORYNT_ENV=development ORYNT_FAILPOINTS=1` |
-| 403 "Missing or invalid CSRF token" | Cookie session needs `x-csrf-token` and an allowed `Origin` | Use the token from the login response; set `ORYNT_ALLOWED_ORIGINS` |
-| LND connection refused with a private-address message | LND URL is now SSRF-vetted; private targets are allowed only outside production | Run with `ORYNT_ENV=development` locally |
-| Payout ends `DEFINITIVELY_FAILED` (no route / insufficient balance) | Channel not active or no outbound liquidity | Check channel; wallet-reported failure allows `POST /v1/payments/:id/retry` |
-| Reconcile keeps returning `NOT_FOUND` | Wallet has no record yet | Expected for a payment that never reached the wallet; an expired invoice alone is not proof of failure; `confirm-not-sent` needs expiry plus grace |
-| Verifier exit 3 | Integrity OK but issuer key not supplied/trusted | Pass `--trust-key` |
+| `ORYNT_ENV must be set explicitly` | mandatory variable | `ORYNT_ENV=development` for local use |
+| `pg_lsclusters not found` | not Debian/Ubuntu PostgreSQL | create role `orynt` (password `orynt`, `CREATEDB`) and DB `orynt_dev`; export `DATABASE_URL`, `TEST_ADMIN_DATABASE_URL` |
+| `permission denied to create database` | role lacks `CREATEDB` | `ALTER ROLE orynt CREATEDB;` |
+| `Real mode needs a regtest network` from `demo:full` | `.regtest/env.json` missing | run `fetch.sh` and `up.mjs`, or use `pnpm demo:full:sim` |
+| `CHECKSUM MISMATCH` in `fetch.sh` | download differs from the pin | do not bypass; re-download, or update the pin only after checking the publisher's checksum file |
+| LND refuses to start with "node backend does not support taproot" | Bitcoin Core 32.x with LND v0.20.1 | use the pinned Core 29.5 (already in `versions.env`) |
+| `up.mjs` port clash | another bitcoind/lnd running | `node infra/regtest/down.mjs`, or stop the other processes |
+| `seed POST /v1/members -> 402 entitlement_exceeded` | demo seed vs free plan | add `ORYNT_DEFAULT_PLAN=enterprise` (section 5) |
+| `/` or `/app/` returns 404 under `pnpm start` | web/site dist not found from the bundle | add `ORYNT_WEB_DIST` and `ORYNT_SITE_DIST` (section 5) |
+| HTTP 409 `send_blocked_unresolved` | working as designed (payout UNKNOWN/RECONCILING/PENDING or already settled) | reconcile; read `detail` |
+| HTTP 409 `wallet_insufficient_permissions` | macaroon lacks `offchain:write`, or capability list older than 24 h | use the least-privilege macaroon from `.regtest/env.json`; `POST /v1/connections/:id/check` |
+| HTTP 409 `network_mismatch` / `mainnet_disabled` | wallet not on regtest | point at regtest nodes; never enable mainnet |
+| HTTP 409 `invoice_expired` ("expires too soon") | under 120 s of invoice life left | create a fresh invoice |
+| `failpoints are disabled` / 404 on `/v1/dev/*` | `ORYNT_FAILPOINTS` not `1`, or production env | start with `ORYNT_ENV=development ORYNT_FAILPOINTS=1` |
+| 403 "Missing or invalid CSRF token" | cookie session needs `x-csrf-token` and an allowed `Origin` | use the token from the login response; set `ORYNT_ALLOWED_ORIGINS` |
+| Verifier exit 3 | integrity OK but issuer key not supplied | pass `--trust-key` |
+| `[pg pool] idle client error: terminating connection due to administrator command` | expected: one test kills DB connections | ignore if the suite passes |
 
-## 8. Evidence to capture
+## 9. Evidence to capture when you re-run
 
-`demo-full` writes `docs/evidence/demo-<mode>-<stamp>.{md,json}` and receipts. For the real run also keep: `node -v`, `pnpm -v`, the pinned Bitcoin Core and LND versions (`infra/regtest/versions.env`), the terminal transcript with secrets redacted, bob-side invoice lookup, the failing and the passing runs. Update `docs/evidence/README.md` and `docs/EXECUTION-REGISTER.md` (M2 regtest row, M4 LND row, `demo:full`, `test:real-lightning`). Never commit macaroons, TLS keys, cookies or passwords (`.regtest/` is gitignored).
+`demo:full` writes `docs/evidence/demo-<mode>-<stamp>.{md,json}` and receipts (and a `.seen-<stamp>.txt` replay-ledger scratch file that you should delete). Also keep: `node -v`, `pnpm -v`, the pinned versions (`infra/regtest/versions.env`), the terminal transcript, and update `docs/evidence/README.md`. Never commit macaroons, TLS keys, cookies or passwords (`.regtest/` is gitignored).

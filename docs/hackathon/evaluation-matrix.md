@@ -1,7 +1,8 @@
 # Orynt: judging-criteria evaluation matrix (Dakar Bitcoin Hack 2026)
 
-Status: draft source — video/deck unrendered; real-regtest evidence pending. **Devpost status: NOT SUBMITTED.**
-Reconciled 2026-11-09 with the committed branch (HEAD `78990af`); authoritative status table is `docs/EXECUTION-REGISTER.md`. Deadline 2026-11-20 20:00 UTC (21:00 WAT).
+**Devpost status: NOT SUBMITTED.** Deadline 2026-11-20 20:00 UTC (21:00 WAT), re-verified 2026-11-11 (`rules-checklist.md`).
+
+> **Status update 2026-11-11 (supersedes the R1-era wording below).** Real Lightning on regtest is now **verified**: `pnpm test:real-lightning` 15/15 pass and `pnpm demo:full` passes every assertion against Bitcoin Core 29.5 + two LND v0.20.1-beta nodes, including a real SIGKILL of the API after LND accepted a payment (`docs/evidence/`, `evidence-index.md`). Counts from the 2026-11-10 register run: integration **102 pass, 0 skipped** (with the regtest env), unit **51** (core 24, verifier 26, contract 1), browser E2E **138/138**, six hosted CI jobs green. Wherever the text below says `PENDING-REAL`, "never run against a node", "8 tests, all skipped", "55 pass, 8 skipped" or "E2E 100/100", read the figures above instead: those statements describe the earlier state and are kept only for history. Still true and still open: no testnet or mainnet run, only LND verified, no human audit, no users, no hosting, eligibility ("Students only", confirmed by the organisers' Manager on the forum 2026-11-11) and the wallet-requirement question are unresolved.
 
 Purpose: map every judging criterion found in `docs/hackathon/rules-checklist.md` (Rules tab `R`, Overview `O`) to concrete Orynt features, file paths and test names, say how a judge can verify each in under 5 minutes, and list weak spots honestly. Weights are **not published** anywhere (checklist section 4), so nothing here is a score prediction.
 
@@ -12,7 +13,7 @@ Purpose: map every judging criterion found in `docs/hackathon/rules-checklist.md
 | `SIM-TESTED` | Passes in the integration suite on real PostgreSQL with the **labelled simulator** wallet. `docs/EXECUTION-REGISTER.md` (2026-11-09): **55 passed, 8 skipped** (adversarial 32, security-regression 13, ops 7, load 1, flow 2; the 8 skipped are the real-LND tests in `lnd.itest.ts`). I re-ran an earlier 41-test state myself at 15:01 UTC. Browser E2E `node apps/web/e2e/run.cjs`: 100/100 (also simulator wallet). |
 | `UNIT` | Passes as a unit test. Register: core 24, verifier 26 (incl. built-CLI exit codes 0/1/2/3/4 and replay ledger), contract 1. |
 | `CODE-ONLY` | Implemented; no test exercises it against the real counterpart. |
-| `PENDING-REAL` | Needs a real regtest run. **To be verified by running `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full` on the owner's machine.** The scripts exist (`infra/regtest/*`, `scripts/demo-full.ts`) but have never been executed against real nodes: the build sandbox refused to run the downloaded binaries. `pnpm test:real-lightning` (`apps/api/test/lnd.itest.ts`) is 8 tests, all skipped. |
+| `PENDING-REAL` (historical label; now **REGTEST-VERIFIED**, see the status update above) | Needed a real regtest run. **To be verified by running `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full` on the owner's machine.** The scripts exist (`infra/regtest/*`, `scripts/demo-full.ts`) but have never been executed against real nodes: the build sandbox refused to run the downloaded binaries. `pnpm test:real-lightning` (`apps/api/test/lnd.itest.ts`) is 8 tests, all skipped. |
 | `IN-PROGRESS` | Present in the working tree, uncommitted, not verified by me (currently only screenshot refreshes). |
 | `NOT-BUILT` | Does not exist. |
 
@@ -89,10 +90,10 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 
 - **What exists.**
   - End-to-end happy path on real PostgreSQL with the labelled simulator: `apps/api/test/flow.itest.ts` "create → submit → approve → execute → SIMULATED_SETTLED → receipt verifies as VERIFIED_SIMULATED" (`SIM-TESTED`).
-  - Real Lightning adapter: `packages/wallets/src/lnd.ts` calls `GET /v1/getinfo`, `POST /v1/macaroon/checkpermissions`, `POST /v2/router/send`, `GET /v2/router/track/{hash}`. Implemented, never run against a node (`PENDING-REAL`).
+  - Real Lightning adapter: `packages/wallets/src/lnd.ts` calls `GET /v1/getinfo`, `POST /v1/macaroon/checkpermissions`, `POST /v2/router/send`, `GET /v2/router/track/{hash}`. Implemented; **since run against real LND on regtest** (15 real-LND tests, `demo:full`).
   - Payee-side regtest helpers for the demo: `packages/wallets/src/lnd-dev.ts` (`lndAddInvoice`, `lndLookupInvoice`, `lndChannelBalance`).
-- **Scripts that now exist.** `pnpm regtest:fetch` (`infra/regtest/fetch.sh`, SHA-256 pinned), `pnpm regtest:up` / `down` (`infra/regtest/up.mjs`, `down.mjs`), `pnpm demo:full` (`scripts/demo-full.ts`, real regtest mode, **never run**), `pnpm demo:full:sim` (labelled SIMULATOR mode, **verified end to end**; evidence `docs/evidence/demo-simulator-2026-11-09T15-28-43-507Z.md`), seed `apps/api/src/seed.ts` (simulator-only, `ORYNT_SEED_DEMO=1`), `pnpm build:all`, `pnpm start`, `Dockerfile`, `infra/docker-compose.yml`, `infra/deploy/{render.yaml,fly.toml}` (the container and deploy files are **UNVERIFIED**: no Docker daemon).
-- **Judge check (5 min).** `pnpm install && pnpm db:start && pnpm demo:full:sim` (the whole story, labelled SIMULATED) and `pnpm test:integration` (needs Node 22, pnpm 10.28, a local PostgreSQL 16 cluster; `db:start` uses `pg_lsclusters`, so elsewhere set `DATABASE_URL`/`TEST_ADMIN_DATABASE_URL`). The real path is `pnpm regtest:fetch && pnpm regtest:up && pnpm demo:full`: **to be verified by running it on the owner's machine**.
+- **Scripts that now exist.** `pnpm regtest:fetch` (`infra/regtest/fetch.sh`, SHA-256 pinned), `pnpm regtest:up` / `down` (`infra/regtest/up.mjs`, `down.mjs`), `pnpm demo:full` (`scripts/demo-full.ts`, real regtest mode, **run 2026-11-10 and 2026-11-11, all assertions pass**), `pnpm demo:full:sim` (labelled SIMULATOR mode, **verified end to end**; evidence `docs/evidence/demo-simulator-2026-11-09T15-28-43-507Z.md`), seed `apps/api/src/seed.ts` (simulator-only, `ORYNT_SEED_DEMO=1`), `pnpm build:all`, `pnpm start`, `Dockerfile`, `infra/docker-compose.yml`, `infra/deploy/{render.yaml,fly.toml}` (the container and deploy files are **UNVERIFIED**: no Docker daemon).
+- **Judge check (5 min).** `pnpm install && pnpm db:start && pnpm demo:full:sim` (the whole story, labelled SIMULATED) and `pnpm test:integration` (needs Node 22, pnpm 10.28, a local PostgreSQL 16 cluster; `db:start` uses `pg_lsclusters`, so elsewhere set `DATABASE_URL`/`TEST_ADMIN_DATABASE_URL`). The real path is `bash infra/regtest/fetch.sh && node infra/regtest/up.mjs && pnpm demo:full` (see `demo-runbook.md`; run successfully 2026-11-11).
 - **Weak spots.**
   - The criterion says avoid mockups when integration is possible. Today the wallet in every automated test is a simulator (a mock). The real path is the single most important thing to run before submission.
   - No hosted URL. `R` allows a demo video instead.
@@ -102,7 +103,7 @@ These are not scoring criteria; they decide whether the entry can be judged at a
 
 `O`: 3-minute demo (problem → solution → impact → next steps); README with setup, architecture diagram, constraints, metrics to track and what ships next.
 
-- **What exists.** Script, storyboard and captions: `video-script-3min.md`, `captions.en.srt` (UNRENDERED). Deck source: `pitch-deck-source.md` (UNRENDERED). Product brief, competitor matrix, differentiation review, business docs.
+- **What exists.** Script, storyboard and captions: `video-script-3min.md`, `captions.en.srt`; a silent captioned cut is rendered at `video/orynt-demo-silent-captioned.mp4` (no voice-over, not uploaded). Deck source `pitch-deck-source.md`, rendered to `deck/orynt-deck.pdf` (2026-11-11). Product brief, competitor matrix, differentiation review, business docs.
 - **Weak spots.**
   - Root `README.md` has been expanded (~50 lines: status, two-minute simulator start, scripted story). Check it against the `O` list (setup, architecture diagram, constraints, metrics to track, next iteration) before submission. Source material: `devpost-entry.md` and `docs/business/metrics-and-privacy.md`. `docs/architecture/` and a developer quickstart were added in commit `49219b8` (not re-read here).
   - `docs/EXECUTION-REGISTER.md` is now the authoritative status table (VERIFIED / PARTIAL / BLOCKED per milestone). Keep it current; it must be updated after the real run.
@@ -137,7 +138,7 @@ Weak spot: all of the above is proven against the simulator. The LND error mappi
 
 ### C8. Wallet implementation (`O` submission list: "At least, a bitcoin/lightning wallet implementation")
 
-- **Position.** Not a wallet. Orynt "does not custody funds" (brief). It has: a provider contract (`packages/wallets/src/types.ts` `WalletProvider`: `getInfo`, `discoverCapabilities`, `sendPayment`, `lookupPayment`), an LND REST adapter (`CODE-ONLY`/`PENDING-REAL`) and a simulator. No key generation for funds, no receive/invoice flow in the product (invoices are created on the payee node by test/demo helpers only), no on-chain, no balance management.
+- **Position.** Not a wallet. Orynt "does not custody funds" (brief). It has: a provider contract (`packages/wallets/src/types.ts` `WalletProvider`: `getInfo`, `discoverCapabilities`, `sendPayment`, `lookupPayment`), an LND REST adapter (verified on regtest) and a simulator. No key generation for funds, no receive/invoice flow in the product (invoices are created on the payee node by test/demo helpers only), no on-chain, no balance management.
 - **Do not** describe the adapter as "a wallet implementation" in submission text unless the organisers say that satisfies the requirement. **Do not** start building a wallet to patch this in the remaining time: it contradicts the non-custodial design and would be unreviewed code handling keys.
 - **Status: UNRESOLVED, owner decision.** Draft email in `submission-checklist.md` section A.
 
@@ -164,7 +165,7 @@ Weak spot: all of the above is proven against the simulator. The LND error mappi
 ```bash
 pnpm install
 pnpm db:start                      # script exists; Debian/Ubuntu pg_lsclusters only. Otherwise export DATABASE_URL and TEST_ADMIN_DATABASE_URL
-pnpm test:integration              # 55 pass, 8 skipped (real-LND tests need regtest)
+pnpm test:integration              # 102 pass with ORYNT_REGTEST_ENV set; otherwise the 15 real-LND tests are skipped
 pnpm --filter @orynt/verifier test # 26 tests incl. tamper sweep and built-CLI exit codes
 pnpm --filter @orynt/core test     # 24 tests
 pnpm demo:full:sim                 # whole story, labelled SIMULATED; writes docs/evidence/demo-simulator-*.md
@@ -173,13 +174,13 @@ pnpm --filter @orynt/api test:integration -t "response lost AFTER the wallet acc
 pnpm --filter @orynt/api test:integration -t "20 concurrent execute requests"
 ```
 
-**Tier 2, real Lightning on regtest. PENDING.** `pnpm regtest:fetch && pnpm regtest:up && pnpm test:real-lightning && pnpm demo:full`; to be verified by running `scripts/demo-full` on the owner's machine. Details in `demo-runbook.md`.
+**Tier 2, real Lightning on regtest (done 2026-11-11).** `bash infra/regtest/fetch.sh && node infra/regtest/up.mjs && pnpm test:real-lightning && pnpm demo:full`. Details and what each prints: `demo-runbook.md`.
 
 ## 4. Consolidated weak spots, ranked by risk to the score
 
 1. **Gating rules (eligibility, wallet requirement)**: could disqualify regardless of quality.
-2. **No real-network evidence yet**: every payment test and demo run so far uses the simulator (8 real-LND tests are skipped). The `O` criterion says avoid mockups.
-3. **UX/mobile/low-bandwidth**: automated checks only (E2E 100/100, axe, 3 viewports); no performance measurement or human testing.
+2. **Real evidence is regtest only**: real LND payments on a local regtest chain are verified; testnet and mainnet are not, and only LND was exercised. The `O` criterion says avoid mockups: the demo uses none for the payment path.
+3. **UX/mobile/low-bandwidth**: automated checks only (E2E 138/138, axe, 3 viewports); no performance measurement or human testing.
 4. **Local impact and reach**: no African user evidence, no reach estimate, BOLT11-only.
 5. **Docs**: root README must be checked against the required sections; threat model exists but is AI-reviewed only.
 6. **No hosted URL**; video not rendered.
@@ -196,5 +197,5 @@ pnpm --filter @orynt/api test:integration -t "20 concurrent execute requests"
 | 4 | LND `rest_url` not SSRF-vetted | **Fixed** by the security review (regression test in `security.itest.ts`) |
 | 5 | Web console, site, ops tests untracked | **Committed** |
 | 6 | Failpoint state is process-global, not per workspace | Open; irrelevant unless a shared sandbox is hosted (failpoints are refused in production anyway) |
-| 7 | Real LND path never executed; error classification (which errors prove "not sent") rests on documentation | **Open, the main gap** (register M2/M4) |
+| 7 | Real LND path never executed; error classification rests on documentation | **Closed for regtest (2026-11-10/11).** Three adapter defects were found and fixed by the first real run (register M4). Still open: other LND versions, testnet/mainnet |
 | 8 | Fake-LND-endpoint "REAL" receipt | Open, documented in the threat model |
