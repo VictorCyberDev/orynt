@@ -38,7 +38,7 @@ describe("mail pipeline against a controlled Resend-shaped service", () => {
     await c.register("new@mail.test");
     expect((await row("new@mail.test", "verify_email")).body_text).toMatch(/token=/);
     expect(await pumpMail(env.deps)).toBeGreaterThan(0);
-    const got = fp.received.find((r) => r.body.to?.[0] === "new@mail.test")!;
+    const got = fp.received.find((r) => r.body.to?.[0] === "new@mail.test" && /Confirm/.test(r.body.subject))!; // other mail (e.g. the key-registration security notice) may be sent first
     expect(got.path).toBe("/emails"); expect(got.headers["authorization"]).toBe("Bearer re_test_key");
     expect(got.body).toMatchObject({ from: env.config.mailFrom, to: ["new@mail.test"], subject: expect.stringMatching(/Confirm/) });
     expect(got.body.text).toMatch(/token=/); // the provider does receive the link…

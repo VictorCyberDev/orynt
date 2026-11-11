@@ -8,4 +8,10 @@ useDefault = true
 
 [allowlist]
 description = "Test Idempotency-Key literals (<word>-key-<5 digits>)"
+# Exact paths that hold PUBLIC protocol test vectors (official NIP-44 vectors, checksum-pinned) and throwaway keys for local fakes. Nothing else under packages/wallets is exempt.
+paths = [
+  '''^packages/wallets/test/fixtures/''',
+  '''^packages/wallets/test/uri\.test\.ts$''',
+  '''^packages/wallets/test/btcpay-fake-server\.ts$''',
+]
 regexes = ['''^[a-z]+-key-\d{5}$''']
