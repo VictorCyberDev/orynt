@@ -3,7 +3,7 @@ import { OryntError, type Role } from "@orynt/core";
 import { withTx } from "../db/pool";
 import { open, seal } from "../lib/box";
 import { hashPassword, verifyPassword } from "../lib/password";
-import { newTotpSecret, otpauthUri, verifyTotp } from "../lib/totp";
+import { matchTotpStep, newTotpSecret, otpauthUri, verifyTotp } from "../lib/totp";
 import { appendAudit } from "./audit";
 import type { Principal } from "./auth";
 import { createSession } from "./auth";
@@ -12,6 +12,8 @@ import { queueMail } from "./mail";
 import { checkEntitlement } from "./entitlements";
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
+/** Names typed by other people are untrusted text inside an official mail: drop control characters/newlines and cap the length. */
+export const plain = (v: string) => Array.from(v, (ch) => { const c = ch.charCodeAt(0); return c < 32 || c === 127 || c === 0x2028 || c === 0x2029 ? " " : ch; }).join("").replace(/ {2,}/g, " ").trim().slice(0, 80);
 const HOURS = (n: number) => `${n} hours`;
 
 /** Single-use, hashed, expiring tokens. The raw token only ever exists in the email. */
@@ -61,16 +63,17 @@ export async function invite(d: Deps, p: Principal, email: string, role: Role) {
   const org = (await d.pool.query("SELECT name FROM organizations WHERE id=$1", [p.orgId])).rows[0];
   const raw = await issueToken(d, "invite", { orgId: p.orgId, email, role, createdBy: p.actor.userId, hours: 24 * 7 });
   await withTx(d.pool, async (tx) => {
-    await queueMail(tx, email, "invite", `You're invited to ${org.name} on Orynt`, `${p.actor.name} invited you to join ${org.name} as ${role}.\nAccept (valid 7 days): ${d.config.appBaseUrl}/app/accept-invite?token=${raw}`, p.orgId);
+    await queueMail(tx, email, "invite", `You're invited to ${plain(org.name)} on Orynt`, `${plain(p.actor.name)} invited you to join ${plain(org.name)} as ${role}.\nAccept (valid 7 days): ${d.config.appBaseUrl}/app/accept-invite?token=${raw}`, p.orgId);
     await appendAudit(tx, p.orgId, "org", `user:${p.actor.id}`, "member.invited", `email:${sha(email.toLowerCase()).slice(0, 12)}`, { role });
   });
 }
-export async function acceptInvite(d: Deps, raw: string, input: { name?: string; password: string }, ua?: string) {
+export async function acceptInvite(d: Deps, raw: string, input: { name?: string; password: string; mfa_code?: string }, ua?: string) {
   const t = await consumeToken(d, "invite", raw);
   const existing = (await d.pool.query("SELECT * FROM users WHERE lower(email)=lower($1)", [t.email])).rows[0];
   let userId: string;
   if (existing) {
     if (!(await verifyPassword(input.password, existing.password_hash))) { await d.pool.query("UPDATE auth_tokens SET used_at=NULL WHERE id=$1", [t.id]); throw new OryntError("unauthenticated", 401, "Enter the password of your existing Orynt account to accept."); }
+    try { await mfaRequiredAndValid(d, existing.id, input.mfa_code); } catch (e) { await d.pool.query("UPDATE auth_tokens SET used_at=NULL WHERE id=$1", [t.id]); throw e; } // an invitation must not bypass the invitee's own MFA
     userId = existing.id;
   } else {
     if (!input.name) throw new OryntError("validation_failed", 422, "Your name is required to create an account.");
@@ -98,11 +101,35 @@ export async function confirmMfa(d: Deps, userId: string, code: string) {
   if (!verifyTotp(open(d.config.secretKey, u.mfa_secret_ciphertext, "mfa:" + userId), code)) throw new OryntError("approval_invalid", 422, "That code is not correct. Check your authenticator's clock and try again.");
   await d.pool.query("UPDATE users SET mfa_enabled_at=now() WHERE id=$1", [userId]);
 }
+/**
+ * Verifies a TOTP code for a user who has MFA enabled (no-op for users without MFA).
+ * Replay-proof: a time-step can be used once (compare-and-set on mfa_last_step). Attempt-limited: 5 consecutive failures lock MFA checks for 5 minutes.
+ */
 export async function mfaRequiredAndValid(d: Deps, userId: string | undefined, code: string | undefined): Promise<void> {
   if (!userId) return;
-  const u = (await d.pool.query("SELECT mfa_secret_ciphertext, mfa_enabled_at FROM users WHERE id=$1", [userId])).rows[0];
+  const u = (await d.pool.query("SELECT mfa_secret_ciphertext, mfa_enabled_at, mfa_locked_until FROM users WHERE id=$1", [userId])).rows[0];
   if (!u?.mfa_enabled_at) return;
-  if (!code || !verifyTotp(open(d.config.secretKey, u.mfa_secret_ciphertext, "mfa:" + userId), code)) throw new OryntError("approval_invalid", 401, "A current authenticator code is required for this action.", { mfa_required: true });
+  if (u.mfa_locked_until && new Date(u.mfa_locked_until) > new Date()) throw new OryntError("rate_limited", 429, "Too many incorrect authenticator codes. Try again in a few minutes.", { mfa_required: true });
+  const step = code ? matchTotpStep(open(d.config.secretKey, u.mfa_secret_ciphertext, "mfa:" + userId), code) : null;
+  if (step !== null) {
+    const ok = await d.pool.query("UPDATE users SET mfa_last_step=$2, mfa_failures=0, mfa_locked_until=NULL WHERE id=$1 AND (mfa_last_step IS NULL OR mfa_last_step < $2) RETURNING 1", [userId, step]);
+    if (ok.rowCount) return;
+    throw new OryntError("approval_invalid", 401, "That authenticator code was already used. Wait for the next code and try again.", { mfa_required: true });
+  }
+  if (code) await d.pool.query("UPDATE users SET mfa_failures=mfa_failures+1, mfa_locked_until=CASE WHEN mfa_failures+1 >= 5 THEN now() + interval '5 minutes' ELSE mfa_locked_until END WHERE id=$1", [userId]);
+  throw new OryntError("approval_invalid", 401, "A current authenticator code is required for this action.", { mfa_required: true });
+}
+/**
+ * One step-up check for every sensitive action (approve, execute, retry, batch execute, confirm-not-sent, API-key creation, approval-key registration, invitation acceptance).
+ * 1) organisation policy: if the org requires MFA, privileged roles (owner/admin/approver) without MFA are refused until they enrol;
+ * 2) users with MFA must present a fresh code. API-key actors have no TOTP: minting a key is itself a step-up action, and a key can never approve.
+ */
+export async function stepUp(d: Deps, p: { orgId: string; role: string; actor: { kind: string; userId?: string } } | null, code: string | undefined): Promise<void> {
+  if (!p || p.actor.kind !== "user" || !p.actor.userId) return;
+  const pol = (await d.pool.query("SELECT require_mfa FROM organizations WHERE id=$1", [p.orgId])).rows[0];
+  if (pol?.require_mfa && ["owner", "admin", "approver"].includes(p.role) && !(await hasMfa(d, p.actor.userId)))
+    throw new OryntError("forbidden", 403, "Your organisation requires two-factor authentication for this role. Turn it on in Settings, then try again.", { mfa_enrollment_required: true });
+  await mfaRequiredAndValid(d, p.actor.userId, code);
 }
 export const hasMfa = async (d: Deps, userId: string) => !!(await d.pool.query("SELECT 1 FROM users WHERE id=$1 AND mfa_enabled_at IS NOT NULL", [userId])).rowCount;
 

@@ -28,7 +28,7 @@ export function parseStripe(raw: string, sigHeader: string | undefined, secret: 
   const periodEndOf = (x: any): number | undefined => x?.current_period_end ?? x?.items?.data?.[0]?.current_period_end;
   const invoiceSub = (x: any): string | undefined => x?.subscription ?? x?.parent?.subscription_details?.subscription;
   switch (e.type) {
-    case "checkout.session.completed": return { ...base, kind: "activated", orgId: meta.org_id ?? o.client_reference_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.subscription };
+    case "checkout.session.completed": if (o.payment_status && !["paid", "no_payment_required"].includes(String(o.payment_status))) return { ...base, kind: "ignored" }; return { ...base, kind: "activated", orgId: meta.org_id ?? o.client_reference_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.subscription };
     case "customer.subscription.updated": return { ...base, kind: "updated", orgId: meta.org_id, planId: meta.plan_id, customerId: o.customer, subscriptionId: o.id, periodEnd: periodEndOf(o), cancelAtPeriodEnd: !!o.cancel_at_period_end };
     case "customer.subscription.deleted": return { ...base, kind: "canceled", orgId: meta.org_id, subscriptionId: o.id, customerId: o.customer };
     case "invoice.payment_failed": return { ...base, kind: "payment_failed", subscriptionId: invoiceSub(o), customerId: o.customer };
@@ -42,7 +42,7 @@ export function parsePaystack(raw: string, sigHeader: string | undefined, secret
   const e = JSON.parse(raw); const d = e.data ?? {}; const meta = d.metadata ?? {};
   const base = { provider: "paystack", eventId: e.id !== undefined ? String(e.id) : `${e.event}:${createHash("sha256").update(raw).digest("hex").slice(0, 32)}` /* no stable id in the payload: identical retries hash identically, distinct events never collide */, type: String(e.event), occurredAt: Math.floor(Date.parse(d.paid_at ?? d.createdAt ?? new Date().toISOString()) / 1000) };
   switch (e.event) {
-    case "charge.success": return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code }; // the transaction reference is NOT a subscription id; subscription.create supplies the subscription code
+    case "charge.success": if (d.status !== undefined && d.status !== "success") return { ...base, kind: "ignored" }; return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code }; // the transaction reference is NOT a subscription id; subscription.create supplies the subscription code
     case "subscription.create": return { ...base, kind: "activated", orgId: meta.org_id, planId: meta.plan_id, customerId: d.customer?.customer_code, subscriptionId: d.subscription_code };
     case "subscription.not_renew": return { ...base, kind: "updated", cancelAtPeriodEnd: true, subscriptionId: d.subscription_code, customerId: d.customer?.customer_code }; // stops renewing; access continues to period end
     case "subscription.disable": return { ...base, kind: "canceled", subscriptionId: d.subscription_code, customerId: d.customer?.customer_code };
@@ -75,19 +75,27 @@ export async function applyBillingEvent(d: Deps, ev: BillingEvent, rawPayload: u
     let sub = ev.orgId ? (await tx.query("SELECT * FROM subscriptions WHERE org_id=$1 FOR UPDATE", [ev.orgId])).rows[0] : undefined;
     if (!sub && ev.subscriptionId) sub = (await tx.query("SELECT * FROM subscriptions WHERE provider=$1 AND provider_subscription_id=$2 FOR UPDATE", [ev.provider, ev.subscriptionId])).rows[0];
     if (!sub) return done("ignored");
+    // A late event about an OLD provider subscription must not touch the current one (cancel/failure/update only; activation replaces it deliberately).
+    if (ev.kind !== "activated" && ev.subscriptionId && sub.provider_subscription_id && ev.subscriptionId !== sub.provider_subscription_id) return done("ignored");
+    // Plan changes are accepted only for a plan this organisation actually started to buy (server-side pending checkout): provider-supplied metadata alone never grants a plan.
+    let planId = ev.planId;
+    if (planId && planId !== sub.plan_id) {
+      const fresh = sub.pending_plan_id === planId && sub.pending_at && Date.now() - new Date(sub.pending_at).getTime() < 48 * 3600_000;
+      if (!fresh) { if (ev.kind === "activated") return done("ignored"); planId = undefined; }
+    }
     if (sub.last_event_at && Math.floor(new Date(sub.last_event_at).getTime() / 1000) > ev.occurredAt) return done("stale"); // older than what we already applied
-    const plan = ev.planId ? (await tx.query("SELECT id FROM plan_definitions WHERE id=$1", [ev.planId])).rows[0] : null;
-    if (ev.planId && !plan) return done("ignored");
+    const plan = planId ? (await tx.query("SELECT id FROM plan_definitions WHERE id=$1", [planId])).rows[0] : null;
+    if (planId && !plan) return done("ignored");
     const period = ev.periodEnd ? new Date(ev.periodEnd * 1000) : null;
     const set = (cols: string, vals: unknown[]) => tx.query(`UPDATE subscriptions SET ${cols}, last_event_at=to_timestamp($1), updated_at=now() WHERE id=$${vals.length + 2}`, [ev.occurredAt, ...vals, sub.id]);
     switch (ev.kind) {
-      case "activated": await set("plan_id=COALESCE($2,plan_id), status='active', provider=$3, provider_customer_id=COALESCE($4,provider_customer_id), provider_subscription_id=COALESCE($5,provider_subscription_id), current_period_end=COALESCE($6,current_period_end), cancel_at_period_end=false", [ev.planId ?? null, ev.provider, ev.customerId ?? null, ev.subscriptionId ?? null, period]); break;
-      case "updated": await set("plan_id=COALESCE($2,plan_id), cancel_at_period_end=$3, current_period_end=COALESCE($4,current_period_end)", [ev.planId ?? null, !!ev.cancelAtPeriodEnd, period]); break;
+      case "activated": await set("plan_id=COALESCE($2,plan_id), status='active', provider=$3, provider_customer_id=COALESCE($4,provider_customer_id), provider_subscription_id=COALESCE($5,provider_subscription_id), current_period_end=COALESCE($6,current_period_end), cancel_at_period_end=false, pending_plan_id=NULL, pending_at=NULL", [planId ?? null, ev.provider, ev.customerId ?? null, ev.subscriptionId ?? null, period]); break;
+      case "updated": await set("plan_id=COALESCE($2,plan_id), cancel_at_period_end=$3, current_period_end=COALESCE($4,current_period_end)", [planId ?? null, !!ev.cancelAtPeriodEnd, period]); break;
       case "payment_succeeded": await set("status='active', current_period_end=COALESCE($2,current_period_end)", [period]); break;
       case "payment_failed": await set("status='past_due'", []); break;
       case "canceled": await set("status='canceled', cancel_at_period_end=false", []); break;
     }
-    await appendAudit(tx, sub.org_id, "org", `system:billing:${ev.provider}`, `billing.${ev.kind}`, `subscription:${sub.id}`, { event_id: ev.eventId, plan: ev.planId ?? null });
+    await appendAudit(tx, sub.org_id, "org", `system:billing:${ev.provider}`, `billing.${ev.kind}`, `subscription:${sub.id}`, { event_id: ev.eventId, plan: planId ?? null });
     if (ev.kind === "payment_failed") { const owner = (await tx.query("SELECT u.email FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1 AND m.role='owner' AND m.status='active' LIMIT 1", [sub.org_id])).rows[0]; if (owner) await queueMail(tx, owner.email, "payment_failed", "Orynt: your subscription payment failed", "We couldn't collect your latest subscription payment. Update your payment method to keep your plan; paid features lapse after a 7-day grace period.", sub.org_id); }
     return done("applied");
   });
@@ -105,6 +113,8 @@ export async function startCheckout(d: Deps, orgId: string, planId: string, emai
   if (!plan) throw new OryntError("not_found", 404, "Unknown plan.");
   if (plan.price_usd_cents === null) throw new OryntError("invalid_state", 409, "This plan is by arrangement — contact sales.");
   if (plan.price_usd_cents === 0) throw new OryntError("invalid_state", 409, "The Developer plan is free; cancel your subscription to return to it.");
+  // Remember what this organisation set out to buy: a later provider event may activate only this plan.
+  await d.pool.query("UPDATE subscriptions SET pending_plan_id=$2, pending_at=now() WHERE org_id=$1", [orgId, planId]);
   const p = d.config.billingProvider;
   if (p === "sandbox") { if (d.config.env === "production") throw new OryntError("forbidden", 403, "The sandbox billing provider is disabled in production."); return { mode: "sandbox", plan_id: planId, url: null }; }
   if (!d.config.billingApiKey) throw new OryntError("wallet_unavailable", 503, "Billing is not configured on this server.");
@@ -123,6 +133,7 @@ export async function startCheckout(d: Deps, orgId: string, planId: string, emai
 /** Sandbox-only: builds a correctly SIGNED event and feeds it through exactly the same verification + processing path as a real webhook. */
 export async function sandboxComplete(d: Deps, orgId: string, planId: string) {
   if (d.config.env === "production" || d.config.billingProvider !== "sandbox") throw new OryntError("forbidden", 403, "Sandbox billing is not enabled.");
+  await d.pool.query("UPDATE subscriptions SET pending_plan_id=$2, pending_at=now() WHERE org_id=$1", [orgId, planId]); // the sandbox completion IS the checkout
   const secret = d.config.billingWebhookSecret ?? (() => { throw new OryntError("invalid_state", 503, "ORYNT_BILLING_WEBHOOK_SECRET is not set."); })();
   const now = Math.floor(Date.now() / 1000);
   const raw = JSON.stringify({ id: `evt_sbx_${orgId.slice(0, 8)}_${now}_${Math.random().toString(36).slice(2, 8)}`, type: "checkout.session.completed", created: now, data: { object: { client_reference_id: orgId, customer: `cus_sbx_${orgId.slice(0, 8)}`, subscription: `sub_sbx_${orgId.slice(0, 8)}`, metadata: { org_id: orgId, plan_id: planId } } } });

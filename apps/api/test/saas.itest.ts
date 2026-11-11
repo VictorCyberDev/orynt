@@ -104,11 +104,19 @@ describe("billing, webhooks and server-enforced entitlements", () => {
     const now = Math.floor(Date.now() / 1000);
     const evt = (id: string, type: string, created: number, obj: object) => JSON.stringify({ id, type, created, data: { object: obj } });
     const checkout = evt("evt_dup_1", "checkout.session.completed", now, { client_reference_id: owner.orgId, customer: "cus_x", subscription: "sub_x", metadata: { org_id: owner.orgId, plan_id: "business" } });
+    // a provider event can only activate a plan this organisation actually started to buy
+    const unrequested = evt("evt_unreq_1", "checkout.session.completed", now - 1, { client_reference_id: owner.orgId, customer: "cus_x", subscription: "sub_x", metadata: { org_id: owner.orgId, plan_id: "business" } });
+    expect(JSON.parse((await post(env, "sandbox", unrequested, { "stripe-signature": stripeSig(unrequested) })).body).result).toBe("ignored");
+    expect((await sub()).plan_id).toBe("growth");
+    const unpaid = evt("evt_unpaid_1", "checkout.session.completed", now, { client_reference_id: owner.orgId, customer: "cus_x", subscription: "sub_x", payment_status: "unpaid", metadata: { org_id: owner.orgId, plan_id: "business" } });
+    expect((await c.call("POST", "/v1/billing/checkout", owner, { plan_id: "business" })).status).toBe(200); // now the org has started buying 'business'
+    expect(JSON.parse((await post(env, "sandbox", unpaid, { "stripe-signature": stripeSig(unpaid) })).body).result).toBe("ignored"); // …but an unpaid session never activates
+    expect((await sub()).plan_id).toBe("growth");
     const r1 = await post(env, "sandbox", checkout, { "stripe-signature": stripeSig(checkout) }); expect(JSON.parse(r1.body).result).toBe("applied");
     const r2 = await post(env, "sandbox", checkout, { "stripe-signature": stripeSig(checkout) }); expect(JSON.parse(r2.body).result).toBe("duplicate"); expect(r2.statusCode).toBe(200);
     expect((await q(env, "SELECT count(*)::int AS n FROM billing_events WHERE event_id='evt_dup_1'")).rows[0].n).toBe(1);
     expect((await sub()).plan_id).toBe("business");
-    const old = evt("evt_old_1", "checkout.session.completed", now - 3600, { client_reference_id: owner.orgId, customer: "cus_x", subscription: "sub_x", metadata: { org_id: owner.orgId, plan_id: "startup" } });
+    const old = evt("evt_old_1", "checkout.session.completed", now - 3600, { client_reference_id: owner.orgId, customer: "cus_x", subscription: "sub_x", metadata: { org_id: owner.orgId, plan_id: "business" } });
     expect(JSON.parse((await post(env, "sandbox", old, { "stripe-signature": stripeSig(old) })).body).result).toBe("stale"); // older than what is applied
     expect((await sub()).plan_id).toBe("business");
     expect((await post(env, "sandbox", checkout, { "stripe-signature": stripeSig(checkout, now, "wrong") })).statusCode).toBe(401);
@@ -127,6 +135,8 @@ describe("billing, webhooks and server-enforced entitlements", () => {
     expect((await sub()).status).toBe("active");
     await q(env, "UPDATE subscriptions SET status='past_due', last_event_at = now() - interval '9 days' WHERE org_id=$1", [owner.orgId]);
     expect((await c.call("GET", "/v1/billing", owner)).body.entitlements.members).toBe(3); // grace expired → free limits
+    expect(await send("evt_del_old", "customer.subscription.deleted", now + 15, { id: "sub_OLD", customer: "cus_x", metadata: { org_id: owner.orgId } })).toBe("ignored"); // a late event about a previous subscription cannot cancel the current one
+    expect((await sub()).status).not.toBe("canceled");
     expect(await send("evt_del_1", "customer.subscription.deleted", now + 20, { id: "sub_x", customer: "cus_x", metadata: { org_id: owner.orgId } })).toBe("applied");
     const b = (await c.call("GET", "/v1/billing", owner)).body; expect(b.current.status).toBe("canceled"); expect(b.current.plan_id).toBe("developer");
   });

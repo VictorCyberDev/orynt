@@ -20,7 +20,7 @@ export async function createTicket(d: Deps, p: Principal | null, i: { email?: st
   if (!email) throw new OryntError("validation_failed", 422, "An email address is required so we can reply.");
   await withTx(d.pool, async (tx) => {
     await tx.query("INSERT INTO support_tickets(reference,org_id,user_id,email,category,subject,body,diagnostics) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)", [ref, p?.orgId ?? null, p?.actor.userId ?? null, email, i.category, i.subject, i.body, JSON.stringify(diagnostics)]);
-    await queueMail(tx, email, "support_ack", `We received your request ${ref}`, `Thanks — we've logged "${i.subject}" as ${ref}. Quote this reference in any follow-up. We never ask for wallet credentials, seed phrases or private keys; do not send them.`, p?.orgId ?? null);
+    await queueMail(tx, email, "support_ack", `We received your request ${ref}`, `Thanks — we've logged your request as ${ref}. Quote this reference in any follow-up. We never ask for wallet credentials, seed phrases or private keys; do not send them.`, p?.orgId ?? null);
   });
   return { reference: ref };
 }

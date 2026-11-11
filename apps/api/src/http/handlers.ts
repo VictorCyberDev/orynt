@@ -19,6 +19,8 @@ export interface HandlerArgs {
 type Out = { status?: number; body: unknown; contentType?: string };
 type H = (a: HandlerArgs) => Promise<Out>;
 
+/** Step-up for actions whose JSON body has no mfa_code field: the one-time code travels in the `x-orynt-mfa-code` header. */
+export const stepUpFromHeader = async (a: HandlerArgs) => (await import("../services/accounts")).stepUp(a.deps, a.principal, a.req.headers["x-orynt-mfa-code"] as string | undefined);
 const need = <T,>(v: T | null): T => { if (!v) throw new OryntError("unauthenticated", 401, "Not signed in."); return v; };
 const view = async (a: HandlerArgs, id: string, status?: number): Promise<Out> => {
   const c = need(a.ctx);
@@ -39,7 +41,7 @@ export const coreHandlers: Record<string, H> = {
   logout: async (a) => { if (a.principal?.sessionId) await auth.revokeSession(a.deps, a.principal.sessionId); a.reply.clearCookie("orynt_session", { path: "/" }); return { body: { ok: true } }; },
   switchWorkspace: async (a) => { await auth.switchWorkspace(a.deps, need(a.principal), a.body.workspace_id); const p = await auth.principalFromSession(a.deps, a.req.cookies["orynt_session"]!); return { body: await auth.meOf(a.deps, need(p)) }; },
   me: async (a) => ({ body: await auth.meOf(a.deps, need(a.principal)) }),
-  registerApprovalKey: async (a) => { await auth.registerApprovalKey(a.deps, need(a.principal), a.body.public_key, a.body.proof_signature); return { body: await auth.meOf(a.deps, need(a.principal)) }; },
+  registerApprovalKey: async (a) => { await stepUpFromHeader(a); await auth.registerApprovalKey(a.deps, need(a.principal), a.body.public_key, a.body.proof_signature); return { body: await auth.meOf(a.deps, need(a.principal)) }; },
   overview: async (a) => ({ body: await overview(a.deps, need(a.ctx).orgId, a.principal?.actor.userId, need(a.principal).role) }),
 
   listMembers: async (a) => ({ body: await auth.listMembers(a.deps, need(a.ctx).orgId) }),
@@ -73,10 +75,10 @@ export const coreHandlers: Record<string, H> = {
   getObligation: async (a) => view(a, a.params["id"]!),
   reviseObligation: async (a) => { await ob.reviseObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
   submitObligation: async (a) => { await ob.submitObligation(a.deps, need(a.ctx), a.params["id"]!); return view(a, a.params["id"]!); },
-  approveObligation: async (a) => { await (await import("../services/accounts")).mfaRequiredAndValid(a.deps, need(a.principal).actor.userId, a.body.mfa_code); await ob.approveObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
+  approveObligation: async (a) => { await (await import("../services/accounts")).stepUp(a.deps, need(a.principal), a.body.mfa_code); await ob.approveObligation(a.deps, need(a.ctx), a.params["id"]!, a.body); return view(a, a.params["id"]!); },
   rejectObligation: async (a) => { await ob.rejectObligation(a.deps, need(a.ctx), a.params["id"]!, a.body.reason); return view(a, a.params["id"]!); },
   cancelObligation: async (a) => { await ob.cancelObligation(a.deps, need(a.ctx), a.params["id"]!, a.body.reason); return view(a, a.params["id"]!); },
-  executeObligation: async (a) => { await (await import("../services/accounts")).mfaRequiredAndValid(a.deps, a.principal?.actor.kind === "user" ? a.principal.actor.userId : undefined, a.req.headers["x-orynt-mfa-code"] as string | undefined); const r = await ex.executeObligation(a.deps, need(a.ctx), a.params["id"]!, "execute"); return view(a, r.obligationId, r.httpStatus); },
+  executeObligation: async (a) => { await stepUpFromHeader(a); const r = await ex.executeObligation(a.deps, need(a.ctx), a.params["id"]!, "execute"); return view(a, r.obligationId, r.httpStatus); },
 
   getPayment: async (a) => {
     const c = need(a.ctx);
@@ -94,8 +96,9 @@ export const coreHandlers: Record<string, H> = {
     if (r === "NOTHING_TO_DO") throw new OryntError("invalid_state", 409, "This payment has nothing to reconcile.");
     return view(a, it.obligation_id, r === "BUSY" ? 202 : 200);
   },
-  confirmNotSent: async (a) => { const id = await rc.confirmNotSent(a.deps, need(a.ctx), a.params["id"]!, a.body.note); return view(a, id); },
+  confirmNotSent: async (a) => { await stepUpFromHeader(a); const id = await rc.confirmNotSent(a.deps, need(a.ctx), a.params["id"]!, a.body.note); return view(a, id); },
   retryPayment: async (a) => {
+    await stepUpFromHeader(a);
     const c = need(a.ctx);
     const it = (await a.deps.pool.query("SELECT obligation_id FROM payment_intents WHERE id=$1 AND org_id=$2", [a.params["id"], c.orgId])).rows[0];
     if (!it) throw new OryntError("not_found", 404, "Payment not found.");
@@ -110,7 +113,7 @@ export const coreHandlers: Record<string, H> = {
   verifyAudit: async (a) => ({ body: await verifyAllStreams(a.deps, need(a.ctx).orgId) }),
 
   listApiKeys: async (a) => ({ body: await admin.listApiKeys(a.deps, need(a.ctx).orgId) }),
-  createApiKey: async (a) => ({ status: 201, body: await auth.createApiKey(a.deps, need(a.principal), a.body) }),
+  createApiKey: async (a) => { await stepUpFromHeader(a); return { status: 201, body: await auth.createApiKey(a.deps, need(a.principal), a.body) }; },
   revokeApiKey: async (a) => ({ body: await admin.revokeApiKey(a.deps, need(a.ctx), a.params["id"]!) }),
   listWebhooks: async (a) => ({ body: await admin.listWebhooks(a.deps, need(a.ctx).orgId) }),
   createWebhook: async (a) => ({ status: 201, body: await admin.createWebhook(a.deps, need(a.ctx), a.body) }),

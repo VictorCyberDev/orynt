@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-11T10:32:44.132Z",
+  "ran_at": "2026-11-11T10:42:28.290Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
-  "total": 151,
+  "total": 155,
   "failed": 0,
   "results": [
     {
@@ -66,6 +66,26 @@
     },
     {
       "name": "checking the wallet's record resolves the uncertain payment from evidence",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "step-up: MFA can be enabled through the API",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "step-up: the UI asks for an authenticator code (dialog, focused field)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "step-up: nothing is created before the code is entered",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "step-up: after the code the key exists on the server",
       "ok": true,
       "detail": ""
     },

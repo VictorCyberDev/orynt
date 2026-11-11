@@ -142,6 +142,7 @@ export async function addMember(d: Deps, p: Principal, input: { email: string; n
   const pw = await hashPassword(input.temporary_password);
   return withTx(d.pool, async (tx) => {
     let u = (await tx.query("SELECT id FROM users WHERE lower(email)=lower($1)", [input.email])).rows[0];
+    if (u) throw new OryntError("conflict", 409, "That email already has an Orynt account. Send an invitation instead (Team → Invite): people join a workspace only by accepting it themselves.");
     if (!u) u = (await tx.query("INSERT INTO users(email,name,password_hash) VALUES ($1,$2,$3) RETURNING id", [input.email.trim(), input.name.trim(), pw])).rows[0];
     if ((await tx.query("SELECT 1 FROM memberships WHERE org_id=$1 AND user_id=$2", [p.orgId, u.id])).rowCount) throw new OryntError("conflict", 409, "That person is already a member.");
     const m = (await tx.query("INSERT INTO memberships(org_id,user_id,role) VALUES ($1,$2,$3) RETURNING id", [p.orgId, u.id, input.role])).rows[0];

@@ -10,16 +10,17 @@ import { actorTag, type Ctx, type Deps } from "./context";
 type Step = { id: string; title: string; done: boolean; detail: string; path: string; optional?: boolean };
 
 export async function getOrg(d: Deps, orgId: string) {
-  const o = (await d.pool.query("SELECT id,name,slug,plan,country,timezone,purpose,profile_completed_at FROM organizations WHERE id=$1", [orgId])).rows[0];
-  return { id: o.id, name: o.name, slug: o.slug, plan: o.plan, country: o.country, timezone: o.timezone, purpose: o.purpose, profile_completed: !!o.profile_completed_at };
+  const o = (await d.pool.query("SELECT id,name,slug,plan,country,timezone,purpose,profile_completed_at,require_mfa FROM organizations WHERE id=$1", [orgId])).rows[0];
+  return { id: o.id, name: o.name, slug: o.slug, plan: o.plan, country: o.country, timezone: o.timezone, purpose: o.purpose, profile_completed: !!o.profile_completed_at, require_mfa: o.require_mfa };
 }
 
-export async function updateOrg(d: Deps, ctx: Ctx, i: { name?: string; country?: string; timezone?: string; purpose?: string }) {
+export async function updateOrg(d: Deps, ctx: Ctx, i: { name?: string; country?: string; timezone?: string; purpose?: string; require_mfa?: boolean }) {
+  if (i.require_mfa !== undefined && ctx.actor.role !== "owner") throw new OryntError("forbidden", 403, "Only an owner can change the two-factor policy.");
   await withTx(d.pool, async (tx) => {
     const cur = (await tx.query("SELECT * FROM organizations WHERE id=$1 FOR UPDATE", [ctx.orgId])).rows[0];
     const name = i.name ?? cur.name, country = i.country ?? cur.country, timezone = i.timezone ?? cur.timezone, purpose = i.purpose ?? cur.purpose;
     const complete = !!(country && timezone && purpose && purpose.trim().length >= 3);
-    await tx.query("UPDATE organizations SET name=$2, country=$3, timezone=$4, purpose=$5, profile_completed_at = CASE WHEN $6 THEN COALESCE(profile_completed_at, now()) ELSE NULL END WHERE id=$1", [ctx.orgId, name, country, timezone, purpose, complete]);
+    await tx.query("UPDATE organizations SET name=$2, country=$3, timezone=$4, purpose=$5, profile_completed_at = CASE WHEN $6 THEN COALESCE(profile_completed_at, now()) ELSE NULL END, require_mfa=COALESCE($7, require_mfa) WHERE id=$1", [ctx.orgId, name, country, timezone, purpose, complete, i.require_mfa ?? null]);
     await appendAudit(tx, ctx.orgId, "org", actorTag(ctx.actor), "org.profile_updated", `org:${ctx.orgId}`, { fields: Object.keys(i), profile_complete: complete });
   });
   return getOrg(d, ctx.orgId);

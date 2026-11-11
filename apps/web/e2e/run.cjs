@@ -2,7 +2,8 @@
    Usage: pnpm --filter @orynt/web build && node apps/web/e2e/run.cjs      (needs local PostgreSQL: `pnpm db:start`)  */
 const { chromium } = require("playwright");
 const { spawn, execSync } = require("node:child_process");
-const fs = require("node:fs"); const path = require("node:path");
+const fs = require("node:fs"); const path = require("node:path"); const nodeCrypto = require("node:crypto");
+const totp = (secret, t = Date.now()) => { const B = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"; let bits = ""; for (const c of secret.replace(/=+$/, "")) bits += B.indexOf(c).toString(2).padStart(5, "0"); const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2))); const ctr = Buffer.alloc(8); ctr.writeBigUInt64BE(BigInt(Math.floor(t / 30000))); const h = nodeCrypto.createHmac("sha1", key).update(ctr).digest(); const o = h[h.length - 1] & 15; return String((((h[o] & 0x7f) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3]) % 1000000).padStart(6, "0"); };
 const ROOT = path.resolve(__dirname, "../../..");
 const PORT = 8799, BASE = `http://127.0.0.1:${PORT}`;
 const DB = "orynt_e2e_" + Date.now();
@@ -93,6 +94,28 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
     await op.page.waitForSelector("text=Simulated — no real money moved", { timeout: 15000 });
     check("checking the wallet's record resolves the uncertain payment from evidence", /after an uncertain moment/.test(await op.page.locator("main").innerText()));
     await shot(op.page, "1440", "06-payout-resolved-after-uncertainty");
+
+    // --- 3c. step-up: a user with MFA is asked for a fresh authenticator code in the UI before a sensitive action (API-key creation here). Own account/context so the demo users stay MFA-free.
+    { const mctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      const reg = await mctx.request.post(BASE + "/v1/auth/register", { data: { email: "mfa-e2e@orynt.local", password: "correct horse battery staple", name: "MFA E2E", workspace_name: "MFA Org" } });
+      const csrf2 = (await reg.json()).csrf_token;
+      const begin = await (await mctx.request.post(BASE + "/v1/me/mfa/begin", { headers: { "x-csrf-token": csrf2 } })).json();
+      const conf = await mctx.request.post(BASE + "/v1/me/mfa/confirm", { headers: { "x-csrf-token": csrf2 }, data: { code: totp(begin.secret) } });
+      check("step-up: MFA can be enabled through the API", conf.ok());
+      const pg = await mctx.newPage();
+      await pg.goto(BASE + "/app/developers"); await pg.waitForSelector("#k-n");
+      await pg.locator("#k-n").fill("ci-key"); await pg.getByRole("button", { name: "Create key" }).click();
+      await pg.waitForSelector("#mfa-step-up");
+      check("step-up: the UI asks for an authenticator code (dialog, focused field)", await pg.evaluate(() => !!document.activeElement && document.activeElement.id === "mfa-step-up"));
+      const early = await (await mctx.request.get(BASE + "/v1/api-keys")).json();
+      check("step-up: nothing is created before the code is entered", !early.data.some((k) => k.name === "ci-key"));
+      await pg.locator("#mfa-step-up").fill(totp(begin.secret, Date.now() + 30000)); // a later time-step than the one used to enable MFA (codes are single-use)
+      await pg.getByRole("button", { name: "Confirm" }).click();
+      await pg.waitForSelector("#mfa-step-up", { state: "detached", timeout: 10000 });
+      const after = await (await mctx.request.get(BASE + "/v1/api-keys")).json();
+      check("step-up: after the code the key exists on the server", after.data.some((k) => k.name === "ci-key"));
+      await mctx.close();
+    }
 
     // --- 4. wizard: mint a simulator invoice as owner, paste it, review, submit
     const ow = await ctxFor("demo-owner@orynt.local");

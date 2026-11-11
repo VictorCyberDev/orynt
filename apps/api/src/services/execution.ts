@@ -32,6 +32,10 @@ async function gate(tx: Tx, d: Deps, ctx: Ctx, o: Record<string, any>, rev: Reco
   if (conn.provider_kind === "simulator" && d.config.env === "production") throw new OryntError("wallet_unavailable", 409, "The simulator cannot be used in production.");
   const caps = (await tx.query("SELECT * FROM provider_capabilities WHERE wallet_connection_id=$1 ORDER BY discovered_at DESC LIMIT 1", [conn.id])).rows[0];
   if (!caps || caps.can_send === "false") throw new OryntError("wallet_insufficient_permissions", 409, "This wallet connection is not allowed to send payments.");
+  // Reconciliation needs payment lookup: without it an uncertain payment could never be resolved from the wallet's own record. An explicit "no" always refuses;
+  // providers other than LND and the labelled simulator must have lookup CONFIRMED (their absence semantics differ from LND's — see docs/product/btcpay-adapter.md).
+  if (caps.can_lookup === "false" || (!["lnd", "simulator"].includes(conn.provider_kind) && caps.can_lookup !== "true"))
+    throw new OryntError("wallet_insufficient_permissions", 409, "This wallet connection cannot look payments up, so Orynt could not prove what happened after an interruption. Connect a credential that can look up payments.");
   if (Date.now() - new Date(caps.discovered_at).getTime() > 24 * 3600 * 1000) throw new OryntError("wallet_unavailable", 409, "This wallet's permissions were last checked more than 24 hours ago. Re-check the connection before sending.");
   const b = await bindingFor(tx, o, rev);
   if (!b) throw new OryntError("approval_invalid", 409, "Payout has no bound policy.");

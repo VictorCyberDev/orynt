@@ -12,7 +12,7 @@ import { obligationDto, publicObligation } from "../services/dto";
 import { withTx } from "../db/pool";
 import { appendAudit } from "../services/audit";
 import { actorTag } from "../services/context";
-import type { HandlerArgs } from "./handlers";
+import { stepUpFromHeader, type HandlerArgs } from "./handlers";
 
 type Out = { status?: number; body: unknown; contentType?: string };
 type H = (a: HandlerArgs) => Promise<Out>;
@@ -25,7 +25,7 @@ export const saasHandlers: Record<string, H> = {
   forgotPassword: async (a) => { await acc.forgotPassword(a.deps, a.body.email); return { status: 202, body: ok }; },
   resetPassword: async (a) => { await acc.resetPassword(a.deps, a.body.token, a.body.password); return { body: ok }; },
   acceptInvite: async (a) => {
-    const r = await acc.acceptInvite(a.deps, a.body.token, { name: a.body.name, password: a.body.password }, a.req.headers["user-agent"]);
+    const r = await acc.acceptInvite(a.deps, a.body.token, { name: a.body.name, password: a.body.password, mfa_code: a.body.mfa_code }, a.req.headers["user-agent"]);
     a.setSession(a.reply, r.token);
     const p = await auth.principalFromSession(a.deps, r.token);
     return { body: await auth.meOf(a.deps, { ...need(p), csrf: r.csrf }) };
@@ -52,12 +52,12 @@ export const saasHandlers: Record<string, H> = {
   createBatch: async (a) => ({ status: 201, body: await bat.createBatch(a.deps, need(a.ctx), a.body.label, a.body.csv, a.body.wallet_connection_id) }),
   getBatch: async (a) => ({ body: await bat.batchStatus(a.deps, need(a.ctx).orgId, a.params["id"]!) }),
   submitBatch: async (a) => ({ body: { items: await bat.submitBatch(a.deps, need(a.ctx), a.params["id"]!) } }),
-  executeBatch: async (a) => ({ body: { items: await bat.executeBatch(a.deps, need(a.ctx), a.params["id"]!), status: await bat.batchStatus(a.deps, need(a.ctx).orgId, a.params["id"]!) } }),
+  executeBatch: async (a) => { await stepUpFromHeader(a); return { body: { items: await bat.executeBatch(a.deps, need(a.ctx), a.params["id"]!), status: await bat.batchStatus(a.deps, need(a.ctx).orgId, a.params["id"]!) } }; },
 
   listSchedules: async (a) => ({ body: { data: await sch.listSchedules(a.deps, need(a.ctx).orgId) } }),
   createSchedule: async (a) => ({ status: 201, body: await sch.createSchedule(a.deps, need(a.ctx), a.body) }),
   scheduleAction: async (a) => { await sch.setScheduleStatus(a.deps, need(a.ctx), a.params["id"]!, ({ pause: "paused", resume: "active", cancel: "cancelled" } as const)[a.params["action"] as "pause"]); return { body: ok }; },
-  runDueSchedules: async (a) => ({ body: { opened: await sch.runDueSchedules(a.deps) } }),
+  runDueSchedules: async (a) => ({ body: { opened: await sch.runDueSchedules(a.deps, new Date(), need(a.ctx).orgId) } }),
   listCycles: async (a) => ({ body: { data: await sch.listCycles(a.deps, need(a.ctx).orgId) } }),
   fulfilCycle: async (a) => { const id = await sch.fulfilCycle(a.deps, need(a.ctx), a.params["id"]!, a.body.invoice); const v = await obligationDto(a.deps.pool, need(a.ctx).orgId, id, need(a.ctx).actor.role); return { status: 201, body: publicObligation(v!) }; },
 
@@ -77,7 +77,7 @@ export const saasHandlers: Record<string, H> = {
     return { body: await (await import("../services/lnurl")).resolveLightningAddress(a.deps, a.body.address, a.body.amount_msat, conns[0].network) };
   },
   getOrg: async (a) => ({ body: await onb.getOrg(a.deps, need(a.ctx).orgId) }),
-  updateOrg: async (a) => ({ body: await onb.updateOrg(a.deps, need(a.ctx), a.body) }),
+  updateOrg: async (a) => { if (a.body.require_mfa !== undefined) await stepUpFromHeader(a); return { body: await onb.updateOrg(a.deps, need(a.ctx), a.body) }; },
   getOnboarding: async (a) => ({ body: await onb.onboarding(a.deps, need(a.ctx).orgId, need(a.principal).actor.userId) }),
   ackOnboardingStep: async (a) => {
     const step = a.params["step"] as "plan" | "policy";

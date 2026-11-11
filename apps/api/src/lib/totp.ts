@@ -9,9 +9,14 @@ export function totpAt(secret: string, timeMs: number): string {
   const o = h[h.length - 1]! & 15;
   return String(((h[o]! & 0x7f) << 24 | h[o + 1]! << 16 | h[o + 2]! << 8 | h[o + 3]!) % 1_000_000).padStart(6, "0");
 }
-/** ±1 step tolerance for clock drift. */
-export function verifyTotp(secret: string, code: string, nowMs = Date.now()): boolean {
-  if (!/^\d{6}$/.test(code)) return false;
-  return [-1, 0, 1].some((d) => { const a = Buffer.from(totpAt(secret, nowMs + d * 30000)), b = Buffer.from(code); return a.length === b.length && timingSafeEqual(a, b); });
+/** ±1 step tolerance for clock drift. Returns the matching absolute 30-second step, or null. */
+export function matchTotpStep(secret: string, code: string, nowMs = Date.now()): number | null {
+  if (!/^\d{6}$/.test(code)) return null;
+  for (const d of [-1, 0, 1]) {
+    const a = Buffer.from(totpAt(secret, nowMs + d * 30000)), b = Buffer.from(code);
+    if (a.length === b.length && timingSafeEqual(a, b)) return Math.floor(nowMs / 30000) + d;
+  }
+  return null;
 }
+export const verifyTotp = (secret: string, code: string, nowMs = Date.now()): boolean => matchTotpStep(secret, code, nowMs) !== null;
 export const otpauthUri = (secret: string, account: string) => `otpauth://totp/Orynt:${encodeURIComponent(account)}?secret=${secret}&issuer=Orynt&digits=6&period=30`;

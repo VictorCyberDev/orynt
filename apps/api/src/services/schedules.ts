@@ -32,8 +32,9 @@ export async function setScheduleStatus(d: Deps, ctx: Ctx, id: string, status: "
 export const listCycles = async (d: Deps, orgId: string) => (await d.pool.query("SELECT c.id, c.cycle, c.due_on::text AS due_on, c.status, c.obligation_id, cp.name AS counterparty, s.amount_msat::text AS amount_msat FROM schedule_cycles c JOIN recurring_schedules s ON s.id=c.schedule_id JOIN counterparties cp ON cp.id=s.counterparty_id WHERE c.org_id=$1 ORDER BY c.due_on DESC, c.created_at DESC LIMIT 100", [orgId])).rows;
 
 /** Opens an "invoice needed" task for every due cycle (at most one per schedule per cycle — DB-enforced) and advances the schedule. Never creates a payment. */
-export async function runDueSchedules(d: Deps, today = new Date()): Promise<number> {
-  const due = (await d.pool.query("SELECT * FROM recurring_schedules WHERE status='active' AND next_due_on <= $1::date", [dateOnly(today)])).rows; let n = 0;
+export async function runDueSchedules(d: Deps, today = new Date(), orgId?: string): Promise<number> {
+  // The worker sweeps every organisation (orgId undefined); an HTTP caller may only ever run its own organisation's schedules.
+  const due = (await d.pool.query("SELECT * FROM recurring_schedules WHERE status='active' AND next_due_on <= $1::date AND ($2::uuid IS NULL OR org_id=$2) ORDER BY next_due_on LIMIT 500", [dateOnly(today), orgId ?? null])).rows; let n = 0;
   for (const s of due) {
     await withTx(d.pool, async (tx) => {
       let next = new Date(s.next_due_on); let guard = 0;

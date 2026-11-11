@@ -4,6 +4,7 @@ import type { MeT } from "@orynt/sdk";
 import { api, SessionCtx, setCsrf } from "./api";
 import { Layout } from "./components/Layout";
 import { Toaster, Skeleton } from "./components/ui";
+import { MfaPrompt } from "./components/MfaPrompt";
 import { AuthPage } from "./pages/Auth";
 import { Overview } from "./pages/Overview";
 import { Payouts } from "./pages/Payouts";
@@ -35,6 +36,7 @@ export function App() {
   return (
     <SessionCtx.Provider value={{ me, loading, refresh, setMe }}>
       <Toaster />
+      <MfaPrompt />
       {loading ? <div className="boot"><Skeleton rows={4} /></div> : (
         <Routes>
           <Route path="/login" element={me ? <Navigate to="/" replace /> : <AuthPage mode="login" />} />
