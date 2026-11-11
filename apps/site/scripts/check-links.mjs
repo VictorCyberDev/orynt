@@ -25,7 +25,7 @@ const idsOf = (file) => {
 // route table instead of dist/, so a renamed or removed route breaks this check.
 const appRoutes = (() => {
   const src = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../../web/src/App.tsx"), "utf8");
-  return new Set([...src.matchAll(/<Route path="([^"*]+)"/g)].map((m) => m[1].replace(/^\//, "")));
+  return new Set([...src.matchAll(/<Route\s+path="([^"*]+)"/g)].map((m) => m[1].replace(/^\//, "")));
 })();
 let checked = 0,
   external = 0,

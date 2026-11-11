@@ -12,11 +12,23 @@ import { dist, listPages } from "./_pages.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, "../../..");
 const read = (p) => readFileSync(join(repo, p), "utf8");
+// The checks below match code SHAPES (e.g. `OryntError("code", 402`). Prettier lays calls out over several lines with trailing commas, so source text is normalised
+// to a canonical single-line form before matching: whitespace collapsed, no space inside brackets, no trailing commas.
+const norm = (t) =>
+  t
+    .replace(/\s+/g, " ")
+    .replace(/([([{]) /g, "$1")
+    .replace(/ ([)\]}])/g, "$1")
+    .replace(/,([)\]}])/g, "$1");
+const readSrc = (p) => norm(read(p));
 const problems = [];
 const ok = [];
 const check = (cond, msg) => (cond ? ok.push(msg) : problems.push(msg));
 
-const routesSrc = read("packages/contract/src/routes.ts");
+// Prettier lays each route object out over several lines; the checks below were written against one-route-per-line, so normalise back to that shape.
+const routesSrc = read("packages/contract/src/routes.ts")
+  .replace(/\s+/g, " ")
+  .replace(/\{ id: "/g, '\n{ id: "');
 const routes = [...routesSrc.matchAll(/method: "(GET|POST|PUT|PATCH|DELETE)", path: "([^"]+)"/g)].map(
   (m) => ({ method: m[1], path: m[2] }),
 );
@@ -114,7 +126,7 @@ for (const m of allHtml.matchAll(/err\.code === &quot;([a-z_]+)&quot;|err\.code 
 
 // 6. contact form vs createLead
 const lead = routesSrc.split("\n").find((l) => l.includes('id: "createLead"')) ?? "";
-const leadBodyLine = routesSrc.split("\n")[routesSrc.split("\n").indexOf(lead) + 1] ?? "";
+const leadBodyLine = lead; // after normalisation the body is on the same line
 const leadKeys = [...leadBodyLine.matchAll(/(\w+): z\./g)].map((m) => m[1]);
 const js = readFileSync(join(dist, "js/site.js"), "utf8");
 for (const k of ["email", "name", "organization", "message", "consent", "source"]) {
@@ -182,7 +194,7 @@ else {
 }
 
 // 8. verifier CLI flags and exit codes shown on the page
-const cli = read("packages/verifier/src/cli.ts");
+const cli = readSrc("packages/verifier/src/cli.ts");
 for (const flag of ["--trust-key", "--expect-payment-hash", "--expect-amount-msat", "--expect-network"])
   check(cli.includes(flag), `verifier supports ${flag}`);
 check(
@@ -243,7 +255,7 @@ check(
   /is_hypothesis boolean NOT NULL DEFAULT true/.test(migSql),
   "plan rows are hypotheses by default (is_hypothesis)",
 );
-const entSrc = read("apps/api/src/services/entitlements.ts");
+const entSrc = readSrc("apps/api/src/services/entitlements.ts");
 check(
   /PAST_DUE_GRACE_DAYS = 7/.test(entSrc) && /7 days/.test(pricing),
   "pricing FAQ: 7-day past-due grace matches entitlements.ts",
@@ -290,7 +302,7 @@ const apiSrc = [
   "packages/core/src/index.ts",
 ]
   .filter((f) => existsSync(join(repo, f)))
-  .map(read)
+  .map(readSrc)
   .join("\n");
 const errRows = [
   ...help.matchAll(

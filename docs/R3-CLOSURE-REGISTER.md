@@ -1,99 +1,86 @@
 # R3 closure register
 
-*Authoritative checkpoint for the R3 mandate. Starting point: branch `claude/busy-goodall-ajeb0p` at `97a0951` (CI green: push run 42829777494, PR run 42829760498), draft PR #1. Statuses use only: VERIFIED COMPLETE · IMPLEMENTED, NOT COMMISSIONED · SIMULATOR-VERIFIED · PARTIAL · BLOCKED · FAILED · NOT STARTED. A row is not VERIFIED COMPLETE unless the functionality was tested in the environment named in its evidence column. **Resume rule:** the next session starts at the first row whose "Final acceptance" is not VERIFIED COMPLETE / agreed external gate.*
+*Authoritative resume point. Branch `claude/busy-goodall-ajeb0p`, draft PR #1; R3 started from `97a0951`. Statuses use only: VERIFIED COMPLETE · IMPLEMENTED, NOT COMMISSIONED · SIMULATOR-VERIFIED · PARTIAL · BLOCKED · FAILED · NOT STARTED. A row is not VERIFIED COMPLETE unless it was tested in the environment named in its evidence. Commit SHAs, counts and exit codes for each milestone are in `docs/OWNER-REPORT-R3.md`. **Resume rule:** continue from the first row whose "Final acceptance" is not "accepted" and is not an external gate.*
 
-*Last updated: 2026-11-11 (session start). Rows are updated in place as milestones land; commit SHAs are recorded in `docs/OWNER-REPORT-R3.md`.*
+Columns: **Req** acceptance requirement · **Now** current implementation · **Missing** · **Action** required next · **Deps** · **Status** · **Evidence** · **Final**.
 
-## Reconciled starting state (re-verified at the start of R3)
-| Claim in the R3 brief | Re-verified? |
+## 0. Starting state and repaired documentation
+| Item | Result |
 |---|---|
-| HEAD = 97a0951, push + PR CI green | **yes** — `gh run list`: runs 42829777494 / 42829760498 success on 97a0951 |
-| 15 real-LND, 102 integration, 138 E2E, 51 unit | counts re-run on 2026-11-10 in R2 (see `docs/EXECUTION-REGISTER.md`); re-run again at R3 close (Phase 10) |
-| PR #1 description | **stale and wrong** — still says real Lightning is unverified, 55 tests, E2E 100. Fixed in this milestone (see S-1) |
+| HEAD 97a0951, push + PR CI green | re-verified (`gh run list`) |
+| PR #1 title/body said real Lightning unverified, 55 tests, E2E 100 | **repaired** (title and body re-read after patching) |
+| `docs/ops/production-readiness.md` (MFA/e-mail/CI "NOT BUILT", real LND "NOT DONE") | **rewritten** |
+| `docs/product/product-spec.md`, differentiation review | corrected in R2 (BTCPay already binds approval to a revision) |
+| Dakar materials (R1 state, no real-regtest evidence) | **refreshed** from verified evidence (see §H) |
+| `docs/EXECUTION-REGISTER.md` | R3 rows and figures added at close |
 
-## A. Stale-documentation repairs (Phase 0)
-| ID | Item | Status | Evidence |
-|---|---|---|---|
-| S-1 | PR #1 title/body said real Lightning unverified | see `OWNER-REPORT-R3.md` for the commit; updated via `gh api -X PATCH repos/VictorCyberDev/orynt/pulls/1` | PR body re-read after patch |
-| S-2 | `docs/EXECUTION-REGISTER.md` | current for R2 numbers; R3 figures added at close | — |
-| S-3 | `docs/ops/production-readiness.md` still said MFA/e-mail verification/CI "NOT BUILT" and real LND "NOT DONE" | rewritten in this milestone | file diff |
-| S-4 | Dakar docs (R1 state) | delegated to the Dakar workstream, see section H | — |
-| S-5 | `docs/product/product-spec.md`, differentiation review | corrected in R2 (d7a2a15 / 81ed7a3) | — |
-
-## B. Operations application (Phase 1)
-| ID | Acceptance requirement | Current implementation (verified by reading code at 97a0951) | Missing | Required action | Depends on | Status | Test evidence | Final acceptance |
+## A. Operations application
+| ID | Req | Now | Missing | Action | Deps | Status | Evidence | Final |
 |---|---|---|---|---|---|---|---|---|
-| O-1 | Persistent onboarding checklist, each step derived from backend state, resumable, distinguishes practice/regtest/real | none (`grep -i onboard` finds nothing in api/web/contract) | everything | `GET /v1/onboarding` computing 13 steps from DB facts; web checklist page; environment banner | org, connection, policy, approval key, counterparty, obligation, receipt tables | NOT STARTED | — | open |
-| O-2 | Exception workbench: queue, severity, linked payout/state/approval/execution history, evidence timeline, last reconcile, safe actions, manual reconcile, assign, notes, resolution history, event log, evidence export | backend: `incidents`, `/v1/incidents/:id/{resolve,notes,assign}`, reconcile worker; UI `Incidents.tsx` is a 20-line list | incident detail endpoint with evidence timeline; manual reconcile action on incident; evidence export; workbench UI; unsafe-duplicate guard shown | add `GET /v1/incidents/:id`, evidence bundle export, UI page | incidents, payment_attempts, audit | NOT STARTED | `saas.itest` covers notes+assign only | open |
-| O-3 | Org administration: profile, invites, roles, removal, **ownership transfer**, session revocation, **MFA policy for privileged roles**, API-key lifecycle, policy mgmt, org audit, account/org closure, export, retention | invites, add/update/revoke member, API keys list/revoke, policies create/list, audit list, `POST /v1/me/close`, `GET /v1/export` | org profile edit, ownership transfer, org-level MFA enforcement, session list/revoke UI+API, org closure, retention controls | implement the missing set with regression tests | accounts.ts, handlers | NOT STARTED | — | open |
-| O-4 | Separate access-controlled internal support console with audited, scoped staff access; no secrets, no impersonation, no payment initiation | tenant-side tickets only; **no staff identity exists** | staff accounts (separate table, MFA mandatory), scoped read endpoints, audit of every staff read, ticket replies | implement `/v1/staff/*` + minimal staff UI | new migration | NOT STARTED | — | open |
-| O-5 | Product quality pass (no dead buttons/fake data, loading/empty/error states, keyboard, reduced motion, mobile) | E2E 138 checks incl. axe on 12 routes × 3 widths × 2 themes | not re-audited for new screens | audit every screen after the above lands | O-1…O-4 | PARTIAL | E2E 138 (2026-11-10) | open |
+| O-1 | Persistent onboarding; every step derived from backend state; resumable; distinguishes practice / regtest / real | `GET /v1/onboarding` (12 derived steps + finish), org profile, explicit audited decisions only for plan + policy, server refuses completion until all done; Start page + Overview prompt | a real e-mail and billing provider to complete steps 2 and 5 outside the sandbox | commission providers | owner | **SIMULATOR-VERIFIED**; regtest assertions on a real wallet | `onboarding.itest` (9), `lnd.itest`, E2E | accepted for the sandbox; real-provider steps BLOCKED |
+| O-2 | Exception workbench: queue, severity, linked payout, true payment state, approvals, attempts, evidence timeline, last reconcile, safe actions, manual reconcile, assign, notes, resolution, export, uncertain ≠ failed | `GET /v1/incidents/:id`, evidence export with integrity hash, notes/assign, reconcile action, UI page, `Investigate` link, notifications on open/resolve | per-incident event-log filter for webhook events; provider-callback hints are not shown | optional | – | **VERIFIED COMPLETE** (simulator) and on a real uncertain payment (regtest) | `workbench.itest` (4), `lnd.itest`, E2E + axe | accepted |
+| O-3 | Org admin: profile, invites, roles, removal, ownership transfer, session revocation, MFA policy, API-key lifecycle, policy mgmt, audit, account/org closure, export, retention | all present at API level: ownership transfer (password + step-up), session list/revoke, org 2FA policy, org closure (guard + 90-day retention), existing invite/remove/role/keys/policy/audit/export | **web UI for transfer, closure, sessions**; automatic purge after retention; API-key expiry; data deletion on request is manual | build screens; purge job | – | **PARTIAL** | `orgadmin.itest` (3), `security-r3.itest` | open |
+| O-4 | Separate support console; staff cannot read secrets, impersonate or pay; all activity logged | `/staff` page + API, separate identity, mandatory MFA + replay/lockout, reasoned org summary, ticket replies with customer notification, append-only audit | staff password change / MFA reset, browser E2E, independent review, hosting behind VPN | follow-up | – | **SIMULATOR-VERIFIED** | `staff.itest` (5) | open |
+| O-5 | Product quality pass | axe serious/critical 0 on every routed screen incl. the new ones, at 375/768/1440 px in light and dark; E2E 166 checks | new org-admin screens absent; no manual usability test, no screen-reader test | user study | participants | **PARTIAL** | E2E | open |
 
-## C. Wallet interoperability (Phase 2)
-| ID | Acceptance requirement | Current | Missing | Action | Status | Evidence | Final |
-|---|---|---|---|---|---|---|---|
-| W-1 | LND on regtest not broken | 15 real tests, real demo | — | keep in CI | VERIFIED COMPLETE (regtest) | `lnd.itest` | accepted; re-run at close |
-| W-2 | NWC (NIP-47) adapter, official spec, operationally verified where possible | none | adapter, fake relay/service contract tests, integration into `providers.ts`, UI | delegated workstream; integration by me | IN PROGRESS (agent) → expected IMPLEMENTED, NOT COMMISSIONED | will be: contract tests vs local fake; **no real NWC wallet reachable** | open |
-| W-3 | BTCPay adapter against official APIs; document differences | none | adapter + facts about what Greenfield exposes | delegated workstream | IN PROGRESS (agent) | contract tests vs fixtures; **no BTCPay instance available** | open |
-| W-4 | Core Lightning evaluation | none | decision record | `docs/product/core-lightning-decision.md` | NOT STARTED | — | open |
-| W-5 | Per-adapter capability matrix, typed contract, fixtures, error classification, secret handling, docs | LND only | other providers | update `wallet-capability-matrix.md` when W-2/W-3 land | PARTIAL | — | open |
+## B. Wallet interoperability
+| ID | Req | Now | Missing | Action | Deps | Status | Evidence | Final |
+|---|---|---|---|---|---|---|---|---|
+| W-1 | LND not broken | 15 real tests + `demo:full`; stricter NOT_FOUND, connect-time DNS vetting, lookup gate | testnet / mainnet never run | owner decision | – | **VERIFIED COMPLETE** (regtest) | `lnd.itest` 15/15, `docs/evidence/real-lightning-test-2026-11-11.txt` | accepted |
+| W-2 | NWC per NIP-47 | `packages/wallets/src/nwc` (strict URI, BIP-340/NIP-44/NIP-04, kind 13194/23194/23195, authenticity checks, error classification, `lookup_invoice` reconciliation) | wiring into the API (`providers.ts`, config shape, receipt provider kind); operational test with a real wallet service | owner supplies a throwaway NWC wallet; then wire | real NWC wallet | **IMPLEMENTED, NOT COMMISSIONED** (contract-tested vs local fake; BIP-340/NIP-44 spec vectors pass) | `packages/wallets` 203 NWC tests, `docs/product/nwc-adapter.md` | open |
+| W-3 | BTCPay per current APIs; document differences | `packages/wallets/src/btcpay` (pay → existing-payment check → lookup; 503/timeout = unknown; permission probes) | wiring; real BTCPay run (needs Docker/.NET + bitcoind + LN backend); `trustAbsenceOfPayment` operator attestation | owner runs the documented regtest procedure | Docker host | **IMPLEMENTED, NOT COMMISSIONED** (54 contract tests vs a documentation-derived fake) | `docs/product/btcpay-adapter.md` | open; verdict "not recommended as supported yet" |
+| W-4 | Evaluate Core Lightning | – | evaluation | decision doc | – | **NOT STARTED** (deferred to protect scope) | – | open |
+| W-5 | Per-adapter matrix, fixtures, errors, secrets, limits | matrix updated: LND verified (regtest); NWC/BTCPay contract-only; CLN none | – | – | – | **PARTIAL** | `docs/product/wallet-capability-matrix.md` | accepted as honest |
+| W-6 | (found) `can_lookup` unenforced | execute refuses `can_lookup=false`; non-LND providers need `true` | – | – | – | **VERIFIED COMPLETE** | `lnd.itest`, full integration | accepted |
 
-## D. Email (Phase 3)
-| ID | Requirement | Current | Missing | Action | Status | Evidence | Final |
-|---|---|---|---|---|---|---|---|
-| E-1 | Durable queue, retry/backoff, no duplicate send under concurrent pumps | `mail_outbox` + `pumpMail`: **`FOR UPDATE SKIP LOCKED` runs outside a transaction, so the row lock is released immediately — two pumps can send the same mail**; flat retry (no backoff); Resend URL hard-coded | claim/lease semantics, exponential backoff, configurable provider base URL for tests | fix + regression tests | NOT STARTED | — | open |
-| E-2 | Templates for 9 mail kinds (verify, reset, invite, security notice, approval request, payment exception, incident resolution, billing, support ack) | verify, reset, invite, payment_failed, ticket-related partially | approval-request, exception, incident-resolved, security notice, support ack, billing notices | templates + triggers | NOT STARTED | — | open |
-| E-3 | Provider abstraction (Resend, plus one more), delivery-status webhook with signature verification, rate limit | log + resend only; no webhook | provider interface, Resend/Svix webhook verification, per-recipient rate limit | implement; verify against a controlled local HTTP test service | NOT STARTED | — | open |
-| E-4 | Final status distinguishing code-complete / sandbox-verified / real delivery verified / production sending commissioned | — | — | will report: **code complete + verified against a local controlled service only**; real delivery requires owner's domain + key | NOT STARTED | — | external gate |
+## C. E-mail
+| ID | Req | Now | Missing | Action | Deps | Status | Evidence | Final |
+|---|---|---|---|---|---|---|---|---|
+| E-1 | Durable queue; retry/backoff; no double send | lease-based claiming, exponential backoff, 8 attempts, redaction | – | – | – | **VERIFIED COMPLETE** (local) | `mail.itest` incl. mutation check (lease removed → 22 sends instead of 12) | accepted |
+| E-2 | Templates: verify, reset, invite, security, approval request, exception, resolution, billing, support ack/reply | all nine kinds with triggers (verify, reset, invite, password-changed, security notices, approval request, payment exception, incident resolved, billing notices, support ack, support reply) | HTML templates, localisation | – | – | **SIMULATOR-VERIFIED** | `mail.itest`, `saas.itest`, `staff.itest` | accepted |
+| E-3 | Provider abstraction; delivery-status webhook; rate limiting | `log`, `resend`, `brevo`; Svix-signature verification; per-recipient hourly caps | provider accounts, sending domain (SPF/DKIM/DMARC), webhook endpoint registration | commission | **owner: domain + key** | **IMPLEMENTED, NOT COMMISSIONED** | `mail.itest` against a local Resend/Brevo-shaped service | external gate |
+| E-4 | State | code complete · provider sandbox **not** verified · real delivery **not** verified · production sending **not** commissioned | – | – | owner | – | – | – |
 
-## E. Billing (Phase 4)
-| ID | Requirement | Current | Missing | Action | Status | Evidence | Final |
-|---|---|---|---|---|---|---|---|
-| B-1 | Provider decision from verified facts, not desk preference | desk evaluation recommends Polar conditional on support answers | owner's entity/jurisdiction facts; provider support answers | decision record + owner gate | BLOCKED (external) | `billing-provider-evaluation.md` | owner decision |
-| B-2 | Journeys: checkout, activation, renewal, failed renewal, upgrade, downgrade, cancel, expiry, invoices, portal, refunds, reconcile, replay, out-of-order | checkout (sandbox + Stripe/Paystack session creation unexercised), activation, cancel, past_due, stale/duplicate handling, free-plan fallback | upgrade/downgrade endpoints, portal URL, invoice list, expiry sweep, refund handling, provider reconciliation job | implement on provider abstraction; test against sandbox provider | NOT STARTED | — | open |
-| B-3 | Sandbox acceptance against the provider's real sandbox with authorized credentials | none possible without credentials | credentials | document exact missing credentials; **never claim paid acceptance from locally signed webhooks** | BLOCKED (external) | — | external gate |
-| B-4 | Billing and wallet commissioning are separate gates | plan limits don't enable mainnet; mainnet disabled | explicit test + doc | add test that a paid plan cannot enable mainnet | NOT STARTED | — | open |
+## D. Billing
+| ID | Req | Now | Missing | Action | Deps | Status | Evidence | Final |
+|---|---|---|---|---|---|---|---|---|
+| B-1 | Provider decision from verified facts | desk evaluation (Polar conditional); no decision | entity/jurisdiction facts; provider answers on crypto-adjacent software | owner | **owner** | **BLOCKED** | `billing-provider-evaluation.md` | external gate |
+| B-2 | Journeys: checkout, activation, renewal, failure, upgrade, downgrade, cancel, expiry, invoices, portal, refunds, reconciliation, replay, ordering | all except refunds and provider invoices: change-plan with downgrade guard, portal (Stripe, unverified), history, past-due grace, expiry sweep, duplicate/stale/late-event handling | refund handling; provider invoice retrieval; provider reconciliation job | with an account | provider | **SIMULATOR-VERIFIED** | `saas.itest`, `billing-journeys.itest` (6) | open |
+| B-3 | Sandbox acceptance against the provider's real sandbox | none possible | credentials | exact list in the owner report | provider | **BLOCKED** | – | external gate |
+| B-4 | Billing ≠ wallet commissioning | no mainnet/real-funds entitlement; mainnet is a server setting | – | – | – | **VERIFIED COMPLETE** | `billing-journeys.itest` | accepted |
+| B-5 | (security) activation only for a plan the org started to buy | pending-checkout rule, paid-status check, late-event guard | Paystack verify-API call | follow-up | – | **VERIFIED COMPLETE** (sandbox) | `saas.itest` | accepted |
 
-## F. Infrastructure (Phase 5)
-| ID | Requirement | Current | Missing | Action | Status | Evidence | Final |
-|---|---|---|---|---|---|---|---|
-| I-1 | Deployable stack: API + worker + web + site + Postgres, health checks, migrations, backups/restore, rollback, resource limits | Dockerfile verified on CI; `infra/docker-compose.yml` is a dev template with **no worker service, dev secrets, failpoints on**; `infra/deploy/{fly.toml,render.yaml}` unverified; restore rehearsal exists | production compose, worker service, secrets handling, backup script + restore drill, rollback doc, compose smoke test in CI | build `infra/production/` + CI smoke | NOT STARTED | — | open (Docker daemon unavailable locally → CI-verified only) |
-| I-2 | Public staging URL | none | owner approval for paid host | package only | BLOCKED (external) | — | external gate |
-| I-3 | Monitoring / alerting / error tracking | `/metrics`-style counters exist; no wiring | alert rules doc, structured log shape, optional error-tracker hook | document + minimal wiring | NOT STARTED | — | open |
+## E. Infrastructure
+| ID | Req | Now | Missing | Action | Deps | Status | Evidence | Final |
+|---|---|---|---|---|---|---|---|---|
+| I-1 | Deployable, repeatable, TLS, secrets, health, backups, restore, rollback, limits | `infra/production` (Caddy TLS → API+worker → PostgreSQL, limits, read-only fs), backup + restore-check scripts, README with limits; boot guard; CI builds image, migrates a fresh DB, serves health, refuses placeholder config, validates the compose file | the production compose stack has never been started (no Docker daemon here); no PITR/HA; no log shipping or alert routing; single instance only | stand up staging | **owner: paid host** | **IMPLEMENTED, NOT COMMISSIONED** | GitHub CI `docker` job; `pnpm restore:rehearsal` (local) | external gate |
+| I-2 | Public staging URL | none | – | – | owner | **BLOCKED** | – | external gate |
+| I-3 | Monitoring/alerting/error tracking | metrics + alert rules documented | wiring | – | owner | **NOT STARTED** (documented only) | `infra/production/README.md` | open |
 
-## G. Security (Phase 6)
-| ID | Requirement | Status | Evidence / note |
-|---|---|---|---|
-| X-1 | Independent AI review pass over the 20 focus areas | IN PROGRESS (read-only reviewer agent) | findings → fixes with regression tests; labelled AI-assisted, not a pentest |
-| X-2 | MFA enforcement: API-key actors, batch execute, schedule fulfil | NOT STARTED | verify the `mfaRequiredAndValid` call sites cover every approving/executing path (reviewer to confirm) |
-| X-3 | Browser-held approval keys | NOT STARTED (design limitation) | document; WebAuthn is a future item |
-| X-4 | Human security audit, jurisdictional legal review | BLOCKED (external) | owner commissioning |
+## F. Security
+| ID | Req | Now | Status | Evidence | Final |
+|---|---|---|---|---|---|
+| X-1 | Independent review pass over the 20 focus areas | AI-assisted reviewer agent; dispositions in `docs/security/threat-model-r3-review.md` (H1, M1, M2, M4, M6, M8, M10, L7, L8, L12 fixed; H2, M3, M7, M9, L11 partial; M5 + several Low open) | **PARTIAL** | `security-r3.itest` (13), others | open items listed |
+| X-2 | MFA enforcement coverage | unified step-up, org policy | **VERIFIED COMPLETE** (simulator) | `security-r3.itest` | accepted |
+| X-3 | Browser-held approval keys | unchanged (WebAuthn not started) | **PARTIAL** | – | open |
+| X-4 | Human audit; jurisdictional legal review | – | **BLOCKED** | – | external gate |
 
-## H. Dakar (Phase 7)
-| ID | Requirement | Status |
-|---|---|---|
-| D-1 | Re-verify official rules/deadline/wallet requirement; organizer inquiry (not sent) | IN PROGRESS (agent) |
-| D-2 | Devpost text, README, architecture diagram, real-regtest runbook, evidence index, captions, deck, 3-min video | IN PROGRESS (agent); video only if tooling allows, else honest "not produced" |
-| D-3 | Submission | NOT SUBMITTED — requires explicit owner authorization |
-
-## I. Customer validation (Phase 8)
-| ID | Requirement | Status |
-|---|---|---|
-| C-1 | Prospect research with sources | PARTIAL — R2 list (30 orgs, desk research); needs refinement to Bitcoin-payout operators |
-| C-2 | Interview guide | exists (`docs/business/interview-guide.md`); recruitment plan exists |
-| C-3 | Outreach | drafts only (IN PROGRESS, agent); **nothing sent** — sending from the owner's identity requires explicit authorization |
-| C-4 | Funnel counters | prospects researched = 30; contacted = 0; replies = 0; interviews = 0; pilots = 0; activated orgs = 0; paying customers = 0; revenue = 0 |
-
-## J. Acceptance journeys A–G (Phase 9) and gates (Phase 10)
-| Journey | Status now |
+## G. Quality gates (Phase 10)
+| Gate | Result |
 |---|---|
-| A acquisition (needs real e-mail + provider sandbox) | PARTIAL — simulator/outbox only |
-| B financial onboarding (real regtest) | PARTIAL — real execution proven; onboarding checklist absent |
-| C exception handling (real regtest) | PARTIAL — real UNKNOWN→reconcile proven by `lnd.itest`/`demo:full`; no workbench UI/export |
-| D org operations | PARTIAL — no MFA policy enforcement / ownership transfer |
-| E subscription ops | SIMULATOR-VERIFIED only |
-| F reliability (restart, restore) | PARTIAL — restore rehearsal PASSED (R1/R2 local), worker restart not asserted in a deployed stack |
-| G support | PARTIAL — no staff console, no reply notification |
-| Gate: formatting (prettier) | NOT STARTED — `.prettierrc.json` exists, **no CI gate; repo may not be formatted** |
-| Gates: lint, typecheck, unit, integration, real-regtest, E2E, container, secret scan, audit | VERIFIED COMPLETE at 97a0951 (hosted CI) |
-| Gates: dedicated accessibility job, email integration, authorization-regression, migration validation | partly inside `verify`/E2E; separate gates NOT STARTED |
+| lint · typecheck · **format (new)** · unit · dependency audit · container build · secret scan · real-regtest · E2E + axe | all run locally at the final commit and on hosted CI (see OWNER-REPORT-R3 §15) |
+| PostgreSQL integration incl. migration up/down | included |
+| Dedicated "email integration" / "billing" / "authorization-regression" jobs | covered by files in the single integration job (`mail`, `saas`, `billing-journeys`, `security-r3`, `security`); not separate CI jobs |
+| Skipped tests | wallets package: 2 skipped = opt-in operational NWC test (needs `ORYNT_NWC_URI`); integration job on hosted CI skips nothing; the `verify` job skips the real-LND file (it runs in the `real-lightning` job) |
+
+## H. Dakar, customer validation
+| ID | Result |
+|---|---|
+| D-1 | Rules re-verified 2026-11-11: deadline **20 Nov 2026 20:00 UTC** unchanged; **eligibility is a hard gate** (an organiser forum reply says "strictly for students"; the Rules page says "reside in Africa"); wallet requirement still unanswered → `docs/hackathon/organizer-inquiry.md` drafted, **not sent** |
+| D-2 | Devpost text, README, architecture diagram (SVG+PNG), real-regtest runbook, evidence index, captions, 12-slide deck (PDF), 179-second **silent captioned** video with source-tagged scenes — **no voice-over** |
+| D-3 | **NOT SUBMITTED.** Judges opening the repo see an empty `main` (all work is on the branch / PR) — owner decision |
+| C-1…3 | 30 organisations researched, 8 re-verified against live pages, 6 with a sourced public contact route, 8 personalised drafts — **nothing sent** |
+| C-4 | contacted 0 · replies 0 · interviews 0 · pilots 0 · activated orgs 0 · paying customers 0 · revenue 0 · retention n/a · **product-market fit NOT VALIDATED** (`docs/business/validation-scorecard.md`) |
+
+## I. Journeys A–G
+See `docs/ACCEPTANCE-JOURNEYS-R3.md`. B and C are VERIFIED COMPLETE on regtest; A, D, E, G are SIMULATOR-VERIFIED with real-provider steps BLOCKED; F is PARTIAL.

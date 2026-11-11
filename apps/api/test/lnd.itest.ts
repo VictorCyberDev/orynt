@@ -186,6 +186,17 @@ d("Orynt end-to-end on a REAL Lightning payment (regtest)", () => {
         { trustedKeys: await trust() },
       ).verdict,
     ).toBe("REJECTED");
+    // Journey B: the onboarding checklist reflects REAL state — a real wallet on regtest, a real settlement, a REAL_PROVIDER receipt
+    const onb = (await c.call("GET", "/v1/onboarding", owner)).body;
+    expect(onb.environment.mode).toBe("regtest");
+    const done = (id: string) => onb.steps.find((x: { id: string }) => x.id === id);
+    expect(
+      done("wallet").done &&
+        done("capabilities").done &&
+        done("first_payout").done &&
+        done("settlement").done,
+    ).toBe(true);
+    expect(done("settlement").detail).toMatch(/real wallet provider on regtest/);
   });
   it("response lost AFTER LND accepted the payment → UNKNOWN → second send refused → reconcile settles; LND shows exactly ONE payment", async () => {
     const { id, inv } = await payout(41_000);
@@ -206,6 +217,24 @@ d("Orynt end-to-end on a REAL Lightning payment (regtest)", () => {
       tlsCertPem: readFileSync(reg.alice.tlsCertPath, "utf8"),
     }).lookupPayment(inv.paymentHash);
     expect(paid.status).toBe("SUCCEEDED");
+    // Journey C: the workbench tells the truth about this REAL uncertain payment and exports integrity-hashed evidence
+    const inc = (await c.call("GET", "/v1/incidents", owner)).body.data.find(
+      (i: { obligation_id: string }) => i.obligation_id === id,
+    );
+    expect(inc.status).toBe("resolved");
+    const wb = (await c.call("GET", `/v1/incidents/${inc.id}`, owner)).body;
+    expect(wb.payment_truth).toMatchObject({ state: "SETTLED", second_payment_blocked: false });
+    // the attempt row now shows its FINAL outcome; the uncertain moment is preserved in the incident and the timeline
+    expect(wb.incident.kind).toBe("unknown_outcome");
+    expect(
+      wb.timeline.some(
+        (t: { source: string; title: string }) => t.source === "incident" && /Incident opened/.test(t.title),
+      ),
+    ).toBe(true);
+    expect(wb.attempts.at(-1).outcome).toBe("SUCCEEDED");
+    expect(wb.reconciliation_runs.length).toBeGreaterThanOrEqual(1);
+    const ev = (await c.call("GET", `/v1/incidents/${inc.id}/evidence`, owner)).body;
+    expect(ev.integrity.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
   it("insufficient liquidity is a PROVEN failure reported by LND, not a guess", async () => {
     await c.call("POST", "/v1/policies", owner, {
