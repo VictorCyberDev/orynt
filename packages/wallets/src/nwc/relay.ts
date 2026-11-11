@@ -12,6 +12,16 @@ export interface RelaySocketOptions {
 
 export type RelayMessage = unknown[];
 
+/** protocol + host only: relay URLs may carry access tokens in their path or query, which must not reach logs. */
+export function relayLabel(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return "relay";
+  }
+}
+
 export class RelaySocket {
   private ws: WebSocket | null = null;
   private _closed = false;

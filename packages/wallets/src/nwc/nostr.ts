@@ -56,9 +56,22 @@ export function computeEventId(e: UnsignedEvent): string {
   return bytesToHex(sha256(utf8ToBytes(serializeEvent(e))));
 }
 
+/** BIP-340 Schnorr over a 32-byte message. `aux` is the optional 32-byte auxiliary randomness (random when omitted). */
+export function schnorrSign(message: Uint8Array, secretKey: Uint8Array, aux?: Uint8Array): Uint8Array {
+  return schnorr.sign(message, secretKey, aux);
+}
+/** BIP-340 verification; false (never throws) for any malformed input. */
+export function schnorrVerify(signature: Uint8Array, message: Uint8Array, xOnlyPubkey: Uint8Array): boolean {
+  try {
+    return schnorr.verify(signature, message, xOnlyPubkey);
+  } catch {
+    return false;
+  }
+}
+
 export function signEvent(e: UnsignedEvent, secretKey: Uint8Array): NostrEvent {
   const id = computeEventId(e);
-  const sig = bytesToHex(schnorr.sign(hexToBytes(id), secretKey));
+  const sig = bytesToHex(schnorrSign(hexToBytes(id), secretKey));
   return { ...e, id, sig };
 }
 
@@ -86,7 +99,7 @@ export function parseEventShape(v: unknown): NostrEvent | null {
 export function verifyEventSignature(e: NostrEvent): boolean {
   try {
     if (computeEventId(e) !== e.id) return false;
-    return schnorr.verify(hexToBytes(e.sig), hexToBytes(e.id), hexToBytes(e.pubkey));
+    return schnorrVerify(hexToBytes(e.sig), hexToBytes(e.id), hexToBytes(e.pubkey));
   } catch {
     return false;
   }

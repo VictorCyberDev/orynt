@@ -14,7 +14,7 @@ import { randomBytes, bytesToHex } from "@noble/hashes/utils.js";
 import { decryptPayload, encryptPayload, type EncryptionScheme } from "./encryption";
 import { NwcNotSentError, NwcRelayUnavailableError } from "./errors";
 import { KIND_INFO, KIND_REQUEST, KIND_RESPONSE, isExpired, parseEventShape, signEvent, tagValues, verifyEventSignature, type NostrEvent } from "./nostr";
-import { RelaySocket } from "./relay";
+import { RelaySocket, relayLabel } from "./relay";
 import { unsafeRevealSecret, type RedactedSecret } from "./secret";
 import { OutcomeUnknownError } from "../types";
 
@@ -140,13 +140,13 @@ export class NwcClient {
           };
           s.onMessage = (m) => {
             if (m[1] !== subId) return;
-            if (m[0] === "EVENT") consider(s.url, m[2]);
+            if (m[0] === "EVENT") consider(relayLabel(s.url), m[2]);
             else if (m[0] === "EOSE") { eose++; finish(); }
-            else if (m[0] === "CLOSED") { this.o.onDiagnostic({ type: "relay_failed", relay: s.url, reason: "subscription closed by relay" }); finish(); }
+            else if (m[0] === "CLOSED") { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: "subscription closed by relay" }); finish(); }
           };
           s.onClose = () => finish();
           s.open().then(() => { connected++; return s.send(["REQ", subId, { kinds: [KIND_INFO], authors: [this.o.walletPubkey], limit: 1 }]); })
-            .catch((e: Error) => { this.o.onDiagnostic({ type: "relay_failed", relay: s.url, reason: e.message }); finish(); });
+            .catch((e: Error) => { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: e.message }); finish(); });
         }
       });
     } finally {
@@ -265,20 +265,20 @@ export class NwcClient {
       for (const st of states) {
         const s = st.sock;
         s.onMessage = (m) => {
-          if (m[0] === "EVENT" && m[1] === subId) handleResponse(s.url, m[2]);
+          if (m[0] === "EVENT" && m[1] === subId) handleResponse(relayLabel(s.url), m[2]);
           else if (m[0] === "EOSE" && m[1] === subId) { st.ready = true; st.settled = true; checkPhase(); }
-          else if (m[0] === "CLOSED" && m[1] === subId) { this.o.onDiagnostic({ type: "relay_failed", relay: s.url, reason: "subscription closed by relay" }); st.ready = false; st.settled = true; checkPhase(); }
+          else if (m[0] === "CLOSED" && m[1] === subId) { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: "subscription closed by relay" }); st.ready = false; st.settled = true; checkPhase(); }
           else if (m[0] === "OK" && m[1] === request.id) {
             const accepted = m[2] === true;
             const message = typeof m[3] === "string" ? m[3].slice(0, 200) : "";
-            this.o.onDiagnostic({ type: "publish_ack", relay: s.url, accepted, message });
+            this.o.onDiagnostic({ type: "publish_ack", relay: relayLabel(s.url), accepted, message });
             if (accepted) st.ack = "accepted";
             else st.ack = DEFINITIVE_REJECT_PREFIXES.some((p) => message.startsWith(`${p}:`)) ? "rejected_definitive" : "rejected_other";
             evaluate();
           }
         };
         s.onClose = (why) => {
-          this.o.onDiagnostic({ type: "relay_failed", relay: s.url, reason: why });
+          this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: why });
           st.ready = false;
           st.settled = true;
           if (!published) checkPhase(); else evaluate();
@@ -286,7 +286,7 @@ export class NwcClient {
         s.open()
           .then(() => s.send(["REQ", subId, filter]))
           .catch((e: Error) => {
-            this.o.onDiagnostic({ type: "relay_failed", relay: s.url, reason: e.message });
+            this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: e.message });
             st.settled = true;
             checkPhase();
           });

@@ -14,6 +14,7 @@ import {
 import { NwcClient, type NwcDiagnostic, type NwcInfo, type NwcResponse } from "./client";
 import type { EncryptionScheme } from "./encryption";
 import { NwcNetworkError, NwcNotSentError, NwcRelayUnavailableError, sanitizeRemoteText } from "./errors";
+import { relayLabel } from "./relay";
 import { parseNwcUri, type NwcConnection } from "./uri";
 
 export interface NwcConfig {
@@ -152,7 +153,7 @@ export class NwcProvider implements WalletProvider {
   }
 
   toJSON(): Record<string, unknown> {
-    return { kind: this.kind, walletServicePubkey: this.conn.walletPubkey, clientPubkey: this.conn.clientPubkey, relays: this.conn.relays, closed: this._closed };
+    return { kind: this.kind, walletServicePubkey: this.conn.walletPubkey, clientPubkey: this.conn.clientPubkey, relays: this.conn.relays.map(relayLabel), closed: this._closed };
   }
   [inspect.custom](): string {
     return `NwcProvider(${JSON.stringify(this.toJSON())})`;

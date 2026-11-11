@@ -1,0 +1,371 @@
+{
+  "_source": "https://docs.btcpayserver.org/API/Greenfield/v1/swagger.json",
+  "_retrieved": "2026-11-11",
+  "_note": "Verbatim excerpt of components.schemas from the official BTCPay Greenfield swagger, used only to check that this repo's test fixtures and request bodies conform to the documented shapes. It is NOT a recording of a real server.",
+  "schemas": {
+    "PayLightningInvoiceRequest": {
+      "type": "object",
+      "properties": {
+        "BOLT11": {
+          "type": "string",
+          "description": "The BOLT11 of the invoice to pay"
+        },
+        "amount": {
+          "type": "string",
+          "minimum": 0,
+          "description": "Optional explicit payment amount in millisatoshi (if specified, it overrides the BOLT11 amount)",
+          "nullable": true
+        },
+        "maxFeePercent": {
+          "type": "string",
+          "format": "float",
+          "minimum": 0,
+          "nullable": true,
+          "description": "The fee limit expressed as a percentage of the payment amount",
+          "example": "6.15"
+        },
+        "maxFeeFlat": {
+          "type": "string",
+          "minimum": 0,
+          "nullable": true,
+          "description": "The fee limit expressed as a fixed amount in satoshi",
+          "example": "21"
+        },
+        "sendTimeout": {
+          "type": "number",
+          "nullable": true,
+          "example": 30,
+          "default": 30,
+          "description": "The number of seconds after which the payment times out",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/TimeSpanSeconds"
+            }
+          ]
+        }
+      }
+    },
+    "LightningPaymentData": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The payment's ID"
+        },
+        "status": {
+          "$ref": "#/components/schemas/LightningPaymentStatus"
+        },
+        "BOLT11": {
+          "type": "string",
+          "description": "The BOLT11 representation of the payment",
+          "nullable": false
+        },
+        "paymentHash": {
+          "type": "string",
+          "description": "The payment hash",
+          "nullable": false
+        },
+        "preimage": {
+          "type": "string",
+          "description": "The payment preimage (available when status is complete)"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "The unix timestamp when the payment got created",
+          "nullable": true,
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/UnixTimestamp"
+            }
+          ]
+        },
+        "totalAmount": {
+          "type": "string",
+          "description": "The total amount (including fees) in millisatoshi"
+        },
+        "feeAmount": {
+          "type": "string",
+          "description": "The total fees in millisatoshi"
+        }
+      }
+    },
+    "LightningPaymentStatus": {
+      "type": "string",
+      "description": "",
+      "x-enumNames": [
+        "Complete",
+        "Failed",
+        "Pending",
+        "Unknown"
+      ],
+      "enum": [
+        "Complete",
+        "Failed",
+        "Pending",
+        "Unknown"
+      ]
+    },
+    "LightningNodeInformationData": {
+      "type": "object",
+      "properties": {
+        "nodeURIs": {
+          "type": "array",
+          "description": "Node URIs to connect to this node in the form `pubkey@endpoint[:port]`",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockHeight": {
+          "type": "integer",
+          "description": "The block height of the lightning node"
+        },
+        "alias": {
+          "type": "string",
+          "nullable": true,
+          "description": "The alias of the lightning node"
+        },
+        "color": {
+          "type": "string",
+          "nullable": true,
+          "description": "The color attribute of the lightning node"
+        },
+        "version": {
+          "type": "string",
+          "nullable": true,
+          "description": "The version name of the lightning node"
+        },
+        "peersCount": {
+          "type": "integer",
+          "nullable": true,
+          "description": "The number of peers"
+        },
+        "activeChannelsCount": {
+          "type": "integer",
+          "nullable": true,
+          "description": "The number of active channels"
+        },
+        "inactiveChannelsCount": {
+          "type": "integer",
+          "nullable": true,
+          "description": "The number of inactive channels"
+        },
+        "pendingChannelsCount": {
+          "type": "integer",
+          "nullable": true,
+          "description": "The number of pending channels"
+        }
+      }
+    },
+    "ApiKeyData": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The ID of the API Key, used to revoke it without sending the secret",
+          "nullable": false
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "The API Key to use for API Key Authentication",
+          "nullable": false
+        },
+        "label": {
+          "type": "string",
+          "description": "The label given by the user to this API Key",
+          "nullable": false
+        },
+        "created": {
+          "type": "integer",
+          "format": "unix-time",
+          "description": "Timestamp when the API Key was created. (null if created before 2.4.4)",
+          "example": 1710598234,
+          "nullable": true
+        },
+        "permissions": {
+          "type": "array",
+          "description": "The permissions associated to this API Key (can be scoped to a specific store)",
+          "nullable": false,
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "btcpay.server.canmanageusers",
+            "btcpay.server.canmanageusers:2KxSpc9V5zDWfUbvgYiZuAfka4wUhGF96F75Ao8y4zHP"
+          ]
+        }
+      }
+    },
+    "ProblemDetails": {
+      "type": "object",
+      "description": "Description of an error happening during processing of the request",
+      "properties": {
+        "code": {
+          "type": "string",
+          "nullable": false,
+          "description": "An error code describing the error"
+        },
+        "message": {
+          "type": "string",
+          "nullable": false,
+          "description": "User friendly error message about the error"
+        }
+      }
+    },
+    "ValidationProblemDetails": {
+      "type": "array",
+      "description": "An array of validation errors of the request",
+      "items": {
+        "type": "object",
+        "description": "A specific validation error on a json property",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": false,
+            "description": "The json path of the property which failed validation"
+          },
+          "message": {
+            "type": "string",
+            "nullable": false,
+            "description": "User friendly error message about the validation"
+          }
+        }
+      }
+    },
+    "LightningInvoiceData": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The invoice's ID"
+        },
+        "status": {
+          "$ref": "#/components/schemas/LightningInvoiceStatus"
+        },
+        "BOLT11": {
+          "type": "string",
+          "description": "The BOLT11 representation of the invoice",
+          "nullable": false
+        },
+        "paidAt": {
+          "type": "number",
+          "description": "The unix timestamp when the invoice got paid",
+          "nullable": true,
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/UnixTimestamp"
+            }
+          ]
+        },
+        "expiresAt": {
+          "description": "The unix timestamp when the invoice expires",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/UnixTimestamp"
+            }
+          ]
+        },
+        "amount": {
+          "type": "string",
+          "description": "The amount of the invoice in millisatoshi"
+        },
+        "amountReceived": {
+          "type": "string",
+          "description": "The amount received in millisatoshi"
+        },
+        "paymentHash": {
+          "type": "string",
+          "description": "The payment hash"
+        },
+        "preimage": {
+          "type": "string",
+          "nullable": true,
+          "description": "The payment preimage (available when status is complete)"
+        },
+        "customRecords": {
+          "type": "object",
+          "nullable": true,
+          "description": "The custom TLV records attached to a keysend payment"
+        }
+      }
+    },
+    "CreateLightningInvoiceRequest": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "string",
+          "description": "Amount wrapped in a string, represented in a millisatoshi string. (1000 millisatoshi = 1 satoshi)",
+          "nullable": false
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "description": "Description of the invoice in the BOLT11"
+        },
+        "descriptionHashOnly": {
+          "type": "boolean",
+          "nullable": true,
+          "default": false,
+          "description": "If `descriptionHashOnly` is `true` (default is `false`), then the BOLT11 returned contains a hash of the `description`, rather than the `description`, itself. This allows for much longer descriptions, but they must be communicated via some other mechanism."
+        },
+        "expiry": {
+          "description": "Expiration time in seconds",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/TimeSpanSeconds"
+            }
+          ]
+        },
+        "privateRouteHints": {
+          "type": "boolean",
+          "nullable": true,
+          "default": false,
+          "description": "True if the invoice should include private route hints"
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/stores/{storeId}/lightning/{cryptoCode}/invoices/pay": {
+      "post": {
+        "description": "Pay a lightning invoice. In case the payment response times out, the status will be reported as pending and the final status can be resolved using the [Get payment](#operation/StoreLightningNodeApi_GetPayment) endpoint. The default wait time for payment responses is 30 seconds \u2014 it might take longer if multiple routes are tried or a hold invoice is getting paid.",
+        "responses": {
+          "200": "Successfully paid",
+          "202": "Payment initiated",
+          "422": "Unable to validate the request",
+          "400": "Well-known error codes are: `could-not-find-route`, `generic-error`",
+          "503": "Unable to access the lightning node",
+          "404": "The lightning node configuration was not found"
+        },
+        "security": [
+          {
+            "API_Key": [
+              "btcpay.store.cancreatelightninginvoice"
+            ],
+            "Basic": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stores/{storeId}/lightning/{cryptoCode}/payments/{paymentHash}": {
+      "get": {
+        "description": "View information about the requested lightning payment",
+        "responses": {
+          "200": "Lightning payment data",
+          "503": "Unable to access the lightning node",
+          "404": "The lightning node configuration or the specified invoice was not found "
+        },
+        "security": [
+          {
+            "API_Key": [
+              "btcpay.store.canuselightningnode"
+            ],
+            "Basic": []
+          }
+        ]
+      }
+    }
+  }
+}
