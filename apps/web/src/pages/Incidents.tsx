@@ -14,7 +14,7 @@ export function Incidents() {
       {l.data?.data.length ? <Card><ul className="queue">{l.data.data.map((i) => (
         <li key={i.id}><Badge tone={i.status === "resolved" ? "ok" : i.severity === "critical" ? "danger" : "unknown"}>{i.status === "resolved" ? "Resolved" : i.severity}</Badge>
           <div><strong>{i.summary}</strong><p className="muted">{i.kind.replace(/_/g, " ")} · opened {ago(i.opened_at)}{i.resolution ? ` · ${i.resolution}` : ""}</p></div>
-          {i.obligation_id ? <Link className="btn btn-secondary" to={`/payouts/${i.obligation_id}`}>Open payout</Link> : null}</li>))}</ul></Card> : null}
+          <Link className="btn btn-primary" to={`/incidents/${i.id}`}>Investigate</Link>{i.obligation_id ? <Link className="btn btn-secondary" to={`/payouts/${i.obligation_id}`}>Open payout</Link> : null}</li>))}</ul></Card> : null}
     </div>
   );
 }

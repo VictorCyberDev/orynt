@@ -12,6 +12,7 @@ import { NewPayout } from "./pages/NewPayout";
 import { PayoutDetail } from "./pages/PayoutDetail";
 import { Approvals } from "./pages/Approvals";
 import { Incidents } from "./pages/Incidents";
+import { IncidentDetail } from "./pages/IncidentDetail";
 import { Connections } from "./pages/Connections";
 import { Team } from "./pages/Team";
 import { Activity } from "./pages/Activity";
@@ -57,6 +58,7 @@ export function App() {
               <Route path="payouts/:id" element={<PayoutDetail />} />
               <Route path="approvals" element={<Approvals />} />
               <Route path="incidents" element={<Incidents />} />
+              <Route path="incidents/:id" element={<IncidentDetail />} />
               <Route path="connections" element={<Connections />} />
               <Route path="team" element={<Team />} />
               <Route path="activity" element={<Activity />} />

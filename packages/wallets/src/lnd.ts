@@ -1,3 +1,4 @@
+import type net from "node:net";
 import https from "node:https";
 import http from "node:http";
 import { URL } from "node:url";
@@ -12,6 +13,10 @@ export interface LndConfig {
   restUrl: string; // e.g. https://127.0.0.1:8080
   macaroonHex: string;
   tlsCertPem?: string; // pin a self-signed cert
+  /** DNS resolution hook. The API layer passes one that re-vets every resolved address, so a hostname that changes its answer after the initial check (DNS rebinding) cannot reach internal hosts. */
+  lookup?: net.LookupFunction;
+  /** Upper bound on buffered response bytes (default 1 MiB): a hostile endpoint cannot make the server buffer without limit. */
+  maxResponseBytes?: number;
 }
 
 interface Raw {
@@ -48,6 +53,7 @@ export class LndRestProvider implements WalletProvider {
         {
           method, hostname: u.hostname, port: u.port, path: u.pathname + u.search,
           headers: { "Grpc-Metadata-macaroon": this.cfg.macaroonHex, ...(payload ? { "content-type": "application/json", "content-length": Buffer.byteLength(payload) } : {}) },
+          ...(this.cfg.lookup ? { lookup: this.cfg.lookup } : {}),
           ...(u.protocol === "https:" ? { ca: this.cfg.tlsCertPem, rejectUnauthorized: true } : {}),
         },
         (res) => {
@@ -61,7 +67,10 @@ export class LndRestProvider implements WalletProvider {
             resolve({ status: res.statusCode ?? 0, lines });
           };
           res.setEncoding("utf8");
+          let total = 0; const cap = this.cfg.maxResponseBytes ?? 1_048_576;
           res.on("data", (chunk: string) => {
+            total += chunk.length;
+            if (total > cap) { req.destroy(new Error("response too large")); return; }
             buf += chunk;
             let idx: number;
             while ((idx = buf.indexOf("\n")) >= 0) {
@@ -219,7 +228,9 @@ export class LndRestProvider implements WalletProvider {
     if (raw.status === 200 && first?.result) return this.toRecord(first.result, paymentHash);
     const e = this.errOf(raw);
     const msg = e.message.toLowerCase();
-    if (e.code === 5 || msg.includes("payment isn't initiated") || msg.includes("not found") || msg.includes("payment not found")) {
+    // Absence is authoritative ONLY for LND's own payment messages. A bare "Not Found" (grpc code 5 / HTTP 404) is also what a proxy or an unregistered route answers,
+    // and "not found" must never be read as "never sent": that would let confirm-not-sent open the door to a second payment. Anything else is an unknown outcome.
+    if (msg.includes("payment isn't initiated") || msg.includes("payment not found") || msg.includes("unknown payment")) {
       return { status: "NOT_FOUND", paymentHash, observedAt: new Date().toISOString() };
     }
     if (raw.status === 401 || raw.status === 403 || msg.includes("permission denied")) throw new InsufficientPermissionsError(e.message);

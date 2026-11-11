@@ -184,7 +184,8 @@ describe("billing, webhooks and server-enforced entitlements", () => {
   });
   it("the sandbox billing provider is refused in production configuration", async () => {
     const { loadConfig } = await import("../src/config");
-    expect(() => loadConfig({ ORYNT_ENV: "production", ORYNT_SECRET_KEY: "a".repeat(64), ORYNT_ISSUER_KEY: "b".repeat(64), ORYNT_DEFAULT_PLAN: "enterprise" } as NodeJS.ProcessEnv)).toThrow(/ORYNT_DEFAULT_PLAN/);
+    expect(() => loadConfig({ ORYNT_ENV: "production", ORYNT_SECRET_KEY: "a".repeat(64), ORYNT_ISSUER_KEY: "b".repeat(64), ORYNT_ALLOW_UNCOMMISSIONED: "1", ORYNT_DEFAULT_PLAN: "enterprise" } as NodeJS.ProcessEnv)).toThrow(/ORYNT_DEFAULT_PLAN/); // even a knowingly-uncommissioned staging never gets paid plans for free
+    expect(() => loadConfig({ ORYNT_ENV: "production", ORYNT_SECRET_KEY: "a".repeat(64), ORYNT_ISSUER_KEY: "b".repeat(64) } as NodeJS.ProcessEnv)).toThrow(/sandbox/); // and without the acknowledgement, the sandbox provider itself is refused
   });
 });
 

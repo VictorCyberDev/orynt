@@ -130,3 +130,27 @@ describe("tenant scoping of schedule runs; consent for membership; mail text (re
     expect(m.body_text).not.toMatch(/evil\.example/);
   });
 });
+
+describe("wallet connections re-vet the destination at connect time (review M9, DNS rebinding)", () => {
+  it("the connect-time lookup refuses loopback/private/metadata addresses unless private targets are explicitly allowed", async () => {
+    const { vettedLookup } = await import("../src/services/providers");
+    const resolve = (allow: boolean, host: string) => new Promise<{ err: Error | null; out: unknown }>((r) => vettedLookup(allow)(host, { family: 4 } as never, ((err: Error | null, a: unknown) => r({ err, out: a })) as never));
+    const denied = await resolve(false, "localhost");
+    expect(denied.err?.message).toMatch(/not allowed/);
+    expect((await resolve(false, "169.254.169.254")).err?.message).toMatch(/not allowed/); // cloud metadata address literal
+    expect((await resolve(true, "localhost")).err).toBeNull(); // development/regtest opt-in
+  });
+});
+
+describe("production fails closed on placeholder providers (review L7)", () => {
+  const base = { ORYNT_ENV: "production", ORYNT_SECRET_KEY: "a".repeat(64), ORYNT_ISSUER_KEY: "b".repeat(64), DATABASE_URL: "postgres://x/y" };
+  it("refuses to start with sandbox billing, log mail or a non-https public URL unless staging explicitly acknowledges it", async () => {
+    const { loadConfig } = await import("../src/config");
+    expect(() => loadConfig({ ...base })).toThrow(/uncommissioned settings.*ORYNT_BILLING_PROVIDER.*ORYNT_MAIL_PROVIDER.*ORYNT_APP_URL/s);
+    expect(() => loadConfig({ ...base, ORYNT_BILLING_PROVIDER: "stripe", ORYNT_MAIL_PROVIDER: "resend", ORYNT_APP_URL: "http://example.com" })).toThrow(/ORYNT_APP_URL/);
+    expect(loadConfig({ ...base, ORYNT_ALLOW_UNCOMMISSIONED: "1" }).env).toBe("production"); // explicit staging acknowledgement
+    expect(loadConfig({ ...base, ORYNT_BILLING_PROVIDER: "stripe", ORYNT_MAIL_PROVIDER: "resend", ORYNT_APP_URL: "https://app.example.com" }).billingProvider).toBe("stripe");
+    expect(() => loadConfig({ ...base, ORYNT_ALLOW_UNCOMMISSIONED: "1", ORYNT_FAILPOINTS: "1" })).toThrow(/FAILPOINTS/); // the acknowledgement does not weaken other guards
+    expect(() => loadConfig({ ...base, ORYNT_ALLOW_UNCOMMISSIONED: "1", ORYNT_DEFAULT_PLAN: "enterprise" })).toThrow(/ORYNT_DEFAULT_PLAN/);
+  });
+});

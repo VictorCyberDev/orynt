@@ -116,6 +116,6 @@ jobs:
           docker network create orynt-ci
           docker run -d --name pg --network orynt-ci -e POSTGRES_USER=orynt -e POSTGRES_PASSWORD=orynt -e POSTGRES_DB=orynt_ci postgres:16
           for i in $(seq 1 30); do docker exec pg pg_isready -U orynt && break; sleep 2; done
-          docker run -d --name api --network orynt-ci -p 8787:8787 -e ORYNT_ENV=production -e ORYNT_SECRET_KEY=$(openssl rand -hex 32) -e ORYNT_ISSUER_KEY=$(openssl rand -hex 32) -e DATABASE_URL=postgres://orynt:orynt@pg:5432/orynt_ci orynt:ci
+          docker run -d --name api --network orynt-ci -p 8787:8787 -e ORYNT_ENV=production -e ORYNT_ALLOW_UNCOMMISSIONED=1 -e ORYNT_SECRET_KEY=$(openssl rand -hex 32) -e ORYNT_ISSUER_KEY=$(openssl rand -hex 32) -e DATABASE_URL=postgres://orynt:orynt@pg:5432/orynt_ci orynt:ci
           for i in $(seq 1 40); do curl -fsS localhost:8787/health/ready && exit 0; sleep 2; done
           docker logs api; exit 1

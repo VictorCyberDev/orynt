@@ -44,6 +44,8 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   const app = Fastify({
     logger: config.logLevel === "silent" ? false : {
       level: config.logLevel,
+      // one-time tokens travel in query strings (e-mailed links); never write them to logs
+      serializers: { req: (r: { method?: string; url?: string; hostname?: string; ip?: string }) => ({ method: r.method, url: (r.url ?? "").split("?")[0], host: r.hostname, remoteAddress: r.ip }) },
       // never log credentials, cookies, macaroons, invoices' secrets or signing secrets
       redact: { paths: ["req.headers.authorization", "req.headers.cookie", "res.headers['set-cookie']", "*.macaroon_hex", "*.password", "*.temporary_password", "*.tls_cert_pem", "*.secret", "*.signing_secret"], censor: "[redacted]" },
     },
@@ -191,8 +193,11 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
   gauge("orynt_webhook_deliveries_pending", async () => Number((await pool.query("SELECT count(*)::int AS n FROM webhook_deliveries WHERE status='pending'")).rows[0].n));
   app.get("/metrics", async (req, reply) => {
     const token = process.env["ORYNT_METRICS_TOKEN"];
-    const okToken = token && req.headers.authorization === `Bearer ${token}`;
-    if (!okToken && !["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip)) return problem(reply, req, 403, "forbidden", "Metrics are restricted.");
+    const given = Buffer.from(String(req.headers.authorization ?? "")), want = Buffer.from(`Bearer ${token ?? ""}`);
+    const okToken = !!token && given.length === want.length && timingSafeEqual(given, want);
+    // Behind a reverse proxy every client can look like loopback, so in production the token is the ONLY way in; loopback access is a development convenience.
+    const loopback = ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.ip);
+    if (!okToken && !(config.env !== "production" && loopback)) return problem(reply, req, 403, "forbidden", "Metrics are restricted.");
     return reply.type("text/plain; version=0.0.4").send(await render());
   });
   registerProviderCallbacks(app, deps, problem);

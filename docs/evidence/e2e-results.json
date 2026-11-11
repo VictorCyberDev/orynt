@@ -1,7 +1,7 @@
 {
-  "ran_at": "2026-11-11T10:42:28.290Z",
+  "ran_at": "2026-11-11T11:07:30.611Z",
   "base": "fresh DB + fresh API, SIMULATOR wallet (not real payments)",
-  "total": 155,
+  "total": 165,
   "failed": 0,
   "results": [
     {
@@ -146,6 +146,21 @@
     },
     {
       "name": "support request returns a reference number",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "workbench: shows payment truth, investigation tools and an evidence timeline",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "workbench: nothing calls an uncertain payment 'failed'",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "workbench: evidence export downloads an integrity-hashed bundle",
       "ok": true,
       "detail": ""
     },
@@ -420,6 +435,21 @@
       "detail": ""
     },
     {
+      "name": "no horizontal overflow @375px /incident-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px light /incident-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @375px dark /incident-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
       "name": "no horizontal overflow @768px /overview",
       "ok": true,
       "detail": ""
@@ -506,6 +536,11 @@
     },
     {
       "name": "no horizontal overflow @768px /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @768px /incident-detail",
       "ok": true,
       "detail": ""
     },
@@ -776,6 +811,21 @@
     },
     {
       "name": "axe serious/critical @1440px dark /new-payout",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "no horizontal overflow @1440px /incident-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px light /incident-detail",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "axe serious/critical @1440px dark /incident-detail",
       "ok": true,
       "detail": ""
     }

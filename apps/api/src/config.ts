@@ -60,6 +60,15 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
   const failpoints = e["ORYNT_FAILPOINTS"] === "1";
   if (failpoints && prod) throw new Error("ORYNT_FAILPOINTS must not be enabled in production");
   const allowMainnet = e["ORYNT_ALLOW_MAINNET"] === "1";
+  // Fail closed: a production process with placeholder providers would look healthy while billing nothing and e-mailing nobody.
+  // Staging that deliberately runs uncommissioned providers must say so explicitly.
+  if (prod && e["ORYNT_ALLOW_UNCOMMISSIONED"] !== "1") {
+    const missing: string[] = [];
+    if ((e["ORYNT_BILLING_PROVIDER"] ?? "sandbox") === "sandbox") missing.push("ORYNT_BILLING_PROVIDER (still the sandbox: no real billing)");
+    if ((e["ORYNT_MAIL_PROVIDER"] ?? "log") === "log") missing.push("ORYNT_MAIL_PROVIDER (still 'log': no mail is ever sent)");
+    if (!/^https:\/\//.test(e["ORYNT_APP_URL"] ?? "")) missing.push("ORYNT_APP_URL (must be the public https URL used in e-mailed links)");
+    if (missing.length) throw new Error(`Refusing to start in production with uncommissioned settings: ${missing.join("; ")}. Configure them, or set ORYNT_ALLOW_UNCOMMISSIONED=1 for a staging environment that knowingly runs without them.`);
+  }
   if (prod && (e["ORYNT_DEFAULT_PLAN"] ?? "developer") !== "developer") throw new Error("ORYNT_DEFAULT_PLAN must be developer in production: paid plans are granted only by verified billing events");
   return {
     env, port: Number(e["PORT"] ?? 8787), host: e["HOST"] ?? "127.0.0.1",

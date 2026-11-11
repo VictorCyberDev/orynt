@@ -112,8 +112,9 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
       await pg.locator("#mfa-step-up").fill(totp(begin.secret, Date.now() + 30000)); // a later time-step than the one used to enable MFA (codes are single-use)
       await pg.getByRole("button", { name: "Confirm" }).click();
       await pg.waitForSelector("#mfa-step-up", { state: "detached", timeout: 10000 });
-      const after = await (await mctx.request.get(BASE + "/v1/api-keys")).json();
-      check("step-up: after the code the key exists on the server", after.data.some((k) => k.name === "ci-key"));
+      let made = false; // the dialog closes on submit while the retried request is still in flight, so poll briefly
+      for (let i = 0; i < 20 && !made; i++) { made = (await (await mctx.request.get(BASE + "/v1/api-keys")).json()).data.some((k) => k.name === "ci-key"); if (!made) await new Promise((r) => setTimeout(r, 250)); }
+      check("step-up: after the code the key exists on the server", made);
       await mctx.close();
     }
 
@@ -168,10 +169,24 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
     // --- 5. responsive screenshots, overflow and accessibility across routes/viewports/themes
     const routes = [["", "overview"], ["start", "start"], ["payouts", "payouts"], ["approvals", "approvals"], ["connections", "wallets"], ["team", "team"], ["activity", "activity"], ["developers", "developers"], ["settings", "settings"], ["guide", "guide"], ["incidents", "incidents"], ["billing", "billing"], ["reports", "reports"], ["batches", "batches"], ["schedules", "schedules"], ["support", "support"]];
     const unknownId = await (async () => { const r = await (await op.ctx.request.get(BASE + "/v1/obligations?state=SIMULATED_SETTLED&limit=1")).json(); return r.data[0]?.id; })();
+    const incidentId = await (async () => { const r = await (await op.ctx.request.get(BASE + "/v1/incidents?limit=5")).json(); return r.data[0]?.id; })();
+    // --- 3d. exception workbench (operator): the resolved uncertain-payment incident is investigable and tells the truth
+    { await op.page.goto(BASE + "/app/incidents"); await op.page.waitForSelector("main h1");
+      try { await op.page.getByRole("link", { name: "Investigate" }).first().waitFor({ timeout: 8000 }); } catch (e) { console.log("INCIDENTS PAGE TEXT:", (await op.page.locator("main").innerText()).slice(0, 400).replace(/\n/g, " | ")); }
+      await op.page.getByRole("link", { name: "Investigate" }).first().click();
+      await op.page.waitForSelector("text=What is actually known about the payment");
+      const txt = await op.page.locator("main").innerText();
+      check("workbench: shows payment truth, investigation tools and an evidence timeline", /Evidence timeline/.test(txt) && /Investigation/.test(txt) && /Approvals on record/.test(txt));
+      check("workbench: nothing calls an uncertain payment 'failed'", !/failed, proven not paid/i.test(txt) || /Resolved/.test(txt));
+      const dl = op.page.waitForEvent("download");
+      await op.page.getByRole("button", { name: "Export evidence (JSON)" }).click();
+      const file = await dl; const body = JSON.parse(fs.readFileSync(await file.path(), "utf8"));
+      check("workbench: evidence export downloads an integrity-hashed bundle", /^[0-9a-f]{64}$/.test(body.integrity.sha256) && body.evidence_version === 1);
+      await shot(op.page, "1440", "10-incident-workbench"); }
     await op.ctx.close();
     for (const [w, h, vp] of VIEWPORTS) {
       const s = await ctxFor("demo-owner@orynt.local", [w, h], true); // CSP bypassed ONLY so axe can be injected; all functional flows above ran under the real CSP
-      const rr = [...routes, ["payouts/" + unknownId, "payout-detail"], ["payouts/new", "new-payout"]];
+      const rr = [...routes, ["payouts/" + unknownId, "payout-detail"], ["payouts/new", "new-payout"], ["incidents/" + incidentId, "incident-detail"]];
       for (const [r, name] of rr) {
         await s.page.goto(`${BASE}/app/${r}`); try { await s.page.waitForSelector("main h1", { timeout: 10000 }); } catch (e) { console.log(`NO H1 @${vp}px /${name} url=${s.page.url()} body=${(await s.page.locator("body").innerText()).slice(0, 200).replace(/\n/g, " | ")}`); throw e; } await s.page.waitForTimeout(250);
         const ov = await overflow(s.page);
