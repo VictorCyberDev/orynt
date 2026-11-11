@@ -25,3 +25,10 @@ export async function createTicket(d: Deps, p: Principal | null, i: { email?: st
   return { reference: ref };
 }
 export const listTickets = async (d: Deps, orgId: string) => (await d.pool.query("SELECT reference, category, subject, status, created_at FROM support_tickets WHERE org_id=$1 ORDER BY created_at DESC LIMIT 50", [orgId])).rows;
+
+export async function getTicket(d: Deps, orgId: string, ref: string) {
+  const t = (await d.pool.query("SELECT id, reference, category, subject, body, status, created_at FROM support_tickets WHERE reference=$1 AND org_id=$2", [ref, orgId])).rows[0];
+  if (!t) throw new OryntError("not_found", 404, "Request not found.");
+  const messages = (await d.pool.query("SELECT m.author, m.body, m.created_at FROM support_messages m WHERE m.ticket_id=$1 ORDER BY m.created_at", [t.id])).rows;
+  return { reference: t.reference, category: t.category, subject: t.subject, body: t.body, status: t.status, created_at: new Date(t.created_at).toISOString(), messages: messages.map((m) => ({ author: m.author === "staff" ? "Orynt support" : "You", body: m.body, at: new Date(m.created_at).toISOString() })) };
+}

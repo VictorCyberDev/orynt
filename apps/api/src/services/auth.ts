@@ -82,6 +82,7 @@ export async function principalFromSession(d: Deps, token: string): Promise<Prin
   const r = (await d.pool.query(
     `SELECT s.id, s.csrf_token, s.org_id, u.id AS uid, u.name, m.role FROM sessions s JOIN users u ON u.id=s.user_id AND u.disabled_at IS NULL
      JOIN memberships m ON m.user_id=s.user_id AND m.org_id=s.org_id AND m.status='active'
+     JOIN organizations o ON o.id=s.org_id AND o.closed_at IS NULL
      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at > now()`, [sha(token)])).rows[0];
   if (!r) return null;
   return { orgId: r.org_id, role: r.role, auth: "session", sessionId: r.id, csrf: r.csrf_token, actor: { kind: "user", id: r.uid, userId: r.uid, name: r.name, role: r.role } };
@@ -91,8 +92,8 @@ export async function principalFromApiKey(d: Deps, key: string): Promise<Princip
   if (!key.startsWith("orynt_")) return null;
   // a key is only as alive as the person who created it: they must still be an active member of the workspace and not disabled
   const r = (await d.pool.query(
-    `UPDATE api_keys k SET last_used_at=now() FROM memberships m, users u
-     WHERE k.key_hash=$1 AND k.revoked_at IS NULL AND m.user_id=k.created_by AND m.org_id=k.org_id AND m.status='active' AND u.id=k.created_by AND u.disabled_at IS NULL
+    `UPDATE api_keys k SET last_used_at=now() FROM memberships m, users u, organizations o
+     WHERE o.id=k.org_id AND o.closed_at IS NULL AND k.key_hash=$1 AND k.revoked_at IS NULL AND m.user_id=k.created_by AND m.org_id=k.org_id AND m.status='active' AND u.id=k.created_by AND u.disabled_at IS NULL
      RETURNING k.id, k.org_id, k.role, k.name, k.created_by`, [sha(key)])).rows[0];
   if (!r) return null;
   return { orgId: r.org_id, role: r.role, auth: "api_key", actor: { kind: "apikey", id: r.id, name: `API key “${r.name}”`, role: r.role } };

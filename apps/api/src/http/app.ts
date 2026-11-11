@@ -18,6 +18,7 @@ import { principalFromApiKey, principalFromSession, type Principal } from "../se
 import type { Ctx, Deps } from "../services/context";
 import { handlers, type HandlerArgs } from "./handlers";
 import { registerDevRoutes } from "./dev";
+import { registerStaff } from "./staff";
 import { registerProviderCallbacks } from "./callbacks";
 
 declare module "fastify" { interface FastifyRequest { principal?: Principal; spec?: RouteSpec } }
@@ -201,6 +202,7 @@ export async function buildApp(config: Config, opts: { pool?: Db; migrate?: bool
     return reply.type("text/plain; version=0.0.4").send(await render());
   });
   registerProviderCallbacks(app, deps, problem);
+  registerStaff(app, deps, problem);
   if (config.failpoints) registerDevRoutes(app, deps, authenticate, problem);
   void hmacSha256Hex;
   return { app, deps, pool };

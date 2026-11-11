@@ -9,6 +9,7 @@ import * as sup from "../services/support";
 import * as onb from "../services/onboarding";
 import * as mail from "../services/mail";
 import * as wb from "../services/workbench";
+import * as oa from "../services/orgadmin";
 import { orgFunnel, track } from "../services/analytics";
 import { obligationDto, publicObligation } from "../services/dto";
 import { withTx } from "../db/pool";
@@ -75,6 +76,7 @@ export const saasHandlers: Record<string, H> = {
   recipientStatement: async (a) => ({ body: await rep.recipientStatement(a.deps, need(a.ctx).orgId, a.params["id"]!) }),
 
   createTicket: async (a) => ({ status: 201, body: await sup.createTicket(a.deps, need(a.principal), a.body, a.req.id) }),
+  getTicket: async (a) => ({ body: await sup.getTicket(a.deps, need(a.ctx).orgId, a.params["ref"]!) }),
   listTickets: async (a) => ({ body: { data: await sup.listTickets(a.deps, need(a.ctx).orgId) } }),
   publicSupport: async (a) => ({ status: 201, body: await sup.createTicket(a.deps, null, a.body, a.req.id) }),
   resolveLightningAddress: async (a) => {
@@ -83,6 +85,11 @@ export const saasHandlers: Record<string, H> = {
     if (conns.length !== 1) throw new OryntError("validation_failed", 422, conns.length ? "More than one wallet is connected: choose which wallet will pay." : "Connect a wallet first.");
     return { body: await (await import("../services/lnurl")).resolveLightningAddress(a.deps, a.body.address, a.body.amount_msat, conns[0].network) };
   },
+  listSessions: async (a) => ({ body: await oa.listSessions(a.deps, need(a.principal)) }),
+  revokeSession: async (a) => { await oa.revokeSession(a.deps, need(a.principal), a.params["id"]!); return { body: ok }; },
+  revokeOtherSessions: async (a) => ({ body: { ok: true, revoked: await oa.revokeOtherSessions(a.deps, need(a.principal)) } }),
+  transferOwnership: async (a) => { await stepUpFromHeader(a); return { body: await oa.transferOwnership(a.deps, need(a.ctx), need(a.principal), a.body.user_id, a.body.password) }; },
+  closeOrganisation: async (a) => { await stepUpFromHeader(a); const r = await oa.closeOrganisation(a.deps, need(a.ctx), need(a.principal), a.body); a.reply.clearCookie("orynt_session", { path: "/" }); return { body: r }; },
   getOrg: async (a) => ({ body: await onb.getOrg(a.deps, need(a.ctx).orgId) }),
   updateOrg: async (a) => { if (a.body.require_mfa !== undefined) await stepUpFromHeader(a); return { body: await onb.updateOrg(a.deps, need(a.ctx), a.body) }; },
   getOnboarding: async (a) => ({ body: await onb.onboarding(a.deps, need(a.ctx).orgId, need(a.principal).actor.userId) }),
