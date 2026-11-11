@@ -1,0 +1,74 @@
+# Orynt production-shaped stack: Caddy (automatic TLS) -> API (+ in-process worker) -> PostgreSQL.
+# STATUS: IMPLEMENTED, NOT COMMISSIONED. The API image build and start are verified on GitHub CI; this compose file is syntax-checked on CI
+# (`docker compose config`) but has NOT been brought up on a real host. SINGLE INSTANCE ONLY: the worker runs inside the API process and the
+# recovery model assumes one process per database. Do not scale `api` beyond 1 replica.
+#   cp infra/production/.env.example infra/production/.env   # fill EVERY value; never commit it
+#   docker compose -f infra/production/docker-compose.yml --env-file infra/production/.env up -d --build
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: orynt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: orynt
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      { test: ["CMD-SHELL", "pg_isready -U orynt -d orynt"], interval: 5s, timeout: 3s, retries: 20 }
+    mem_limit: 1g
+    # no published port: only the api container can reach the database
+  api:
+    build: { context: ../.., dockerfile: Dockerfile }
+    image: orynt-api:${ORYNT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    depends_on: { postgres: { condition: service_healthy } }
+    environment:
+      ORYNT_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8787"
+      DATABASE_URL: postgres://orynt:${POSTGRES_PASSWORD}@postgres:5432/orynt
+      ORYNT_SECRET_KEY: ${ORYNT_SECRET_KEY:?set ORYNT_SECRET_KEY (64 hex)}
+      ORYNT_ISSUER_KEY: ${ORYNT_ISSUER_KEY:?set ORYNT_ISSUER_KEY (64 hex)}
+      ORYNT_APP_URL: ${ORYNT_APP_URL:?set the public https URL}
+      ORYNT_ALLOWED_ORIGINS: ${ORYNT_APP_URL}
+      ORYNT_TRUST_PROXY: "1"
+      ORYNT_METRICS_TOKEN: ${ORYNT_METRICS_TOKEN:?set a long random token}
+      ORYNT_MAIL_PROVIDER: ${ORYNT_MAIL_PROVIDER:-log}
+      ORYNT_MAIL_FROM: ${ORYNT_MAIL_FROM:-}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      ORYNT_MAIL_WEBHOOK_SECRET: ${ORYNT_MAIL_WEBHOOK_SECRET:-}
+      ORYNT_BILLING_PROVIDER: ${ORYNT_BILLING_PROVIDER:-sandbox}
+      ORYNT_BILLING_WEBHOOK_SECRET: ${ORYNT_BILLING_WEBHOOK_SECRET:-}
+      ORYNT_BILLING_API_KEY: ${ORYNT_BILLING_API_KEY:-}
+      # Boot REFUSES sandbox billing / log mail / non-https URL unless this is "1". Leave it unset for a commissioned deployment.
+      ORYNT_ALLOW_UNCOMMISSIONED: ${ORYNT_ALLOW_UNCOMMISSIONED:-}
+    healthcheck:
+      {
+        test:
+          [
+            "CMD",
+            "node",
+            "-e",
+            "fetch('http://127.0.0.1:8787/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+          ],
+        interval: 10s,
+        timeout: 5s,
+        retries: 6,
+        start_period: 20s,
+      }
+    mem_limit: 1g
+    cpus: 1.0
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    stop_grace_period: 40s
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: { api: { condition: service_healthy } }
+    ports: ["80:80", "443:443"]
+    environment: { ORYNT_DOMAIN: "${ORYNT_DOMAIN:?set the domain you own}" }
+    volumes: ["./Caddyfile:/etc/caddy/Caddyfile:ro", "caddy_data:/data", "caddy_config:/config"]
+volumes: { pgdata: {}, caddy_data: {}, caddy_config: {} }

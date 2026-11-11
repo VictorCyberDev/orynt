@@ -1,0 +1,60 @@
+{
+  "name": "orynt",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Orynt \u2014 Bitcoin-native payment authorization and operations. Every payment. Under control.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --workspace-concurrency=1 build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "test:integration": "pnpm --filter @orynt/api test:integration",
+    "test:e2e": "pnpm --filter @orynt/web test:e2e",
+    "db:start": "bash infra/postgres/start-local.sh",
+    "db:migrate": "pnpm --filter @orynt/api db:migrate",
+    "db:seed": "pnpm --filter @orynt/api db:seed",
+    "dev:api": "pnpm --filter @orynt/api dev",
+    "dev:web": "pnpm --filter @orynt/web dev",
+    "regtest:up": "node infra/regtest/up.mjs",
+    "regtest:down": "node infra/regtest/down.mjs",
+    "demo:full": "tsx scripts/demo-full.ts",
+    "regtest:fetch": "bash infra/regtest/fetch.sh",
+    "demo:full:sim": "tsx scripts/demo-full.ts --simulator",
+    "test:real-lightning": "ORYNT_REGTEST_ENV=$PWD/.regtest/env.json pnpm --filter @orynt/api exec vitest run --config vitest.integration.config.ts test/lnd.itest.ts",
+    "test:all": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:integration",
+    "build:all": "pnpm --filter @orynt/verifier build && pnpm --filter @orynt/sdk build && pnpm --filter @orynt/web build && pnpm --filter @orynt/site build && pnpm --filter @orynt/api build",
+    "start": "node apps/api/dist/server.mjs",
+    "openapi": "tsx scripts/export-openapi.ts",
+    "backup": "bash infra/postgres/backup.sh",
+    "restore:rehearsal": "bash infra/postgres/restore-rehearsal.sh",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@orynt/contract": "workspace:*",
+    "@orynt/core": "workspace:*",
+    "@orynt/wallets": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.23.1",
+    "eslint": "^9.0.0",
+    "globals": "^17.14.0",
+    "pg": "^8.23.1",
+    "prettier": "^3.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^3.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "type": "module"
+}

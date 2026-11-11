@@ -1,0 +1,34 @@
+import { OryntClient, OryntApiError } from "@orynt/sdk";
+
+const orynt = new OryntClient({ baseUrl: "http://127.0.0.1:8787", apiKey: process.env.ORYNT_API_KEY });
+
+// Header: counterparty,amount_sats,invoice (optional: memo, external_ref). Up to 200 rows.
+// If an invoice carries an amount, it must equal amount_sats.
+const csv = [
+  "counterparty,amount_sats,invoice,memo,external_ref",
+  "Ada (docs),25000,<bolt11 invoice>,Docs round 7,PO-1042",
+  "Bo (tests),40000,<bolt11 invoice>,Docs round 7,PO-1043",
+].join("\n");
+
+// 1. Check the file first. Nothing is created.
+const { data: preview } = await orynt.request<{ valid: number; invalid: number; total_msat: string; errors: Array<{ row: number; error: string | null }> }>(
+  "POST", "/v1/batches/preview", { body: { csv } });
+if (preview.invalid > 0) console.log(preview.errors); // row-level reasons; good rows are unaffected
+
+try {
+  // 2. Create draft payouts. Bad rows are reported, good rows are still created.
+  const { data: batch } = await orynt.request<{ batch_id: string; created: number; failed: number }>(
+    "POST", "/v1/batches", { body: { label: "Docs round 7", csv } });
+
+  // 3. Ask for approval on every draft item. Approvers then sign each one, as for any payout.
+  await orynt.request("POST", `/v1/batches/${batch.batch_id}/submit`);
+
+  // 4. Later: execute every APPROVED item. Each is single-use and guarded on its own.
+  const { data: run } = await orynt.request<{ items: Array<{ id: string; http: number }>; status: { status: string } }>(
+    "POST", `/v1/batches/${batch.batch_id}/execute`);
+  console.log(run.status.status); // in_progress | completed | partial | closed_unsettled
+} catch (err) {
+  // 402 entitlement_exceeded: the plan has no batches, or the rows would exceed the monthly payout limit.
+  if (err instanceof OryntApiError && err.code === "entitlement_exceeded") console.log(err.requestId);
+  else throw err;
+}

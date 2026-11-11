@@ -1,0 +1,36 @@
+{
+  "type": "module",
+  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "private": true,
+  "name": "@orynt/api",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests --dir src",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "dev": "ORYNT_ENV=development tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "node build.mjs",
+    "db:migrate": "tsx src/db/cli.ts up",
+    "db:down": "tsx src/db/cli.ts down",
+    "db:seed": "tsx src/seed.ts",
+    "staff:create": "tsx src/staff-cli.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.10",
+    "@orynt/contract": "workspace:*",
+    "@orynt/core": "workspace:*",
+    "@orynt/wallets": "workspace:*",
+    "fastify": "^5.12.8",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@orynt/sdk": "workspace:*",
+    "@orynt/verifier": "workspace:*",
+    "@types/pg": "^8.23.1",
+    "esbuild": "^0.28.2"
+  }
+}

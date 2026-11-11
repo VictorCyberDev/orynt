@@ -1,0 +1,27 @@
+{
+  "type": "module",
+  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "private": true,
+  "name": "@orynt/wallets",
+  "description": "Wallet provider contract, LND REST adapter, labelled simulator",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@orynt/core": "workspace:*",
+    "ws": "8.22.1"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2"
+  }
+}

@@ -1,0 +1,11 @@
+# JSON report. Only real settlements are summed; simulated ones are listed but never added up. No fiat values.
+curl "$ORYNT_URL/v1/reports/payouts?from=2026-11-01&to=2026-11-30" \
+  -H "authorization: Bearer $ORYNT_API_KEY"
+
+# The same report as CSV, for a spreadsheet or an accountant.
+curl "$ORYNT_URL/v1/reports/payouts?from=2026-11-01&to=2026-11-30&format=csv" \
+  -H "authorization: Bearer $ORYNT_API_KEY" -o payouts.csv
+
+# Filters: from, to (dates), counterparty_id, state, format=json|csv.
+# One recipient's statement: GET /v1/reports/recipients/:id
+# How far back a report reaches depends on the plan (history_days); older rows are not returned.
