@@ -172,7 +172,7 @@ const axeSrc = fs.readFileSync(require.resolve("axe-core/axe.min.js", { paths: [
     const incidentId = await (async () => { const r = await (await op.ctx.request.get(BASE + "/v1/incidents?limit=5")).json(); return r.data[0]?.id; })();
     // --- 3d. exception workbench (operator): the resolved uncertain-payment incident is investigable and tells the truth
     { await op.page.goto(BASE + "/app/incidents"); await op.page.waitForSelector("main h1");
-      try { await op.page.getByRole("link", { name: "Investigate" }).first().waitFor({ timeout: 8000 }); } catch (e) { console.log("INCIDENTS PAGE TEXT:", (await op.page.locator("main").innerText()).slice(0, 400).replace(/\n/g, " | ")); }
+      try { await op.page.getByRole("link", { name: "Investigate" }).first().waitFor({ timeout: 8000 }); } catch { console.log("INCIDENTS PAGE TEXT:", (await op.page.locator("main").innerText()).slice(0, 400).replace(/\n/g, " | ")); }
       await op.page.getByRole("link", { name: "Investigate" }).first().click();
       await op.page.waitForSelector("text=What is actually known about the payment");
       const txt = await op.page.locator("main").innerText();
