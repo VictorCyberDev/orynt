@@ -1,6 +1,6 @@
 import type { Deps } from "./services/context";
 import { pumpWebhooks } from "./services/webhooks";
-import { pumpMail } from "./services/mail";
+import { pumpMail, redactOldTokenMail } from "./services/mail";
 import { runDueSchedules } from "./services/schedules";
 import { reconcileDue, recoverStaleDispatch, releaseStaleReservations } from "./services/reconcile";
 
@@ -17,7 +17,7 @@ export function startWorker(d: Deps) {
       await reconcileDue(d);
     } catch (e) { d.log.error({ err: (e as Error).message }, "worker tick failed"); } finally { running = false; }
   };
-  const hookTick = async () => { if (hooking) return; hooking = true; try { await pumpWebhooks(d); await pumpMail(d); await runDueSchedules(d); await d.pool.query("UPDATE subscriptions SET status='canceled', updated_at=now() WHERE cancel_at_period_end AND current_period_end IS NOT NULL AND current_period_end < now() AND status<>'canceled'"); } catch (e) { d.log.error({ err: (e as Error).message }, "webhook pump failed"); } finally { hooking = false; } };
+  const hookTick = async () => { if (hooking) return; hooking = true; try { await pumpWebhooks(d); await pumpMail(d); await redactOldTokenMail(d); await runDueSchedules(d); await d.pool.query("UPDATE subscriptions SET status='canceled', updated_at=now() WHERE cancel_at_period_end AND current_period_end IS NOT NULL AND current_period_end < now() AND status<>'canceled'"); } catch (e) { d.log.error({ err: (e as Error).message }, "webhook pump failed"); } finally { hooking = false; } };
   const t = setInterval(() => void tick(), d.config.workerIntervalMs), t2 = setInterval(() => void hookTick(), d.config.workerIntervalMs);
   return { stop: () => { clearInterval(t); clearInterval(t2); }, tick };
 }

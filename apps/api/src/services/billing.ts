@@ -1,3 +1,4 @@
+import { notifyOwners } from "./notify";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { OryntError } from "@orynt/core";
 import { withTx } from "../db/pool";
@@ -96,6 +97,7 @@ export async function applyBillingEvent(d: Deps, ev: BillingEvent, rawPayload: u
       case "canceled": await set("status='canceled', cancel_at_period_end=false", []); break;
     }
     await appendAudit(tx, sub.org_id, "org", `system:billing:${ev.provider}`, `billing.${ev.kind}`, `subscription:${sub.id}`, { event_id: ev.eventId, plan: planId ?? null });
+    if (ev.kind === "activated" || ev.kind === "canceled") await notifyOwners(tx, sub.org_id, "billing_notice", ev.kind === "activated" ? "Orynt: your subscription is active" : "Orynt: your subscription was cancelled", ev.kind === "activated" ? `Your ${planId ?? sub.plan_id} plan is active. Plans never authorise a payment: wallet connections and approvals are separate.` : "Your subscription was cancelled; your workspace returns to the free Developer plan limits. No payouts were changed.");
     if (ev.kind === "payment_failed") { const owner = (await tx.query("SELECT u.email FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.org_id=$1 AND m.role='owner' AND m.status='active' LIMIT 1", [sub.org_id])).rows[0]; if (owner) await queueMail(tx, owner.email, "payment_failed", "Orynt: your subscription payment failed", "We couldn't collect your latest subscription payment. Update your payment method to keep your plan; paid features lapse after a 7-day grace period.", sub.org_id); }
     return done("applied");
   });

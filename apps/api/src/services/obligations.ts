@@ -1,3 +1,4 @@
+import { notifyApprovalRequested } from "./notify";
 import { randomUUID } from "node:crypto";
 import {
   APPROVER_ROLES, Bolt11Error, toMsat, OryntError, decodeInvoice, evaluatePolicy, revisionHash, PolicyRulesSchema, verifyApproval, hashCanonical,
@@ -145,6 +146,7 @@ export async function submitObligation(d: Deps, ctx: Ctx, id: string) {
     const b = await bindingFor(tx, o2, rev);
     await tx.query("UPDATE payout_obligations SET intent_digest=$2 WHERE id=$1", [id, b!.digest]);
     await cas(tx, ctx.orgId, id, "DRAFT", "AWAITING_APPROVAL");
+    await notifyApprovalRequested(tx, ctx.orgId, `PO-${String(o.seq).padStart(4, "0")}`, d.config.appBaseUrl, ctx.actor.userId ?? null);
     await appendAudit(tx, ctx.orgId, `obligation:${id}`, actorTag(ctx.actor), "obligation.submitted", `obligation:${id}`, { revision: rev.revision, intent_digest: b!.digest, policy_id: pol.id, policy_revision: pol.revision, required_approvals: res.requiredApprovals });
     await emitEvent(tx, ctx.orgId, "obligation.submitted", { obligation_id: id, revision: rev.revision, required_approvals: res.requiredApprovals, intent_digest: b!.digest });
   });

@@ -9,6 +9,7 @@ import type { Principal } from "./auth";
 import { createSession } from "./auth";
 import type { Deps } from "./context";
 import { queueMail } from "./mail";
+import { notifySecurity } from "./notify";
 import { checkEntitlement } from "./entitlements";
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -100,6 +101,7 @@ export async function confirmMfa(d: Deps, userId: string, code: string) {
   if (!u?.mfa_secret_ciphertext) throw new OryntError("invalid_state", 409, "Start MFA setup first.");
   if (!verifyTotp(open(d.config.secretKey, u.mfa_secret_ciphertext, "mfa:" + userId), code)) throw new OryntError("approval_invalid", 422, "That code is not correct. Check your authenticator's clock and try again.");
   await d.pool.query("UPDATE users SET mfa_enabled_at=now() WHERE id=$1", [userId]);
+  await notifySecurity(d.pool, (await d.pool.query("SELECT email FROM users WHERE id=$1", [userId])).rows[0].email, "Two-factor authentication was turned on for your account.");
 }
 /**
  * Verifies a TOTP code for a user who has MFA enabled (no-op for users without MFA).

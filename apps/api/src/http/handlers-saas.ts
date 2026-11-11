@@ -7,6 +7,7 @@ import * as sch from "../services/schedules";
 import * as rep from "../services/reports";
 import * as sup from "../services/support";
 import * as onb from "../services/onboarding";
+import * as mail from "../services/mail";
 import { orgFunnel, track } from "../services/analytics";
 import { obligationDto, publicObligation } from "../services/dto";
 import { withTx } from "../db/pool";
@@ -41,6 +42,10 @@ export const saasHandlers: Record<string, H> = {
   billingCheckout: async (a) => { const email = (await a.deps.pool.query("SELECT email FROM users WHERE id=$1", [need(a.principal).actor.userId])).rows[0].email; await track(a.deps, "checkout_started", need(a.ctx).orgId); return { body: await bill.startCheckout(a.deps, need(a.ctx).orgId, a.body.plan_id, email) }; },
   billingSandboxComplete: async (a) => { const r = await bill.sandboxComplete(a.deps, need(a.ctx).orgId, a.body.plan_id); if (r === "applied") await track(a.deps, "subscription_activated", need(a.ctx).orgId); return { body: { result: r, billing: await bill.billingOverview(a.deps, need(a.ctx).orgId) } }; },
   billingCancel: async (a) => { await bill.cancelSubscription(a.deps, need(a.ctx).orgId, need(a.principal).actor.id); return { body: ok }; },
+  mailWebhook: async (a) => {
+    const raw = (a.req as unknown as { rawBody?: string }).rawBody ?? JSON.stringify(a.body);
+    return { body: { received: true, result: await mail.applyMailEvent(a.deps, a.params["provider"]!, raw, a.req.headers as Record<string, string | undefined>) } };
+  },
   billingWebhook: async (a) => {
     const raw = (a.req as unknown as { rawBody?: string }).rawBody ?? JSON.stringify(a.body);
     const ev = bill.parseWebhook(a.deps, a.params["provider"]!, raw, a.req.headers as Record<string, string | undefined>); // throws 401 on a bad/stale signature

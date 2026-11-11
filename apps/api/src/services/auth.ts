@@ -6,6 +6,8 @@ import { appendAudit } from "./audit";
 import { checkEntitlement } from "./entitlements";
 import { track } from "./analytics";
 import { sendVerification } from "./accounts";
+import { notifySecurity } from "./notify";
+const plainName = (v: string) => Array.from(v, (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? " " : ch)).join("").slice(0, 60);
 import type { Actor, Deps } from "./context";
 import { iso } from "./context";
 
@@ -123,6 +125,7 @@ export async function registerApprovalKey(d: Deps, p: Principal, publicKey: stri
     await withTx(d.pool, async (tx) => {
       await tx.query("UPDATE memberships SET approval_public_key=$3, approval_key_registered_at=now() WHERE user_id=$1 AND org_id=$2", [p.actor.userId, p.orgId, publicKey]);
       await appendAudit(tx, p.orgId, "org", `user:${p.actor.id}`, "member.approval_key_registered", `user:${p.actor.id}`, { public_key: publicKey });
+      await notifySecurity(tx, (await tx.query("SELECT email FROM users WHERE id=$1", [p.actor.userId])).rows[0].email, "The approval key used to sign payouts was registered or replaced on your account.", p.orgId);
     });
   } catch (e) {
     if ((e as { code?: string }).code === "23505") throw new OryntError("conflict", 409, "That approval key is already registered to another member of this workspace. Each approver needs their own key.");
@@ -176,7 +179,7 @@ export async function createApiKey(d: Deps, p: Principal, input: { name: string;
   if (!permissionsFor(input.role).every((perm) => mine.has(perm))) throw new OryntError("forbidden", 403, `Your role (${p.role}) cannot create a key with role ${input.role}: it would grant permissions you don't hold.`);
   const secret = "orynt_" + randomBytes(24).toString("base64url");
   const r = (await d.pool.query("INSERT INTO api_keys(org_id,name,prefix,key_hash,role,created_by) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *", [p.orgId, input.name, secret.slice(0, 12), sha(secret), input.role, p.actor.userId])).rows[0];
-  await d.pool.query("SELECT 1");
+  await notifySecurity(d.pool, (await d.pool.query("SELECT email FROM users WHERE id=$1", [p.actor.userId])).rows[0].email, `An API key named "${plainName(input.name)}" with role ${input.role} was created on your account.`, p.orgId);
   return { ...apiKeyDto(r), secret };
 }
 export const apiKeyDto = (r: Record<string, unknown>) => ({ id: r["id"], name: r["name"], prefix: r["prefix"], role: r["role"], created_at: iso(r["created_at"] as Date), last_used_at: r["last_used_at"] ? iso(r["last_used_at"] as Date) : null, revoked_at: r["revoked_at"] ? iso(r["revoked_at"] as Date) : null });

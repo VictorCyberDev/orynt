@@ -27,8 +27,12 @@ export interface Config {
   appBaseUrl: string;
   /** Base for RFC 9457 problem `type` URIs. Null → non-resolvable URN `urn:orynt:problem:<code>` (never a domain we do not control). Set to an https URL on a domain you own once docs are hosted there. */
   problemBaseUrl: string | null;
-  mailProvider: "log" | "resend";
+  mailProvider: "log" | "resend" | "brevo";
   resendApiKey: string | null;
+  brevoApiKey: string | null;
+  /** override the provider API base URL (tests point this at a local controlled service) */
+  mailApiUrl: string | null;
+  mailWebhookSecret: string | null;
   mailFrom: string;
   billingProvider: "sandbox" | "stripe" | "paystack";
   billingWebhookSecret: string | null;
@@ -71,8 +75,11 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
     requireEmailVerification: (e["ORYNT_REQUIRE_EMAIL_VERIFICATION"] ?? (prod ? "1" : "0")) === "1",
     appBaseUrl: e["ORYNT_APP_URL"] ?? "http://127.0.0.1:8787",
     problemBaseUrl: e["ORYNT_PROBLEM_BASE_URL"]?.replace(/\/+$/, "") ?? null,
-    mailProvider: (e["ORYNT_MAIL_PROVIDER"] ?? "log") as "log" | "resend",
+    mailProvider: (e["ORYNT_MAIL_PROVIDER"] ?? "log") as "log" | "resend" | "brevo",
     resendApiKey: e["RESEND_API_KEY"] ?? null,
+    brevoApiKey: e["BREVO_API_KEY"] ?? null,
+    mailApiUrl: e["ORYNT_MAIL_API_URL"]?.replace(/\/+$/, "") ?? null,
+    mailWebhookSecret: e["ORYNT_MAIL_WEBHOOK_SECRET"] ?? null,
     mailFrom: e["ORYNT_MAIL_FROM"] ?? "Orynt <no-reply@orynt.example>",
     billingProvider: (e["ORYNT_BILLING_PROVIDER"] ?? "sandbox") as "sandbox" | "stripe" | "paystack",
     billingWebhookSecret: e["ORYNT_BILLING_WEBHOOK_SECRET"] ?? null,
