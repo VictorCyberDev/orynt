@@ -28,7 +28,10 @@ export class RelaySocket {
   onMessage: (msg: RelayMessage) => void = () => undefined;
   onClose: (reason: string) => void = () => undefined;
 
-  constructor(readonly url: string, private readonly opts: RelaySocketOptions) {}
+  constructor(
+    readonly url: string,
+    private readonly opts: RelaySocketOptions,
+  ) {}
 
   get closed(): boolean {
     return this._closed;

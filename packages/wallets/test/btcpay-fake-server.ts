@@ -9,7 +9,14 @@
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Socket } from "node:net";
-import { decodeInvoice, encodeInvoice, nodePubkeyFromPrivate, sha256Hex, hexToBytes, type Network } from "@orynt/core";
+import {
+  decodeInvoice,
+  encodeInvoice,
+  nodePubkeyFromPrivate,
+  sha256Hex,
+  hexToBytes,
+  type Network,
+} from "@orynt/core";
 import swagger from "./btcpay-swagger-excerpt.json";
 
 export const PAYEE_KEY = "e126f68f7eafcc8b74f54d269fe206be715000f94dac067d1c04a8ca3b2db734";
@@ -18,11 +25,22 @@ export const NODE_PUBKEY = nodePubkeyFromPrivate(NODE_KEY);
 export const STORE_ID = "HoJUKTcAUTjXWfwSyYDqtULBXZSsRQoFEwUhmDEjwzpy";
 export const GOOD_KEY = "k_good_0123456789abcdef0123456789abcdef";
 
-export function makeInvoice(o: { network: Network; amountMsat: bigint | null; preimage: string; expirySeconds?: number }) {
+export function makeInvoice(o: {
+  network: Network;
+  amountMsat: bigint | null;
+  preimage: string;
+  expirySeconds?: number;
+}) {
   const paymentHash = sha256Hex(hexToBytes(o.preimage));
   const invoice = encodeInvoice({
-    network: o.network, amountMsat: o.amountMsat, paymentHashHex: paymentHash, paymentSecretHex: "11".repeat(32),
-    description: "contract-test", timestamp: Math.floor(Date.now() / 1000), expirySeconds: o.expirySeconds ?? 3600, privateKeyHex: PAYEE_KEY,
+    network: o.network,
+    amountMsat: o.amountMsat,
+    paymentHashHex: paymentHash,
+    paymentSecretHex: "11".repeat(32),
+    description: "contract-test",
+    timestamp: Math.floor(Date.now() / 1000),
+    expirySeconds: o.expirySeconds ?? 3600,
+    privateKeyHex: PAYEE_KEY,
   });
   return { invoice, paymentHash, preimage: o.preimage };
 }
@@ -52,7 +70,12 @@ export interface FakePayment {
   feeMsat?: number;
 }
 
-export interface Seen { method: string; path: string; auth: string | undefined; body: unknown }
+export interface Seen {
+  method: string;
+  path: string;
+  auth: string | undefined;
+  body: unknown;
+}
 
 const schemas = swagger.schemas as Record<string, { properties?: Record<string, unknown>; enum?: string[] }>;
 
@@ -85,7 +108,10 @@ export class FakeBtcpay {
 
   async start(): Promise<void> {
     await new Promise<void>((r) => this.server.listen(0, "127.0.0.1", r));
-    this.server.on("connection", (s) => { this.sockets.add(s); s.on("close", () => this.sockets.delete(s)); });
+    this.server.on("connection", (s) => {
+      this.sockets.add(s);
+      s.on("close", () => this.sockets.delete(s));
+    });
     this.baseUrl = `http://127.0.0.1:${(this.server.address() as AddressInfo).port}`;
   }
   async stop(): Promise<void> {
@@ -97,13 +123,21 @@ export class FakeBtcpay {
     this.preimages.set(inv.paymentHash, inv.preimage);
     this.behaviors.set(inv.paymentHash, behavior);
   }
-  payCalls(): Seen[] { return this.seen.filter((s) => s.method === "POST" && s.path.endsWith("/invoices/pay")); }
-  realPays(): Seen[] { return this.payCalls().filter((s) => this.parses(s.body)); }
+  payCalls(): Seen[] {
+    return this.seen.filter((s) => s.method === "POST" && s.path.endsWith("/invoices/pay"));
+  }
+  realPays(): Seen[] {
+    return this.payCalls().filter((s) => this.parses(s.body));
+  }
 
   private parses(body: unknown): boolean {
     const b = (body as { BOLT11?: string } | null)?.BOLT11;
     if (typeof b !== "string") return false;
-    try { return decodeInvoice(b).network === this.network; } catch { return false; }
+    try {
+      return decodeInvoice(b).network === this.network;
+    } catch {
+      return false;
+    }
   }
 
   private permitted(perms: string[]): boolean {
@@ -111,7 +145,8 @@ export class FakeBtcpay {
     return perms.some((p) => {
       const [policy, scope] = p.split(":");
       if (policy === "unrestricted") return scope === undefined;
-      if (policy === "btcpay.store.canuselightningnode" || policy === "btcpay.store.canmodifystoresettings") return scope === undefined || scope === STORE_ID;
+      if (policy === "btcpay.store.canuselightningnode" || policy === "btcpay.store.canmodifystoresettings")
+        return scope === undefined || scope === STORE_ID;
       return false;
     });
   }
@@ -122,7 +157,11 @@ export class FakeBtcpay {
       if (!(k in props)) this.schemaViolations.push(`${where}: "${k}" is not a property of ${name}`);
     }
     const status = value["status"];
-    if (name === "LightningPaymentData" && typeof status === "string" && !(schemas["LightningPaymentStatus"]?.enum ?? []).includes(status)) {
+    if (
+      name === "LightningPaymentData" &&
+      typeof status === "string" &&
+      !(schemas["LightningPaymentStatus"]?.enum ?? []).includes(status)
+    ) {
       this.schemaViolations.push(`${where}: status "${status}" is not in LightningPaymentStatus`);
     }
   }
@@ -132,7 +171,11 @@ export class FakeBtcpay {
     for await (const c of req) chunks.push(c as Buffer);
     const raw = Buffer.concat(chunks).toString("utf8");
     let body: unknown;
-    try { body = raw ? JSON.parse(raw) : undefined; } catch { body = undefined; }
+    try {
+      body = raw ? JSON.parse(raw) : undefined;
+    } catch {
+      body = undefined;
+    }
     const path = req.url ?? "";
     this.seen.push({ method: req.method ?? "", path, auth: req.headers.authorization, body });
 
@@ -157,14 +200,34 @@ export class FakeBtcpay {
     if (!path.startsWith(base)) return send(404, { code: "store-not-found", message: "no such store" });
     // policy `canuselightningnode` guards info, payments/{hash} and invoices/pay alike (Store controller attributes)
     if (!this.permitted(perms)) {
-      return send(403, { code: "missing-permission", message: "Insufficient API Permissions. Please use an API key with permission \"btcpay.store.canuselightningnode\".", missingPermission: "btcpay.store.canuselightningnode" });
+      return send(403, {
+        code: "missing-permission",
+        message:
+          'Insufficient API Permissions. Please use an API key with permission "btcpay.store.canuselightningnode".',
+        missingPermission: "btcpay.store.canuselightningnode",
+      });
     }
     // GetLightningClient runs first in every action
-    if (!this.lightningConfigured) return send(404, { code: "lightning-not-configured", message: "The lightning node is not set up" });
-    if (this.nodeUnavailable) return send(503, { code: "lightning-node-unavailable", message: `The lightning node is unavailable (HttpRequestException: connection refused ${this.echoInErrors})` });
+    if (!this.lightningConfigured)
+      return send(404, { code: "lightning-not-configured", message: "The lightning node is not set up" });
+    if (this.nodeUnavailable)
+      return send(503, {
+        code: "lightning-node-unavailable",
+        message: `The lightning node is unavailable (HttpRequestException: connection refused ${this.echoInErrors})`,
+      });
 
     if (req.method === "GET" && path === `${base}/info`) {
-      const out = { nodeURIs: [`${NODE_PUBKEY}@127.0.0.1:9735`], blockHeight: 123, alias: "fake-btcpay-lightning", color: "#3399ff", version: "0.20.1-beta", peersCount: 1, activeChannelsCount: 1, inactiveChannelsCount: 0, pendingChannelsCount: 0 };
+      const out = {
+        nodeURIs: [`${NODE_PUBKEY}@127.0.0.1:9735`],
+        blockHeight: 123,
+        alias: "fake-btcpay-lightning",
+        color: "#3399ff",
+        version: "0.20.1-beta",
+        peersCount: 1,
+        activeChannelsCount: 1,
+        inactiveChannelsCount: 0,
+        pendingChannelsCount: 0,
+      };
       this.checkSchema("LightningNodeInformationData", out, "GET info");
       return send(200, out);
     }
@@ -172,24 +235,53 @@ export class FakeBtcpay {
     if (req.method === "GET" && path.startsWith(`${base}/payments/`)) {
       const hash = path.slice(`${base}/payments/`.length);
       const p = this.payments.get(hash);
-      if (this.lookupErrors) return send(503, { code: "lightning-node-unavailable", message: "The lightning node is unavailable (PhoenixdApiException)" });
-      if (!p) return send(404, { code: "payment-not-found", message: "Impossible to find a lightning payment with this payment hash" });
-      if (this.lookupStatusOverride) return send(this.lookupStatusOverride, { code: "lightning-node-unavailable", message: "The lightning node is unavailable (override)" });
+      if (this.lookupErrors)
+        return send(503, {
+          code: "lightning-node-unavailable",
+          message: "The lightning node is unavailable (PhoenixdApiException)",
+        });
+      if (!p)
+        return send(404, {
+          code: "payment-not-found",
+          message: "Impossible to find a lightning payment with this payment hash",
+        });
+      if (this.lookupStatusOverride)
+        return send(this.lookupStatusOverride, {
+          code: "lightning-node-unavailable",
+          message: "The lightning node is unavailable (override)",
+        });
       return send(200, this.paymentJson(hash, p));
     }
 
     if (req.method === "POST" && path === `${base}/invoices/pay`) return this.pay(body, send, res, req);
     if (req.method === "POST" && path === `${base}/invoices`) {
       // CreateInvoice: used only by the opt-in network probe
-      const inv = makeInvoice({ network: this.network, amountMsat: 1000n, preimage: "ab".repeat(32), expirySeconds: 60 });
-      return send(200, { id: inv.paymentHash, status: "Unpaid", BOLT11: inv.invoice, expiresAt: Math.floor(Date.now() / 1000) + 60, amount: 1000, paymentHash: inv.paymentHash });
+      const inv = makeInvoice({
+        network: this.network,
+        amountMsat: 1000n,
+        preimage: "ab".repeat(32),
+        expirySeconds: 60,
+      });
+      return send(200, {
+        id: inv.paymentHash,
+        status: "Unpaid",
+        BOLT11: inv.invoice,
+        expiresAt: Math.floor(Date.now() / 1000) + 60,
+        amount: 1000,
+        paymentHash: inv.paymentHash,
+      });
     }
     return send(404);
   }
 
   private paymentJson(hash: string, p: FakePayment, withDetails = true): Record<string, unknown> {
     const num = (n: number) => (this.numericAmounts ? n : String(n));
-    const out: Record<string, unknown> = { id: `pay-${hash.slice(0, 8)}`, status: p.status, paymentHash: hash, createdAt: 1_700_000_000 };
+    const out: Record<string, unknown> = {
+      id: `pay-${hash.slice(0, 8)}`,
+      status: p.status,
+      paymentHash: hash,
+      createdAt: 1_700_000_000,
+    };
     if (withDetails && p.preimage) out["preimage"] = p.preimage;
     if (withDetails && p.totalMsat !== undefined) out["totalAmount"] = num(p.totalMsat);
     if (withDetails && p.feeMsat !== undefined) out["feeAmount"] = num(p.feeMsat);
@@ -197,14 +289,24 @@ export class FakeBtcpay {
     return out;
   }
 
-  private pay(body: unknown, send: (s: number, j?: unknown, t?: string) => void, res: http.ServerResponse, req: http.IncomingMessage) {
+  private pay(
+    body: unknown,
+    send: (s: number, j?: unknown, t?: string) => void,
+    res: http.ServerResponse,
+    req: http.IncomingMessage,
+  ) {
     const b = (body ?? {}) as Record<string, unknown>;
     for (const k of Object.keys(b)) {
-      if (!(k in (schemas["PayLightningInvoiceRequest"]?.properties ?? {}))) this.schemaViolations.push(`pay request: "${k}" is not a property of PayLightningInvoiceRequest`);
+      if (!(k in (schemas["PayLightningInvoiceRequest"]?.properties ?? {})))
+        this.schemaViolations.push(`pay request: "${k}" is not a property of PayLightningInvoiceRequest`);
     }
     // validation happens BEFORE any payment (controller: ModelState / CreateValidationError => 422)
     let decoded: ReturnType<typeof decodeInvoice> | null = null;
-    try { decoded = decodeInvoice(String(b["BOLT11"])); } catch { decoded = null; }
+    try {
+      decoded = decodeInvoice(String(b["BOLT11"]));
+    } catch {
+      decoded = null;
+    }
     if (!decoded || decoded.network !== this.network) {
       return send(422, [{ path: "BOLT11", message: "The BOLT11 invoice was invalid." }]);
     }
@@ -215,7 +317,8 @@ export class FakeBtcpay {
     const amountMsat = Number(decoded.amountMsat ?? BigInt(String(b["amount"] ?? "0")));
     const fee = 1000;
     const complete: FakePayment = { status: "Complete", preimage, totalMsat: amountMsat + fee, feeMsat: fee };
-    const respondOk = (p: FakePayment, withDetails = true) => send(200, { ...this.paymentJson(hash, p, withDetails), BOLT11: String(b["BOLT11"]) });
+    const respondOk = (p: FakePayment, withDetails = true) =>
+      send(200, { ...this.paymentJson(hash, p, withDetails), BOLT11: String(b["BOLT11"]) });
     switch (behavior) {
       case "ok":
         this.payments.set(hash, complete);
@@ -245,7 +348,10 @@ export class FakeBtcpay {
         return send(400, { code: "generic-error", message: "ambiguous error after the node paid" });
       case "node_unavailable_after_start":
         this.payments.set(hash, complete);
-        return send(503, { code: "lightning-node-unavailable", message: `The lightning node is unavailable (OperationCanceledException: ${this.echoInErrors})` });
+        return send(503, {
+          code: "lightning-node-unavailable",
+          message: `The lightning node is unavailable (OperationCanceledException: ${this.echoInErrors})`,
+        });
       case "lost_response_hang":
         this.payments.set(hash, complete);
         return; // never answer

@@ -16,7 +16,8 @@ const fileFor = (urlPath) => {
 };
 const idsCache = new Map();
 const idsOf = (file) => {
-  if (!idsCache.has(file)) idsCache.set(file, new Set([...readFileSync(file, "utf8").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])));
+  if (!idsCache.has(file))
+    idsCache.set(file, new Set([...readFileSync(file, "utf8").matchAll(/\sid="([^"]+)"/g)].map((m) => m[1])));
   return idsCache.get(file);
 };
 
@@ -26,21 +27,35 @@ const appRoutes = (() => {
   const src = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "../../web/src/App.tsx"), "utf8");
   return new Set([...src.matchAll(/<Route path="([^"*]+)"/g)].map((m) => m[1].replace(/^\//, "")));
 })();
-let checked = 0, external = 0, appLinks = 0;
+let checked = 0,
+  external = 0,
+  appLinks = 0;
 const broken = [];
 for (const page of listPages()) {
   const html = readFileSync(fileFor(page), "utf8");
-  const refs = [...html.matchAll(/\s(href|src|srcset|data-endpoint|content)="([^"]*)"/g)].filter((m) => m[1] !== "content" || m[2].startsWith("/")).map((m) => m[2]);
+  const refs = [...html.matchAll(/\s(href|src|srcset|data-endpoint|content)="([^"]*)"/g)]
+    .filter((m) => m[1] !== "content" || m[2].startsWith("/"))
+    .map((m) => m[2]);
   for (const raw of refs) {
-    for (const ref of raw.split(",").map((s) => s.trim().split(/\s+/)[0]).filter(Boolean)) {
+    for (const ref of raw
+      .split(",")
+      .map((s) => s.trim().split(/\s+/)[0])
+      .filter(Boolean)) {
       if (/^(mailto:|tel:|data:|javascript:)/.test(ref)) continue;
-      if (/^https?:\/\//.test(ref)) { external++; continue; }
+      if (/^https?:\/\//.test(ref)) {
+        external++;
+        continue;
+      }
       if (!ref.startsWith("/") && !ref.startsWith("#")) continue; // meta content text etc.
       if (ref.startsWith("/app/") || ref === "/app") {
         const bare = ref.split(/[?#]/)[0];
         appLinks++;
-        if (!APP_PATHS.has(bare)) broken.push(`${page} -> ${ref} (undeclared /app path; add it to APP in site.config.mjs once it exists in the web router)`);
-        else if (!appRoutes.has(bare.slice("/app/".length))) broken.push(`${page} -> ${ref} (declared in APP but no such route in apps/web/src/App.tsx)`);
+        if (!APP_PATHS.has(bare))
+          broken.push(
+            `${page} -> ${ref} (undeclared /app path; add it to APP in site.config.mjs once it exists in the web router)`,
+          );
+        else if (!appRoutes.has(bare.slice("/app/".length)))
+          broken.push(`${page} -> ${ref} (declared in APP but no such route in apps/web/src/App.tsx)`);
         continue;
       }
       if (ref.startsWith("/v1/")) continue; // API endpoint, served by apps/api, not part of this static site
@@ -49,13 +64,29 @@ for (const page of listPages()) {
       const target = pathPart ? pathPart.split("?")[0] : page;
       const file = fileFor(target);
       checked++;
-      if (!existsSync(file) || !statSync(file).isFile()) { broken.push(`${page} -> ${ref} (missing ${file.replace(dist, "dist")})`); continue; }
-      if (hash && file.endsWith(".html") && !idsOf(file).has(hash)) broken.push(`${page} -> ${ref} (no element id="${hash}")`);
+      if (!existsSync(file) || !statSync(file).isFile()) {
+        broken.push(`${page} -> ${ref} (missing ${file.replace(dist, "dist")})`);
+        continue;
+      }
+      if (hash && file.endsWith(".html") && !idsOf(file).has(hash))
+        broken.push(`${page} -> ${ref} (no element id="${hash}")`);
     }
   }
 }
-for (const f of ["sitemap.xml", "robots.txt", "css/site.css", "js/site.js", "fonts/LICENSES.txt", "brand/og.png"]) {
+for (const f of [
+  "sitemap.xml",
+  "robots.txt",
+  "css/site.css",
+  "js/site.js",
+  "fonts/LICENSES.txt",
+  "brand/og.png",
+]) {
   if (!existsSync(join(dist, f))) broken.push(`dist/${f} missing`);
 }
-console.log(`pages: ${listPages().length} | internal references checked: ${checked} | app links (checked against apps/web routes): ${appLinks} | external references (not fetched): ${external} | broken: ${broken.length}`);
-if (broken.length) { console.log(broken.join("\n")); process.exit(1); }
+console.log(
+  `pages: ${listPages().length} | internal references checked: ${checked} | app links (checked against apps/web routes): ${appLinks} | external references (not fetched): ${external} | broken: ${broken.length}`,
+);
+if (broken.length) {
+  console.log(broken.join("\n"));
+  process.exit(1);
+}

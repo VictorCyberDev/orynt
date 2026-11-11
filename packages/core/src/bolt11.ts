@@ -139,7 +139,8 @@ export function decodeInvoice(invoice: string): DecodedInvoice {
   let descriptionHash: string | null = null;
   let expiry = 3600;
   let cltv = 18;
-  let seenX = false, seenC = false;
+  let seenX = false,
+    seenC = false;
 
   let i = 7;
   while (i < dataWords.length) {
@@ -164,18 +165,21 @@ export function decodeInvoice(invoice: string): DecodedInvoice {
         if (len === 53 && payee === null) payee = bytesToHex(wordsToBytes(f, false));
         break;
       case 13: // d — description
-        if (description === null) description = new TextDecoder("utf-8", { fatal: false }).decode(wordsToBytes(f, false));
+        if (description === null)
+          description = new TextDecoder("utf-8", { fatal: false }).decode(wordsToBytes(f, false));
         break;
       case 23: // h — description hash
         if (len === 52 && descriptionHash === null) descriptionHash = bytesToHex(wordsToBytes(f, false));
         break;
       case 6: // x — expiry
-        if (seenX) throw new Bolt11Error("duplicate expiry field"); seenX = true;
+        if (seenX) throw new Bolt11Error("duplicate expiry field");
+        seenX = true;
         if (len > 7) throw new Bolt11Error("expiry field too long");
         expiry = wordsToInt(f);
         break;
       case 24: // c — min_final_cltv_expiry_delta
-        if (seenC) throw new Bolt11Error("duplicate min_final_cltv_expiry field"); seenC = true;
+        if (seenC) throw new Bolt11Error("duplicate min_final_cltv_expiry field");
+        seenC = true;
         if (len > 7) throw new Bolt11Error("cltv field too long");
         cltv = wordsToInt(f);
         break;
@@ -196,7 +200,10 @@ export function decodeInvoice(invoice: string): DecodedInvoice {
   let payeePubkey: string;
   try {
     if (payee !== null) {
-      const ok = secp256k1.verify(compact, msg, Uint8Array.from(Buffer.from(payee, "hex")), { prehash: false, lowS: false });
+      const ok = secp256k1.verify(compact, msg, Uint8Array.from(Buffer.from(payee, "hex")), {
+        prehash: false,
+        lowS: false,
+      });
       if (!ok) throw new Bolt11Error("signature does not match payee key (n field)");
       payeePubkey = payee;
     } else {

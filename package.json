@@ -32,7 +32,8 @@
     "start": "node apps/api/dist/server.mjs",
     "openapi": "tsx scripts/export-openapi.ts",
     "backup": "bash infra/postgres/backup.sh",
-    "restore:rehearsal": "bash infra/postgres/restore-rehearsal.sh"
+    "restore:rehearsal": "bash infra/postgres/restore-rehearsal.sh",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

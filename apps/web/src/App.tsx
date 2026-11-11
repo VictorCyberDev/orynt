@@ -28,9 +28,25 @@ import { AcceptInvite, Forgot, ResetPassword, SupportPublic, VerifyEmail } from 
 export function App() {
   const [me, setMeState] = useState<MeT | null>(null);
   const [loading, setLoading] = useState(true);
-  const setMe = useCallback((m: MeT | null) => { setCsrf(m?.csrf_token); setMeState(m); }, []);
-  const refresh = useCallback(async () => { try { const m = await api.me(); setMe(m); return m; } catch { setMe(null); return null; } finally { setLoading(false); } }, [setMe]);
-  useEffect(() => { void refresh(); }, [refresh]);
+  const setMe = useCallback((m: MeT | null) => {
+    setCsrf(m?.csrf_token);
+    setMeState(m);
+  }, []);
+  const refresh = useCallback(async () => {
+    try {
+      const m = await api.me();
+      setMe(m);
+      return m;
+    } catch {
+      setMe(null);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [setMe]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
   const loc = useLocation();
   const publicPath = loc.pathname.startsWith("/verify") || loc.pathname.startsWith("/guide");
 
@@ -38,7 +54,11 @@ export function App() {
     <SessionCtx.Provider value={{ me, loading, refresh, setMe }}>
       <Toaster />
       <MfaPrompt />
-      {loading ? <div className="boot"><Skeleton rows={4} /></div> : (
+      {loading ? (
+        <div className="boot">
+          <Skeleton rows={4} />
+        </div>
+      ) : (
         <Routes>
           <Route path="/login" element={me ? <Navigate to="/" replace /> : <AuthPage mode="login" />} />
           <Route path="/signup" element={me ? <Navigate to="/" replace /> : <AuthPage mode="signup" />} />
@@ -47,8 +67,34 @@ export function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/accept-invite" element={<AcceptInvite />} />
           <Route path="/contact-support" element={<SupportPublic />} />
-          <Route path="/verify" element={publicPath && !me ? <div className="public-wrap"><VerifyReceipt /></div> : <Layout><VerifyReceipt /></Layout>} />
-          <Route path="/guide" element={!me ? <div className="public-wrap"><Guide /></div> : <Layout><Guide /></Layout>} />
+          <Route
+            path="/verify"
+            element={
+              publicPath && !me ? (
+                <div className="public-wrap">
+                  <VerifyReceipt />
+                </div>
+              ) : (
+                <Layout>
+                  <VerifyReceipt />
+                </Layout>
+              )
+            }
+          />
+          <Route
+            path="/guide"
+            element={
+              !me ? (
+                <div className="public-wrap">
+                  <Guide />
+                </div>
+              ) : (
+                <Layout>
+                  <Guide />
+                </Layout>
+              )
+            }
+          />
           {me ? (
             <Route element={<Layout />}>
               <Route index element={<Overview />} />
@@ -71,7 +117,9 @@ export function App() {
               <Route path="support" element={<Support />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
-          ) : <Route path="*" element={<Navigate to="/login" replace state={{ from: loc.pathname }} />} />}
+          ) : (
+            <Route path="*" element={<Navigate to="/login" replace state={{ from: loc.pathname }} />} />
+          )}
         </Routes>
       )}
     </SessionCtx.Provider>

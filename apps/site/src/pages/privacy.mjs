@@ -3,7 +3,8 @@ import { draftBanner, pageHero, section } from "../components.mjs";
 export default {
   path: "/privacy/",
   title: "Privacy notice (draft)",
-  description: "Draft privacy notice for the Orynt website: no cookies or analytics; contact-form details are stored with your consent. Not reviewed by counsel.",
+  description:
+    "Draft privacy notice for the Orynt website: no cookies or analytics; contact-form details are stored with your consent. Not reviewed by counsel.",
   body: () => `
 ${pageHero({
   eyebrow: "Privacy",

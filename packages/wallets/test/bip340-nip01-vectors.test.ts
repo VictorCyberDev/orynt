@@ -6,10 +6,23 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import {
-  computeEventId, getPublicKeyHex, isExpired, isValidXOnlyPubkey, parseEventShape, schnorrSign, schnorrVerify, serializeEvent, signEvent, verifyEventSignature,
+  computeEventId,
+  getPublicKeyHex,
+  isExpired,
+  isValidXOnlyPubkey,
+  parseEventShape,
+  schnorrSign,
+  schnorrVerify,
+  serializeEvent,
+  signEvent,
+  verifyEventSignature,
 } from "../src/nwc/nostr";
 
-const rows = readFileSync(new URL("./fixtures/bip340-test-vectors.csv", import.meta.url), "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
+const rows = readFileSync(new URL("./fixtures/bip340-test-vectors.csv", import.meta.url), "utf8")
+  .trim()
+  .split("\n")
+  .slice(1)
+  .map((l) => l.split(","));
 
 describe("BIP-340 official vectors (spec vectors)", () => {
   it("has the 19 published vectors", () => expect(rows).toHaveLength(19));
@@ -18,7 +31,11 @@ describe("BIP-340 official vectors (spec vectors)", () => {
     if (secret) {
       it(`vector ${index}: public key derivation and signing reproduce the published signature (${comment || "no comment"})`, () => {
         expect(getPublicKeyHex(hexToBytes(secret))).toBe((pub as string).toLowerCase());
-        const produced = schnorrSign(hexToBytes(msg as string), hexToBytes(secret), hexToBytes(aux as string));
+        const produced = schnorrSign(
+          hexToBytes(msg as string),
+          hexToBytes(secret),
+          hexToBytes(aux as string),
+        );
         expect(bytesToHex(produced)).toBe((sig as string).toLowerCase());
       });
     }
@@ -42,7 +59,10 @@ describe("NIP-01 / NIP-47 event handling (spec example)", () => {
     pubkey: "c04ccd5c82fc1ea3499b9c6a5c0a7ab627fbe00a0116110d4c750faeaecba1e2",
     created_at: 1713883677,
     kind: 13194,
-    tags: [["encryption", "nip44_v2 nip04"], ["extensions", "02 03 04 06 07 08"]],
+    tags: [
+      ["encryption", "nip44_v2 nip04"],
+      ["extensions", "02 03 04 06 07 08"],
+    ],
     content: "pay_invoice get_balance get_info make_invoice lookup_invoice",
     sig: "31f57b369459b5306a5353aa9e03be7fbde169bc881c3233625605dd12f53548179def16b9fe1137e6465d7e4d5bb27ce81fd6e75908c46b06269f4233c845d8",
   };
@@ -60,27 +80,60 @@ describe("NIP-01 / NIP-47 event handling (spec example)", () => {
 
   it("any single-field tamper breaks verification of a correctly signed event", () => {
     const sk = hexToBytes("71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c");
-    const good = signEvent({ pubkey: getPublicKeyHex(sk), created_at: 1713883677, kind: 13194, tags: [["encryption", "nip44_v2 nip04"]], content: "pay_invoice get_info" }, sk);
+    const good = signEvent(
+      {
+        pubkey: getPublicKeyHex(sk),
+        created_at: 1713883677,
+        kind: 13194,
+        tags: [["encryption", "nip44_v2 nip04"]],
+        content: "pay_invoice get_info",
+      },
+      sk,
+    );
     expect(verifyEventSignature(good)).toBe(true);
     expect(verifyEventSignature({ ...good, content: `${good.content} x` })).toBe(false);
     expect(verifyEventSignature({ ...good, created_at: good.created_at + 1 })).toBe(false);
     expect(verifyEventSignature({ ...good, tags: [] })).toBe(false);
-    expect(verifyEventSignature({ ...good, sig: good.sig.replace(/.$/, good.sig.endsWith("9") ? "8" : "9") })).toBe(false);
+    expect(
+      verifyEventSignature({ ...good, sig: good.sig.replace(/.$/, good.sig.endsWith("9") ? "8" : "9") }),
+    ).toBe(false);
     expect(verifyEventSignature({ ...good, id: "00".repeat(32) })).toBe(false);
   });
 
   it("serialization is compact and escapes per NIP-01", () => {
-    expect(serializeEvent({ pubkey: "ab".repeat(32), created_at: 1, kind: 1, tags: [["t", "x"]], content: 'a"b\\c\nd' })).toBe(`[0,"${"ab".repeat(32)}",1,1,[["t","x"]],"a\\"b\\\\c\\nd"]`);
+    expect(
+      serializeEvent({
+        pubkey: "ab".repeat(32),
+        created_at: 1,
+        kind: 1,
+        tags: [["t", "x"]],
+        content: 'a"b\\c\nd',
+      }),
+    ).toBe(`[0,"${"ab".repeat(32)}",1,1,[["t","x"]],"a\\"b\\\\c\\nd"]`);
   });
 
   it("sign/verify round trip with a fresh key", () => {
     const sk = hexToBytes("71a8c14c1407c113601079c4302dab36460f0ccd0ad506f1f2dc73b5100e4f3c");
-    const ev = signEvent({ pubkey: getPublicKeyHex(sk), created_at: 1700000000, kind: 23194, tags: [], content: "x" }, sk);
+    const ev = signEvent(
+      { pubkey: getPublicKeyHex(sk), created_at: 1700000000, kind: 23194, tags: [], content: "x" },
+      sk,
+    );
     expect(verifyEventSignature(ev)).toBe(true);
   });
 
   it("shape validation rejects non-NIP-01 values", () => {
-    for (const bad of [null, [], "x", { ...spec, id: "XYZ" }, { ...spec, sig: "00" }, { ...spec, kind: 70000 }, { ...spec, created_at: 1.5 }, { ...spec, tags: [[1]] }, { ...spec, tags: [[]] }, { ...spec, content: 5 }]) {
+    for (const bad of [
+      null,
+      [],
+      "x",
+      { ...spec, id: "XYZ" },
+      { ...spec, sig: "00" },
+      { ...spec, kind: 70000 },
+      { ...spec, created_at: 1.5 },
+      { ...spec, tags: [[1]] },
+      { ...spec, tags: [[]] },
+      { ...spec, content: 5 },
+    ]) {
       expect(parseEventShape(bad)).toBeNull();
     }
   });

@@ -40,7 +40,10 @@ export function nip44ConversationKey(secretKey: Uint8Array, xOnlyPubkey: Uint8Ar
   return extract(sha256, sharedX(secretKey, xOnlyPubkey), utf8ToBytes("nip44-v2"));
 }
 
-export function nip44MessageKeys(conversationKey: Uint8Array, nonce: Uint8Array): { chachaKey: Uint8Array; chachaNonce: Uint8Array; hmacKey: Uint8Array } {
+export function nip44MessageKeys(
+  conversationKey: Uint8Array,
+  nonce: Uint8Array,
+): { chachaKey: Uint8Array; chachaNonce: Uint8Array; hmacKey: Uint8Array } {
   if (conversationKey.length !== 32) throw new Error("invalid conversation_key length");
   if (nonce.length !== 32) throw new Error("invalid nonce length");
   const keys = expand(sha256, conversationKey, nonce, 76);
@@ -89,7 +92,8 @@ function unpad(padded: Uint8Array): string {
     prefixLen = 2;
   }
   const unpadded = padded.subarray(prefixLen, prefixLen + len);
-  if (len === 0 || unpadded.length !== len || padded.length !== prefixLen + nip44CalcPaddedLen(len)) throw new Error("invalid padding");
+  if (len === 0 || unpadded.length !== len || padded.length !== prefixLen + nip44CalcPaddedLen(len))
+    throw new Error("invalid padding");
   return new TextDecoder("utf-8", { fatal: true }).decode(unpadded);
 }
 
@@ -105,7 +109,11 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
   return d === 0;
 }
 
-export function nip44Encrypt(plaintext: string, conversationKey: Uint8Array, nonce: Uint8Array = randomBytes(32)): string {
+export function nip44Encrypt(
+  plaintext: string,
+  conversationKey: Uint8Array,
+  nonce: Uint8Array = randomBytes(32),
+): string {
   const { chachaKey, chachaNonce, hmacKey } = nip44MessageKeys(conversationKey, nonce);
   const padded = pad(plaintext);
   const ciphertext = chacha20(chachaKey, chachaNonce, padded);
@@ -129,7 +137,12 @@ export function nip44Decrypt(payload: string, conversationKey: Uint8Array): stri
 }
 
 // ---- NIP-04 (deprecated; backward compatibility only) ----------------------------------------------------------
-export function nip04Encrypt(plaintext: string, secretKey: Uint8Array, xOnlyPubkey: Uint8Array, iv: Uint8Array = randomBytes(16)): string {
+export function nip04Encrypt(
+  plaintext: string,
+  secretKey: Uint8Array,
+  xOnlyPubkey: Uint8Array,
+  iv: Uint8Array = randomBytes(16),
+): string {
   const key = sharedX(secretKey, xOnlyPubkey);
   const ct = cbc(key, iv).encrypt(utf8ToBytes(plaintext));
   return `${b64(ct)}?iv=${b64(iv)}`;
@@ -145,11 +158,25 @@ export function nip04Decrypt(payload: string, secretKey: Uint8Array, xOnlyPubkey
 }
 
 // ---- scheme dispatch --------------------------------------------------------------------------------------------
-export function encryptPayload(scheme: EncryptionScheme, plaintext: string, secretKey: Uint8Array, peerXOnlyHex: string): string {
+export function encryptPayload(
+  scheme: EncryptionScheme,
+  plaintext: string,
+  secretKey: Uint8Array,
+  peerXOnlyHex: string,
+): string {
   const peer = hexToBytes(peerXOnlyHex);
-  return scheme === "nip44_v2" ? nip44Encrypt(plaintext, nip44ConversationKey(secretKey, peer)) : nip04Encrypt(plaintext, secretKey, peer);
+  return scheme === "nip44_v2"
+    ? nip44Encrypt(plaintext, nip44ConversationKey(secretKey, peer))
+    : nip04Encrypt(plaintext, secretKey, peer);
 }
-export function decryptPayload(scheme: EncryptionScheme, payload: string, secretKey: Uint8Array, peerXOnlyHex: string): string {
+export function decryptPayload(
+  scheme: EncryptionScheme,
+  payload: string,
+  secretKey: Uint8Array,
+  peerXOnlyHex: string,
+): string {
   const peer = hexToBytes(peerXOnlyHex);
-  return scheme === "nip44_v2" ? nip44Decrypt(payload, nip44ConversationKey(secretKey, peer)) : nip04Decrypt(payload, secretKey, peer);
+  return scheme === "nip44_v2"
+    ? nip44Decrypt(payload, nip44ConversationKey(secretKey, peer))
+    : nip04Decrypt(payload, secretKey, peer);
 }

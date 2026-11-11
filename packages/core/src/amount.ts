@@ -24,7 +24,8 @@ export function toMsat(value: bigint | number | string): Msat {
     if (!Number.isSafeInteger(value)) throw new AmountError("amount must be a safe integer");
     v = BigInt(value);
   } else {
-    if (!/^(0|[1-9][0-9]{0,30})$/.test(value)) throw new AmountError("amount must be a canonical integer string");
+    if (!/^(0|[1-9][0-9]{0,30})$/.test(value))
+      throw new AmountError("amount must be a canonical integer string");
     v = BigInt(value);
   }
   assertValidMsat(v);

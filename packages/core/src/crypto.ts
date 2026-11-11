@@ -18,7 +18,11 @@ export function hashCanonical(value: unknown): string {
 }
 export function hmacSha256Hex(key: Uint8Array | string, data: Uint8Array | string): string {
   return bytesToHex(
-    hmac(sha256, typeof key === "string" ? utf8ToBytes(key) : key, typeof data === "string" ? utf8ToBytes(data) : data),
+    hmac(
+      sha256,
+      typeof key === "string" ? utf8ToBytes(key) : key,
+      typeof data === "string" ? utf8ToBytes(data) : data,
+    ),
   );
 }
 
@@ -55,10 +59,19 @@ function domainMessage(context: string, message: string): Uint8Array {
 export function signMessage(privateKeyHex: string, context: string, message: string): string {
   return bytesToHex(ed25519.sign(domainMessage(context, message), hexToBytes(privateKeyHex)));
 }
-export function verifyMessage(publicKeyHex: string, context: string, message: string, signatureHex: string): boolean {
+export function verifyMessage(
+  publicKeyHex: string,
+  context: string,
+  message: string,
+  signatureHex: string,
+): boolean {
   try {
     if (!isHex(publicKeyHex, 32) || !isHex(signatureHex, 64)) return false;
-    return ed25519.verify(hexToBytes(signatureHex), domainMessage(context, message), hexToBytes(publicKeyHex));
+    return ed25519.verify(
+      hexToBytes(signatureHex),
+      domainMessage(context, message),
+      hexToBytes(publicKeyHex),
+    );
   } catch {
     return false;
   }

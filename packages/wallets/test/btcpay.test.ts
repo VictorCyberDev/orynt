@@ -11,17 +11,41 @@
 import { inspect } from "node:util";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { decodeInvoice, hexToBytes, sha256Hex } from "@orynt/core";
-import { InsufficientPermissionsError, NotSentError, OutcomeUnknownError, type SendRequest } from "../src/types";
-import { assessApiKeyPermissions, BtcpayConfigurationError, BtcpayProvider, redactSecrets, validateBaseUrl, type BtcpayConfig } from "../src/btcpay";
-import { FakeBtcpay, GOOD_KEY, NODE_PUBKEY, STORE_ID, makeInvoice, type PayBehavior } from "./btcpay-fake-server";
+import {
+  InsufficientPermissionsError,
+  NotSentError,
+  OutcomeUnknownError,
+  type SendRequest,
+} from "../src/types";
+import {
+  assessApiKeyPermissions,
+  BtcpayConfigurationError,
+  BtcpayProvider,
+  redactSecrets,
+  validateBaseUrl,
+  type BtcpayConfig,
+} from "../src/btcpay";
+import {
+  FakeBtcpay,
+  GOOD_KEY,
+  NODE_PUBKEY,
+  STORE_ID,
+  makeInvoice,
+  type PayBehavior,
+} from "./btcpay-fake-server";
 
 const PREIMAGE = "ab".repeat(32);
 const PREIMAGE_2 = "ef".repeat(32);
 const SUITE = "CONTRACT (fake BTCPay built from the docs; NOT verified against a real BTCPay Server)";
 
 let fake: FakeBtcpay;
-beforeAll(async () => { fake = new FakeBtcpay(); await fake.start(); });
-afterAll(async () => { await fake.stop(); });
+beforeAll(async () => {
+  fake = new FakeBtcpay();
+  await fake.start();
+});
+afterAll(async () => {
+  await fake.stop();
+});
 beforeEach(() => {
   fake.keys = new Map([[GOOD_KEY, [`btcpay.store.canuselightningnode:${STORE_ID}`]]]);
   fake.network = "regtest";
@@ -45,17 +69,39 @@ afterEach(() => {
 
 function provider(over: Partial<BtcpayConfig> = {}): BtcpayProvider {
   return new BtcpayProvider({
-    baseUrl: fake.baseUrl, apiKey: GOOD_KEY, storeId: STORE_ID, network: "regtest", allowInsecureLoopback: true,
-    requestTimeoutMs: 2000, sendMarginMs: 100, trustAbsenceOfPayment: true, ...over,
+    baseUrl: fake.baseUrl,
+    apiKey: GOOD_KEY,
+    storeId: STORE_ID,
+    network: "regtest",
+    allowInsecureLoopback: true,
+    requestTimeoutMs: 2000,
+    sendMarginMs: 100,
+    trustAbsenceOfPayment: true,
+    ...over,
   });
 }
-function invoiceFor(behavior: PayBehavior, o: { amountMsat?: bigint | null; preimage?: string; network?: "regtest" | "mainnet" } = {}) {
-  const inv = makeInvoice({ network: o.network ?? "regtest", amountMsat: o.amountMsat === undefined ? 250_000n : o.amountMsat, preimage: o.preimage ?? PREIMAGE });
+function invoiceFor(
+  behavior: PayBehavior,
+  o: { amountMsat?: bigint | null; preimage?: string; network?: "regtest" | "mainnet" } = {},
+) {
+  const inv = makeInvoice({
+    network: o.network ?? "regtest",
+    amountMsat: o.amountMsat === undefined ? 250_000n : o.amountMsat,
+    preimage: o.preimage ?? PREIMAGE,
+  });
   fake.register(inv, behavior);
   return inv;
 }
 function sendReq(inv: { invoice: string; paymentHash: string }, o: Partial<SendRequest> = {}): SendRequest {
-  return { invoice: inv.invoice, paymentHash: inv.paymentHash, amountMsat: 250_000n, zeroAmountInvoice: false, feeLimitMsat: 5_000n, timeoutSeconds: 30, ...o };
+  return {
+    invoice: inv.invoice,
+    paymentHash: inv.paymentHash,
+    amountMsat: 250_000n,
+    zeroAmountInvoice: false,
+    feeLimitMsat: 5_000n,
+    timeoutSeconds: 30,
+    ...o,
+  };
 }
 
 describe(`${SUITE}: configuration`, () => {
@@ -99,15 +145,33 @@ describe(`${SUITE}: API key permission interpretation`, () => {
     expect(a.grantsLightningUse).toBe(true);
     expect(a.grantIsStoreScoped).toBe(false);
     expect(a.excess.join(" ")).toMatch(/full account access/);
-    const b = assessApiKeyPermissions(["btcpay.store.canuselightningnode", "btcpay.server.canmanageusers", "btcpay.store.canviewinvoices:OTHERSTORE"], S);
+    const b = assessApiKeyPermissions(
+      [
+        "btcpay.store.canuselightningnode",
+        "btcpay.server.canmanageusers",
+        "btcpay.store.canviewinvoices:OTHERSTORE",
+      ],
+      S,
+    );
     expect(b.grantsLightningUse).toBe(true);
     expect(b.excess.length).toBe(3);
-    expect(assessApiKeyPermissions([`btcpay.store.canmodifystoresettings:${S}`], S).grantsLightningUse).toBe(true);
+    expect(assessApiKeyPermissions([`btcpay.store.canmodifystoresettings:${S}`], S).grantsLightningUse).toBe(
+      true,
+    );
   });
   it("does NOT treat invoice-only or other-store permissions as the right to pay or look up (source: Store controller policy is canuselightningnode)", () => {
-    expect(assessApiKeyPermissions([`btcpay.store.cancreatelightninginvoice:${S}`, `btcpay.store.canviewlightninginvoice:${S}`], S).grantsLightningUse).toBe(false);
-    expect(assessApiKeyPermissions(["btcpay.store.canuselightningnode:SOMEOTHERSTORE"], S).grantsLightningUse).toBe(false);
-    expect(assessApiKeyPermissions(["btcpay.server.canuseinternallightningnode"], S).grantsLightningUse).toBe(false);
+    expect(
+      assessApiKeyPermissions(
+        [`btcpay.store.cancreatelightninginvoice:${S}`, `btcpay.store.canviewlightninginvoice:${S}`],
+        S,
+      ).grantsLightningUse,
+    ).toBe(false);
+    expect(
+      assessApiKeyPermissions(["btcpay.store.canuselightningnode:SOMEOTHERSTORE"], S).grantsLightningUse,
+    ).toBe(false);
+    expect(assessApiKeyPermissions(["btcpay.server.canuseinternallightningnode"], S).grantsLightningUse).toBe(
+      false,
+    );
     expect(assessApiKeyPermissions(["garbage permission", ""], S).grantsLightningUse).toBe(false);
   });
 });
@@ -115,8 +179,19 @@ describe(`${SUITE}: API key permission interpretation`, () => {
 describe(`${SUITE}: getInfo and capability discovery`, () => {
   it("getInfo reports the declared network, the node pubkey from nodeURIs, and syncedToChain=unknown", async () => {
     const info = await provider().getInfo();
-    expect(info).toMatchObject({ kind: "btcpay", network: "regtest", nodePubkey: NODE_PUBKEY, alias: "fake-btcpay-lightning", version: "0.20.1-beta", syncedToChain: null });
-    expect(fake.seen[0]).toMatchObject({ method: "GET", path: `/api/v1/stores/${STORE_ID}/lightning/BTC/info`, auth: `token ${GOOD_KEY}` });
+    expect(info).toMatchObject({
+      kind: "btcpay",
+      network: "regtest",
+      nodePubkey: NODE_PUBKEY,
+      alias: "fake-btcpay-lightning",
+      version: "0.20.1-beta",
+      syncedToChain: null,
+    });
+    expect(fake.seen[0]).toMatchObject({
+      method: "GET",
+      path: `/api/v1/stores/${STORE_ID}/lightning/BTC/info`,
+      auth: `token ${GOOD_KEY}`,
+    });
   });
 
   it("full key + attested backend: send, lookup and info are true; probes create no payment and no real pay call", async () => {
@@ -152,14 +227,22 @@ describe(`${SUITE}: getInfo and capability discovery`, () => {
 
   it("unknown / revoked key (401): everything false, getInfo is an InsufficientPermissionsError", async () => {
     const p = provider({ apiKey: "k_unknown_0123456789abcdef" });
-    expect(await p.discoverCapabilities()).toMatchObject({ canSendPayments: false, canLookupPayments: false, canReadInfo: false });
+    expect(await p.discoverCapabilities()).toMatchObject({
+      canSendPayments: false,
+      canLookupPayments: false,
+      canReadInfo: false,
+    });
     await expect(p.getInfo()).rejects.toBeInstanceOf(InsufficientPermissionsError);
   });
 
   it("store without a Lightning node (404 lightning-not-configured): nothing is possible; getInfo is a configuration error; a send is NotSent", async () => {
     fake.lightningConfigured = false;
     const p = provider();
-    expect(await p.discoverCapabilities()).toMatchObject({ canSendPayments: false, canLookupPayments: false, canReadInfo: false });
+    expect(await p.discoverCapabilities()).toMatchObject({
+      canSendPayments: false,
+      canLookupPayments: false,
+      canReadInfo: false,
+    });
     await expect(p.getInfo()).rejects.toBeInstanceOf(BtcpayConfigurationError);
     const inv = invoiceFor("ok");
     await expect(p.sendPayment(sendReq(inv))).rejects.toBeInstanceOf(NotSentError);
@@ -169,7 +252,11 @@ describe(`${SUITE}: getInfo and capability discovery`, () => {
   it("node unreachable behind BTCPay (503): capabilities are 'unknown', never assumed", async () => {
     fake.nodeUnavailable = true;
     const caps = await provider().discoverCapabilities();
-    expect(caps).toMatchObject({ canSendPayments: "unknown", canLookupPayments: "unknown", canReadInfo: "unknown" });
+    expect(caps).toMatchObject({
+      canSendPayments: "unknown",
+      canLookupPayments: "unknown",
+      canReadInfo: "unknown",
+    });
   });
 
   it("a key whose list understates what the server allows is a contradiction => 'unknown' (fail closed)", async () => {
@@ -198,7 +285,9 @@ describe(`${SUITE}: getInfo and capability discovery`, () => {
 describe(`${SUITE}: network`, () => {
   it("opt-in invoice probe: matching network passes, a mismatch is refused with a clear error", async () => {
     expect((await provider({ verifyNetworkWithInvoiceProbe: true }).getInfo()).network).toBe("regtest");
-    await expect(provider({ verifyNetworkWithInvoiceProbe: true, network: "mainnet" }).getInfo()).rejects.toThrow(/Network mismatch.*declared mainnet.*regtest/);
+    await expect(
+      provider({ verifyNetworkWithInvoiceProbe: true, network: "mainnet" }).getInfo(),
+    ).rejects.toThrow(/Network mismatch.*declared mainnet.*regtest/);
   });
   it("an invoice for another network than declared is refused locally: no request reaches BTCPay at all", async () => {
     const inv = invoiceFor("ok", { network: "mainnet" });
@@ -220,7 +309,13 @@ describe(`${SUITE}: pay — success and documented responses`, () => {
   it("200 Complete: SUCCEEDED with preimage, fee and delivered amount (total minus fee); wire request has exactly the documented fields", async () => {
     const inv = invoiceFor("ok");
     const rec = await provider().sendPayment(sendReq(inv));
-    expect(rec).toMatchObject({ status: "SUCCEEDED", paymentHash: inv.paymentHash, preimage: PREIMAGE, amountMsat: 250_000n, feeMsat: 1000n });
+    expect(rec).toMatchObject({
+      status: "SUCCEEDED",
+      paymentHash: inv.paymentHash,
+      preimage: PREIMAGE,
+      amountMsat: 250_000n,
+      feeMsat: 1000n,
+    });
     expect(sha256Hex(hexToBytes(rec.preimage!))).toBe(inv.paymentHash); // the check core performs
     const pay = fake.realPays()[0]!;
     expect(pay.auth).toBe(`token ${GOOD_KEY}`);
@@ -247,7 +342,9 @@ describe(`${SUITE}: pay — success and documented responses`, () => {
     const inv = invoiceFor("ok_response_without_preimage");
     const rec = await provider().sendPayment(sendReq(inv));
     expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: PREIMAGE });
-    expect(fake.seen.filter((s) => s.method === "GET" && s.path.includes("/payments/")).length).toBeGreaterThanOrEqual(2); // pre-check + enrichment
+    expect(
+      fake.seen.filter((s) => s.method === "GET" && s.path.includes("/payments/")).length,
+    ).toBeGreaterThanOrEqual(2); // pre-check + enrichment
   });
   it("202 Pending: IN_FLIGHT (never a success, never a failure)", async () => {
     const inv = invoiceFor("pending");
@@ -289,32 +386,45 @@ describe(`${SUITE}: pay — documented errors`, () => {
     await expect(provider().sendPayment(sendReq(inv))).rejects.toBeInstanceOf(NotSentError);
     // with the duplicate check disabled the pay call goes out, the lookup then errors => UNKNOWN
     fake.seen = [];
-    await expect(provider({ preSendDuplicateCheck: false }).sendPayment(sendReq(inv))).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(provider({ preSendDuplicateCheck: false }).sendPayment(sendReq(inv))).rejects.toBeInstanceOf(
+      OutcomeUnknownError,
+    );
   });
   it("422 validation (BOLT11 invalid for BTCPay) => NotSent, with the validation path in the message", async () => {
     const inv = invoiceFor("ok");
     fake.network = "testnet"; // BTCPay now parses BOLT11 against testnet and rejects ours
-    const err = await provider({ preSendDuplicateCheck: false }).sendPayment(sendReq(inv)).catch((e) => e);
+    const err = await provider({ preSendDuplicateCheck: false })
+      .sendPayment(sendReq(inv))
+      .catch((e) => e);
     expect(err).toBeInstanceOf(NotSentError);
     expect(String(err.message)).toMatch(/BOLT11/);
   });
   it("403 missing-permission and 401 on the pay call => NotSent (rejected before processing) and the message names the missing permission", async () => {
     fake.keys.set(GOOD_KEY, [`btcpay.store.cancreatelightninginvoice:${STORE_ID}`]);
     const inv = invoiceFor("ok");
-    const err = await provider({ preSendDuplicateCheck: false }).sendPayment(sendReq(inv)).catch((e) => e);
+    const err = await provider({ preSendDuplicateCheck: false })
+      .sendPayment(sendReq(inv))
+      .catch((e) => e);
     expect(err).toBeInstanceOf(NotSentError);
     expect(String(err.message)).toMatch(/btcpay\.store\.canuselightningnode/);
-    const err401 = await provider({ preSendDuplicateCheck: false, apiKey: "k_unknown_0123456789abcdef" }).sendPayment(sendReq(inv)).catch((e) => e);
+    const err401 = await provider({ preSendDuplicateCheck: false, apiKey: "k_unknown_0123456789abcdef" })
+      .sendPayment(sendReq(inv))
+      .catch((e) => e);
     expect(err401).toBeInstanceOf(NotSentError);
     expect(fake.realPayCalls).toBe(0);
   });
   it("503 lightning-node-unavailable is UNKNOWN: BTCPay's exception filter also wraps exceptions thrown after the payment was started", async () => {
     const inv = invoiceFor("node_unavailable_after_start");
-    const err = await provider().sendPayment(sendReq(inv)).catch((e) => e);
+    const err = await provider()
+      .sendPayment(sendReq(inv))
+      .catch((e) => e);
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     // and the payment did happen, which is exactly why this must not be 'failed'
     expect(fake.payments.get(inv.paymentHash)?.status).toBe("Complete");
-    expect(await provider().lookupPayment(inv.paymentHash)).toMatchObject({ status: "SUCCEEDED", preimage: PREIMAGE });
+    expect(await provider().lookupPayment(inv.paymentHash)).toMatchObject({
+      status: "SUCCEEDED",
+      preimage: PREIMAGE,
+    });
   });
   it.each(["http_500", "http_502"] as const)("%s after the call was made is UNKNOWN", async (b) => {
     const inv = invoiceFor(b);
@@ -335,7 +445,9 @@ describe(`${SUITE}: pay — timeout, transport and local refusals`, () => {
   it("TIMEOUT: no answer within sendTimeout+margin => OutcomeUnknown (never failed); the lost payment is then found by hash", async () => {
     const inv = invoiceFor("lost_response_hang");
     const started = Date.now();
-    const err = await provider().sendPayment(sendReq(inv, { timeoutSeconds: 1 })).catch((e) => e);
+    const err = await provider()
+      .sendPayment(sendReq(inv, { timeoutSeconds: 1 }))
+      .catch((e) => e);
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(String(err.message)).toMatch(/no answer from BTCPay within/);
     expect(Date.now() - started).toBeGreaterThanOrEqual(1000);
@@ -362,15 +474,21 @@ describe(`${SUITE}: pay — timeout, transport and local refusals`, () => {
     const inv = invoiceFor("ok");
     const other = invoiceFor("ok", { preimage: PREIMAGE_2 });
     const p = provider();
-    await expect(p.sendPayment(sendReq(inv, { paymentHash: other.paymentHash }))).rejects.toThrow(/payment hash/);
+    await expect(p.sendPayment(sendReq(inv, { paymentHash: other.paymentHash }))).rejects.toThrow(
+      /payment hash/,
+    );
     await expect(p.sendPayment(sendReq(inv, { amountMsat: 250_001n }))).rejects.toThrow(/amount/);
     await expect(p.sendPayment(sendReq(inv, { zeroAmountInvoice: true }))).rejects.toThrow(/zero-amount/);
     await expect(p.sendPayment(sendReq(inv, { feeLimitMsat: 999n }))).rejects.toThrow(/below 1 sat/);
     await expect(p.sendPayment(sendReq(inv, { feeLimitMsat: 0n }))).rejects.toThrow(/below 1 sat/);
     await expect(p.sendPayment(sendReq(inv, { timeoutSeconds: 0 }))).rejects.toThrow(/timeout/);
-    await expect(p.sendPayment(sendReq({ invoice: "lnbcrt1garbage", paymentHash: inv.paymentHash }))).rejects.toBeInstanceOf(NotSentError);
+    await expect(
+      p.sendPayment(sendReq({ invoice: "lnbcrt1garbage", paymentHash: inv.paymentHash })),
+    ).rejects.toBeInstanceOf(NotSentError);
     const zero = invoiceFor("ok", { amountMsat: null, preimage: "12".repeat(32) });
-    await expect(p.sendPayment(sendReq(zero, { zeroAmountInvoice: true, amountMsat: 0n }))).rejects.toThrow(/positive/);
+    await expect(p.sendPayment(sendReq(zero, { zeroAmountInvoice: true, amountMsat: 0n }))).rejects.toThrow(
+      /positive/,
+    );
     expect(fake.seen).toEqual([]);
   });
 });
@@ -378,7 +496,12 @@ describe(`${SUITE}: pay — timeout, transport and local refusals`, () => {
 describe(`${SUITE}: duplicate prevention (BTCPay has no 'already exists' error)`, () => {
   it("an existing Complete payment for the hash is returned and NOT paid again", async () => {
     const inv = invoiceFor("ok");
-    fake.payments.set(inv.paymentHash, { status: "Complete", preimage: PREIMAGE, totalMsat: 251_000, feeMsat: 1000 });
+    fake.payments.set(inv.paymentHash, {
+      status: "Complete",
+      preimage: PREIMAGE,
+      totalMsat: 251_000,
+      feeMsat: 1000,
+    });
     const rec = await provider().sendPayment(sendReq(inv));
     expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: PREIMAGE });
     expect(fake.payCalls()).toHaveLength(0);
@@ -403,7 +526,12 @@ describe(`${SUITE}: duplicate prevention (BTCPay has no 'already exists' error)`
   });
   it("without the pre-check, BTCPay answering 'already paid' as 200 is accepted as success (same hash, same preimage)", async () => {
     const inv = invoiceFor("ok_already_paid");
-    fake.payments.set(inv.paymentHash, { status: "Complete", preimage: PREIMAGE, totalMsat: 251_000, feeMsat: 1000 });
+    fake.payments.set(inv.paymentHash, {
+      status: "Complete",
+      preimage: PREIMAGE,
+      totalMsat: 251_000,
+      feeMsat: 1000,
+    });
     const rec = await provider({ preSendDuplicateCheck: false }).sendPayment(sendReq(inv));
     expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: PREIMAGE });
   });
@@ -414,19 +542,34 @@ describe(`${SUITE}: lookup by payment hash`, () => {
     const a = makeInvoice({ network: "regtest", amountMsat: 1000n, preimage: PREIMAGE });
     const b = makeInvoice({ network: "regtest", amountMsat: 1000n, preimage: PREIMAGE_2 });
     const c = makeInvoice({ network: "regtest", amountMsat: 1000n, preimage: "01".repeat(32) });
-    fake.payments.set(a.paymentHash, { status: "Complete", preimage: PREIMAGE, totalMsat: 1100, feeMsat: 100 });
+    fake.payments.set(a.paymentHash, {
+      status: "Complete",
+      preimage: PREIMAGE,
+      totalMsat: 1100,
+      feeMsat: 100,
+    });
     fake.payments.set(b.paymentHash, { status: "Failed" });
     fake.payments.set(c.paymentHash, { status: "Pending" });
     const p = provider();
-    expect(await p.lookupPayment(a.paymentHash)).toMatchObject({ status: "SUCCEEDED", preimage: PREIMAGE, amountMsat: 1000n, feeMsat: 100n });
+    expect(await p.lookupPayment(a.paymentHash)).toMatchObject({
+      status: "SUCCEEDED",
+      preimage: PREIMAGE,
+      amountMsat: 1000n,
+      feeMsat: 100n,
+    });
     expect((await p.lookupPayment(b.paymentHash)).status).toBe("FAILED");
     expect((await p.lookupPayment(c.paymentHash)).status).toBe("IN_FLIGHT");
   });
   it("not found with an attested backend => NOT_FOUND", async () => {
-    expect(await provider().lookupPayment("22".repeat(32))).toMatchObject({ status: "NOT_FOUND", paymentHash: "22".repeat(32) });
+    expect(await provider().lookupPayment("22".repeat(32))).toMatchObject({
+      status: "NOT_FOUND",
+      paymentHash: "22".repeat(32),
+    });
   });
   it("not found WITHOUT the attestation => OutcomeUnknown, so 'confirm not sent' cannot be built on an unprovable absence", async () => {
-    await expect(provider({ trustAbsenceOfPayment: false }).lookupPayment("22".repeat(32))).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(
+      provider({ trustAbsenceOfPayment: false }).lookupPayment("22".repeat(32)),
+    ).rejects.toBeInstanceOf(OutcomeUnknownError);
   });
   it("a backend that errors instead of answering is never mistaken for 'not found'", async () => {
     fake.lookupErrors = true;
@@ -446,7 +589,9 @@ describe(`${SUITE}: secrets`, () => {
   it("credentials echoed by BTCPay in an error body never reach thrown messages", async () => {
     fake.echoInErrors = `key=${GOOD_KEY} token abcdefgh12345678 macaroon=${"0a".repeat(120)} Authorization: token ${GOOD_KEY}`;
     const inv = invoiceFor("node_unavailable_after_start");
-    const err = await provider().sendPayment(sendReq(inv)).catch((e) => e);
+    const err = await provider()
+      .sendPayment(sendReq(inv))
+      .catch((e) => e);
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     const text = `${err.message} ${JSON.stringify(err)} ${String(err.stack)}`;
     expect(text).not.toContain(GOOD_KEY);
@@ -455,10 +600,12 @@ describe(`${SUITE}: secrets`, () => {
   });
   it("redactSecrets strips the key, auth headers, credential assignments and long hex, keeps 64-hex hashes, and truncates", () => {
     const h = "ab".repeat(32);
-    const out = redactSecrets(`hash ${h} Bearer abcdefghijklmnop api_key=s3cr3tvalue macaroon:${"cd".repeat(100)} mykey123456`, ["mykey123456"]);
+    const out = redactSecrets(
+      `hash ${h} Bearer abcdefghijklmnop api_key=s3cr3tvalue macaroon:${"cd".repeat(100)} mykey123456`,
+      ["mykey123456"],
+    );
     expect(out).toContain(h);
     expect(out).not.toMatch(/abcdefghijklmnop|s3cr3tvalue|mykey123456|(cd){40}/);
     expect(redactSecrets("x".repeat(1000)).length).toBeLessThan(310);
   });
 });
-

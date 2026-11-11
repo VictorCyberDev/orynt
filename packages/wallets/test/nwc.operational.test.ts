@@ -23,11 +23,15 @@ const MAX_MSAT = 10_000_000n; // 10,000 sat hard cap for this check, whatever th
 const enabled = !!uri && (network === "regtest" || network === "signet" || network === "testnet");
 
 describe.skipIf(!enabled)("OPERATIONAL (real NWC wallet service, non-mainnet only)", () => {
-  const mk = () => new NwcProvider({
-    uri: uri as string, network: network as Network, allowMainnet: false, unenforcedFeeLimit: "accept_and_report",
-    allowInsecureLoopbackRelays: process.env["ORYNT_NWC_ALLOW_LOOPBACK_WS"] === "1",
-    onDiagnostic: (d) => console.log("[nwc diagnostic]", JSON.stringify(d)),
-  });
+  const mk = () =>
+    new NwcProvider({
+      uri: uri as string,
+      network: network as Network,
+      allowMainnet: false,
+      unenforcedFeeLimit: "accept_and_report",
+      allowInsecureLoopbackRelays: process.env["ORYNT_NWC_ALLOW_LOOPBACK_WS"] === "1",
+      onDiagnostic: (d) => console.log("[nwc diagnostic]", JSON.stringify(d)),
+    });
 
   it("connects, reads the info event and get_info, and agrees with the asserted network", async () => {
     const p = mk();
@@ -43,23 +47,34 @@ describe.skipIf(!enabled)("OPERATIONAL (real NWC wallet service, non-mainnet onl
     }
   }, 60_000);
 
-  it.skipIf(!invoice || !confirmPay)("pays ONE tiny test-network invoice and reconciles it by payment_hash", async () => {
-    const dec = decodeInvoice(invoice as string);
-    expect(dec.network).toBe(network);
-    expect(dec.amountMsat).not.toBeNull();
-    expect(dec.amountMsat as bigint).toBeLessThanOrEqual(MAX_MSAT);
-    const p = mk();
-    try {
-      const rec = await p.sendPayment({ invoice: invoice as string, paymentHash: dec.paymentHash, amountMsat: dec.amountMsat as bigint, zeroAmountInvoice: false, feeLimitMsat: 1_000_000n, timeoutSeconds: 60 });
-      console.log("[nwc] sendPayment status:", rec.status);
-      expect(rec.status).toBe("SUCCEEDED");
-      expect(sha256Hex(hexToBytes(rec.preimage as string))).toBe(dec.paymentHash);
-      const looked = await p.lookupPayment(dec.paymentHash);
-      console.log("[nwc] lookupPayment status:", looked.status);
-      expect(looked.status).toBe("SUCCEEDED");
-      expect(looked.preimage).toBe(rec.preimage);
-    } finally {
-      p.close();
-    }
-  }, 120_000);
+  it.skipIf(!invoice || !confirmPay)(
+    "pays ONE tiny test-network invoice and reconciles it by payment_hash",
+    async () => {
+      const dec = decodeInvoice(invoice as string);
+      expect(dec.network).toBe(network);
+      expect(dec.amountMsat).not.toBeNull();
+      expect(dec.amountMsat as bigint).toBeLessThanOrEqual(MAX_MSAT);
+      const p = mk();
+      try {
+        const rec = await p.sendPayment({
+          invoice: invoice as string,
+          paymentHash: dec.paymentHash,
+          amountMsat: dec.amountMsat as bigint,
+          zeroAmountInvoice: false,
+          feeLimitMsat: 1_000_000n,
+          timeoutSeconds: 60,
+        });
+        console.log("[nwc] sendPayment status:", rec.status);
+        expect(rec.status).toBe("SUCCEEDED");
+        expect(sha256Hex(hexToBytes(rec.preimage as string))).toBe(dec.paymentHash);
+        const looked = await p.lookupPayment(dec.paymentHash);
+        console.log("[nwc] lookupPayment status:", looked.status);
+        expect(looked.status).toBe("SUCCEEDED");
+        expect(looked.preimage).toBe(rec.preimage);
+      } finally {
+        p.close();
+      }
+    },
+    120_000,
+  );
 });

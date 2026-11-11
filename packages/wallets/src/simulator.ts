@@ -1,8 +1,13 @@
 import { decodeInvoice, sha256Hex, hexToBytes } from "@orynt/core";
 import type { Network } from "@orynt/core";
 import {
-  NotSentError, OutcomeUnknownError,
-  type Capabilities, type PaymentRecord, type SendRequest, type WalletInfo, type WalletProvider,
+  NotSentError,
+  OutcomeUnknownError,
+  type Capabilities,
+  type PaymentRecord,
+  type SendRequest,
+  type WalletInfo,
+  type WalletProvider,
 } from "./types";
 
 /**
@@ -45,14 +50,36 @@ export class SimulatorProvider implements WalletProvider {
   }
 
   async getInfo(): Promise<WalletInfo> {
-    return { kind: "simulator", network: this.network, nodePubkey: null, alias: "SIMULATOR (not a real wallet)", version: "sim-1", syncedToChain: true };
+    return {
+      kind: "simulator",
+      network: this.network,
+      nodePubkey: null,
+      alias: "SIMULATOR (not a real wallet)",
+      version: "sim-1",
+      syncedToChain: true,
+    };
   }
   async discoverCapabilities(): Promise<Capabilities> {
-    return { canSendPayments: true, canLookupPayments: true, canReadInfo: true, notes: ["Simulator: no real funds move."], discoveredAt: new Date().toISOString() };
+    return {
+      canSendPayments: true,
+      canLookupPayments: true,
+      canReadInfo: true,
+      notes: ["Simulator: no real funds move."],
+      discoveredAt: new Date().toISOString(),
+    };
   }
 
   private succeed(hash: string, amountMsat: bigint): PaymentRecord {
-    const rec: PaymentRecord = { status: "SUCCEEDED", paymentHash: hash, preimage: this.preimages.get(hash), amountMsat, feeMsat: 0n, settledAt: new Date().toISOString(), observedAt: new Date().toISOString(), providerRef: "sim" };
+    const rec: PaymentRecord = {
+      status: "SUCCEEDED",
+      paymentHash: hash,
+      preimage: this.preimages.get(hash),
+      amountMsat,
+      feeMsat: 0n,
+      settledAt: new Date().toISOString(),
+      observedAt: new Date().toISOString(),
+      providerRef: "sim",
+    };
     this.records.set(hash, rec);
     return rec;
   }
@@ -65,30 +92,55 @@ export class SimulatorProvider implements WalletProvider {
     }
     const b = this.behaviors.get(hash) ?? "fail_no_route";
     switch (b) {
-      case "succeed": return this.succeed(hash, req.amountMsat);
+      case "succeed":
+        return this.succeed(hash, req.amountMsat);
       case "pending_then_succeed":
-        this.records.set(hash, { status: "IN_FLIGHT", paymentHash: hash, observedAt: new Date().toISOString() });
+        this.records.set(hash, {
+          status: "IN_FLIGHT",
+          paymentHash: hash,
+          observedAt: new Date().toISOString(),
+        });
         return this.records.get(hash)!;
       case "fail_no_route": {
-        const rec: PaymentRecord = { status: "FAILED", paymentHash: hash, failureReason: "FAILURE_REASON_NO_ROUTE", observedAt: new Date().toISOString() };
+        const rec: PaymentRecord = {
+          status: "FAILED",
+          paymentHash: hash,
+          failureReason: "FAILURE_REASON_NO_ROUTE",
+          observedAt: new Date().toISOString(),
+        };
         this.records.set(hash, rec);
         return rec;
       }
       case "accept_then_lose_response":
         this.succeed(hash, req.amountMsat);
         throw new OutcomeUnknownError("simulator: connection reset after the wallet accepted the payment");
-      case "not_sent_unreachable": throw new NotSentError("simulator: wallet unreachable");
+      case "not_sent_unreachable":
+        throw new NotSentError("simulator: wallet unreachable");
       case "fail_insufficient": {
-        const rec: PaymentRecord = { status: "FAILED", paymentHash: hash, failureReason: "FAILURE_REASON_INSUFFICIENT_BALANCE", observedAt: new Date().toISOString() };
+        const rec: PaymentRecord = {
+          status: "FAILED",
+          paymentHash: hash,
+          failureReason: "FAILURE_REASON_INSUFFICIENT_BALANCE",
+          observedAt: new Date().toISOString(),
+        };
         this.records.set(hash, rec);
         return rec;
       }
       case "succeed_bad_preimage": {
-        const rec: PaymentRecord = { status: "SUCCEEDED", paymentHash: hash, preimage: "ff".repeat(32), amountMsat: req.amountMsat, feeMsat: 0n, settledAt: new Date().toISOString(), observedAt: new Date().toISOString() };
+        const rec: PaymentRecord = {
+          status: "SUCCEEDED",
+          paymentHash: hash,
+          preimage: "ff".repeat(32),
+          amountMsat: req.amountMsat,
+          feeMsat: 0n,
+          settledAt: new Date().toISOString(),
+          observedAt: new Date().toISOString(),
+        };
         this.records.set(hash, rec);
         return rec;
       }
-      case "error_then_no_record": throw new OutcomeUnknownError("simulator: ambiguous error, no record was created");
+      case "error_then_no_record":
+        throw new OutcomeUnknownError("simulator: ambiguous error, no record was created");
     }
   }
 

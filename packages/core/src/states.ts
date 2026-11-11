@@ -85,19 +85,38 @@ export interface TransitionEvidence {
 export function assertTransition(from: State, to: State, ev: TransitionEvidence = {}): void {
   if (!canTransition(from, to)) throw new TransitionError(from, to, `illegal transition ${from} -> ${to}`);
   if (to === "SETTLED") {
-    if (ev.providerKind === "simulator") throw new TransitionError(from, to, "a simulator can never produce SETTLED");
-    if (!ev.preimageVerified) throw new TransitionError(from, to, "SETTLED requires a verified payment preimage");
+    if (ev.providerKind === "simulator")
+      throw new TransitionError(from, to, "a simulator can never produce SETTLED");
+    if (!ev.preimageVerified)
+      throw new TransitionError(from, to, "SETTLED requires a verified payment preimage");
   }
   if (to === "SIMULATED_SETTLED" && ev.providerKind !== "simulator") {
     throw new TransitionError(from, to, "SIMULATED_SETTLED is reserved for the simulator provider");
   }
-  if (to === "DEFINITIVELY_FAILED" && !(ev.providerReportedTerminalFailure || ev.notSentProven || ev.operatorConfirmedNotSent)) {
-    throw new TransitionError(from, to, "DEFINITIVELY_FAILED requires provider-reported failure or proof the request was never sent");
+  if (
+    to === "DEFINITIVELY_FAILED" &&
+    !(ev.providerReportedTerminalFailure || ev.notSentProven || ev.operatorConfirmedNotSent)
+  ) {
+    throw new TransitionError(
+      from,
+      to,
+      "DEFINITIVELY_FAILED requires provider-reported failure or proof the request was never sent",
+    );
   }
 }
 
 export interface ActionAvailability {
-  action: "edit" | "submit" | "approve" | "reject" | "execute" | "reconcile" | "retry" | "cancel" | "confirm_not_sent" | "receipt";
+  action:
+    | "edit"
+    | "submit"
+    | "approve"
+    | "reject"
+    | "execute"
+    | "reconcile"
+    | "retry"
+    | "cancel"
+    | "confirm_not_sent"
+    | "receipt";
   allowed: boolean;
   /** Plain-language reason shown to the operator when `allowed` is false. */
   reason?: string;
@@ -109,8 +128,16 @@ export function stateActions(state: State): ActionAvailability[] {
     allowed ? { action, allowed } : { action, allowed, reason };
   const sent = (MONEY_MAY_HAVE_MOVED as readonly string[]).includes(state);
   return [
-    a("edit", state === "DRAFT" || state === "AWAITING_APPROVAL" || state === "APPROVED" || state === "DEFINITIVELY_FAILED",
-      sent ? "This payment may already have been sent, so its terms are frozen." : "Terms are frozen in this state."),
+    a(
+      "edit",
+      state === "DRAFT" ||
+        state === "AWAITING_APPROVAL" ||
+        state === "APPROVED" ||
+        state === "DEFINITIVELY_FAILED",
+      sent
+        ? "This payment may already have been sent, so its terms are frozen."
+        : "Terms are frozen in this state.",
+    ),
     a("submit", state === "DRAFT", "Only a draft can be submitted for approval."),
     a("approve", state === "AWAITING_APPROVAL", "Nothing is waiting for approval."),
     a("reject", state === "AWAITING_APPROVAL", "Only a payment awaiting approval can be rejected."),
@@ -123,11 +150,7 @@ export function stateActions(state: State): ActionAvailability[] {
           ? "This payment has already been settled."
           : "The payment needs a current approval before it can be sent.",
     ),
-    a(
-      "reconcile",
-      NEEDS_RECONCILIATION.includes(state),
-      "There is nothing to reconcile in this state.",
-    ),
+    a("reconcile", NEEDS_RECONCILIATION.includes(state), "There is nothing to reconcile in this state."),
     a(
       "retry",
       state === "DEFINITIVELY_FAILED",
@@ -137,10 +160,23 @@ export function stateActions(state: State): ActionAvailability[] {
     ),
     a(
       "cancel",
-      state === "DRAFT" || state === "AWAITING_APPROVAL" || state === "APPROVED" || state === "DEFINITIVELY_FAILED",
-      sent ? "Cancelling is not possible once a payment may have been sent. A refund would be a separate payment." : "Not cancellable.",
+      state === "DRAFT" ||
+        state === "AWAITING_APPROVAL" ||
+        state === "APPROVED" ||
+        state === "DEFINITIVELY_FAILED",
+      sent
+        ? "Cancelling is not possible once a payment may have been sent. A refund would be a separate payment."
+        : "Not cancellable.",
     ),
-    a("confirm_not_sent", state === "UNKNOWN" || state === "RECONCILING", "Only an unresolved payment can be confirmed as not sent."),
-    a("receipt", state === "SETTLED" || state === "SIMULATED_SETTLED", "A receipt exists only for a settled payment."),
+    a(
+      "confirm_not_sent",
+      state === "UNKNOWN" || state === "RECONCILING",
+      "Only an unresolved payment can be confirmed as not sent.",
+    ),
+    a(
+      "receipt",
+      state === "SETTLED" || state === "SIMULATED_SETTLED",
+      "A receipt exists only for a settled payment.",
+    ),
   ];
 }

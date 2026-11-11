@@ -5,9 +5,11 @@ import { APP, repoPath } from "../site.config.mjs";
 
 // Every limit below is generated from the plan_definitions rows in the API migration (see src/plans.mjs).
 // scripts/verify-claims.mjs re-reads the migration and fails if the built page disagrees.
-export const HYPOTHESIS_NOTICE = "Pricing hypotheses under test — not final offers; the app currently uses a SANDBOX billing provider, no card is charged";
+export const HYPOTHESIS_NOTICE =
+  "Pricing hypotheses under test — not final offers; the app currently uses a SANDBOX billing provider, no card is charged";
 
-const cell = (p, key) => `<span data-plan="${p.id}" data-ent="${key}" data-v="${p.entitlements[key]}">${esc(valueLabel(key, p.entitlements[key]))}</span>`;
+const cell = (p, key) =>
+  `<span data-plan="${p.id}" data-ent="${key}" data-v="${p.entitlements[key]}">${esc(valueLabel(key, p.entitlements[key]))}</span>`;
 
 const planCard = (p) => {
   const e = p.entitlements;
@@ -17,7 +19,9 @@ const planCard = (p) => {
     ["members", "team members", "team member"],
     ["wallets", "wallets", "wallet"],
   ].map(([k, l, one]) => `<li><strong>${esc(valueLabel(k, e[k]))}</strong> ${e[k] === 1 ? one : l}</li>`);
-  facts.push(`<li>Batch CSV: <strong>${e.batch ? "yes" : "no"}</strong> &middot; Recurring: <strong>${e.recurring ? "yes" : "no"}</strong></li>`);
+  facts.push(
+    `<li>Batch CSV: <strong>${e.batch ? "yes" : "no"}</strong> &middot; Recurring: <strong>${e.recurring ? "yes" : "no"}</strong></li>`,
+  );
   return `<article class="card plan" id="plan-${p.id}" aria-labelledby="plan-${p.id}-name">
 <p class="plan__tag">${tag("Hypothesis", "hypothesis")}</p>
 <h3 id="plan-${p.id}-name">${esc(p.name)}</h3>
@@ -28,14 +32,38 @@ ${p.priceCents === null ? `<p class="small muted">Not purchasable in the app. Th
 };
 
 const billingFaq = [
-  ["Will my card be charged?", `<p>No. The app is configured with a <strong>sandbox</strong> billing provider. Choosing a plan simulates a checkout and sends a correctly signed event through the same webhook code a real provider would use, so you can see plan changes and limits work. No card details are collected and no money moves.</p><p>Checkout for live Stripe and Paystack is written, but it is <strong>not commissioned</strong>: it has never been run against a live provider account, and no real charge has ever happened.</p>`],
-  ["Why call these prices hypotheses?", `<p>Nobody has been asked what they would pay, and there are no customers or revenue. The figures are what we want to test. Every plan row in the catalogue is flagged as a hypothesis (<code>is_hypothesis</code> in <code>GET /v1/plans</code>), and we may change or drop any of them. The limits, by contrast, are real: the server enforces exactly the numbers in the table.</p>`],
-  ["What happens when I reach a limit?", `<p>The server refuses the action with HTTP <code>402</code> and the code <code>entitlement_exceeded</code>. The response says which limit (<code>entitlement</code>), your plan, the <code>limit</code> and how much you have <code>used</code>. Hiding a button is not enforcement, so this applies to API calls too. Existing records stay; only new additions beyond the limit are refused. See the <a href="/developers/#limits">developer notes on 402 errors</a>.</p>`],
-  ["What happens if a payment fails or I cancel?", `<p>Cancelling schedules the end of the paid period; the plan stays until then. If a subscription is cancelled or incomplete, or has been past due for more than 7 days, the account falls back to the free Developer limits, never to unlimited. In-app cancellation is not implemented for the Paystack provider.</p>`],
-  ["Is Enterprise something I can buy?", `<p>Not today. The app refuses to check out the plan, which is by arrangement. In the entitlement configuration Enterprise has no numeric limits, but that does not come with single sign-on, uptime commitments or audit certifications: none of those exist. To talk about it, <a href="/contact/">request a pilot</a>.</p>`],
-  ["Do you take a cut of my payouts?", `<p>No. There is no per-payment fee in any plan, and Orynt does not hold your funds. We lean towards flat pricing and would take legal advice before charging any other way. The offline receipt verifier and the receipt format are meant to stay free.</p>`],
-  ["Taxes, invoices and refunds?", `<p>Not defined yet. There is no live billing account, so tax handling, invoices and a refund policy have not been written. They would be settled, and shown here, before any live checkout is switched on.</p>`],
-  ["Where can I see my usage?", `<p>In the app, on the <a href="${APP.billing}">plan and billing page</a> (sign-in required): your current plan, status, and usage against each limit.</p>`],
+  [
+    "Will my card be charged?",
+    `<p>No. The app is configured with a <strong>sandbox</strong> billing provider. Choosing a plan simulates a checkout and sends a correctly signed event through the same webhook code a real provider would use, so you can see plan changes and limits work. No card details are collected and no money moves.</p><p>Checkout for live Stripe and Paystack is written, but it is <strong>not commissioned</strong>: it has never been run against a live provider account, and no real charge has ever happened.</p>`,
+  ],
+  [
+    "Why call these prices hypotheses?",
+    `<p>Nobody has been asked what they would pay, and there are no customers or revenue. The figures are what we want to test. Every plan row in the catalogue is flagged as a hypothesis (<code>is_hypothesis</code> in <code>GET /v1/plans</code>), and we may change or drop any of them. The limits, by contrast, are real: the server enforces exactly the numbers in the table.</p>`,
+  ],
+  [
+    "What happens when I reach a limit?",
+    `<p>The server refuses the action with HTTP <code>402</code> and the code <code>entitlement_exceeded</code>. The response says which limit (<code>entitlement</code>), your plan, the <code>limit</code> and how much you have <code>used</code>. Hiding a button is not enforcement, so this applies to API calls too. Existing records stay; only new additions beyond the limit are refused. See the <a href="/developers/#limits">developer notes on 402 errors</a>.</p>`,
+  ],
+  [
+    "What happens if a payment fails or I cancel?",
+    `<p>Cancelling schedules the end of the paid period; the plan stays until then. If a subscription is cancelled or incomplete, or has been past due for more than 7 days, the account falls back to the free Developer limits, never to unlimited. In-app cancellation is not implemented for the Paystack provider.</p>`,
+  ],
+  [
+    "Is Enterprise something I can buy?",
+    `<p>Not today. The app refuses to check out the plan, which is by arrangement. In the entitlement configuration Enterprise has no numeric limits, but that does not come with single sign-on, uptime commitments or audit certifications: none of those exist. To talk about it, <a href="/contact/">request a pilot</a>.</p>`,
+  ],
+  [
+    "Do you take a cut of my payouts?",
+    `<p>No. There is no per-payment fee in any plan, and Orynt does not hold your funds. We lean towards flat pricing and would take legal advice before charging any other way. The offline receipt verifier and the receipt format are meant to stay free.</p>`,
+  ],
+  [
+    "Taxes, invoices and refunds?",
+    `<p>Not defined yet. There is no live billing account, so tax handling, invoices and a refund policy have not been written. They would be settled, and shown here, before any live checkout is switched on.</p>`,
+  ],
+  [
+    "Where can I see my usage?",
+    `<p>In the app, on the <a href="${APP.billing}">plan and billing page</a> (sign-in required): your current plan, status, and usage against each limit.</p>`,
+  ],
 ];
 
 export default {
@@ -64,13 +92,23 @@ ${section({
   id: "compare",
   tint: true,
   title: "Compare the limits.",
-  intro: "Every number is an entitlement the server checks before it lets you add a resource. “Unlimited” is stored as −1 in the database.",
+  intro:
+    "Every number is an entitlement the server checks before it lets you add a resource. “Unlimited” is stored as −1 in the database.",
   body: `${table({
     caption: "Plan limits compared. Pricing hypotheses under test, not final offers.",
     head: ["Limit", ...PLANS.map((p) => esc(p.name))],
     rows: [
-      ["Monthly price (hypothesis)", ...PLANS.map((p) => `<span data-plan="${p.id}" data-ent="price" data-v="${p.priceCents ?? "custom"}">${esc(priceLabel(p))}</span>`)],
-      ...DIMENSIONS.map((d) => [`${esc(d.label)}<span class="cell-note"><code>${d.key}</code> &middot; ${esc(d.note)}</span>`, ...PLANS.map((p) => cell(p, d.key))]),
+      [
+        "Monthly price (hypothesis)",
+        ...PLANS.map(
+          (p) =>
+            `<span data-plan="${p.id}" data-ent="price" data-v="${p.priceCents ?? "custom"}">${esc(priceLabel(p))}</span>`,
+        ),
+      ],
+      ...DIMENSIONS.map((d) => [
+        `${esc(d.label)}<span class="cell-note"><code>${d.key}</code> &middot; ${esc(d.note)}</span>`,
+        ...PLANS.map((p) => cell(p, d.key)),
+      ]),
     ],
     className: "table--plans table--wide",
   })}

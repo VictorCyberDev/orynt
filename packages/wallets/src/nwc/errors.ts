@@ -25,7 +25,11 @@ export type NwcNotSentReason =
  * a machine-readable reason (and, for explicit wallet refusals, the NIP-47 error code).
  */
 export class NwcNotSentError extends NotSentError {
-  constructor(message: string, public readonly reason: NwcNotSentReason, public readonly walletCode?: string) {
+  constructor(
+    message: string,
+    public readonly reason: NwcNotSentReason,
+    public readonly walletCode?: string,
+  ) {
     super(message);
     this.name = "NwcNotSentError";
   }
@@ -33,7 +37,10 @@ export class NwcNotSentError extends NotSentError {
 
 /** The network of the wallet could not be established (and was not asserted by the owner), or contradicts the assertion. */
 export class NwcNetworkError extends Error {
-  constructor(message: string, public readonly kind: "unverified" | "mismatch" | "mainnet_not_allowed") {
+  constructor(
+    message: string,
+    public readonly kind: "unverified" | "mismatch" | "mainnet_not_allowed",
+  ) {
     super(message);
     this.name = "NwcNetworkError";
   }
@@ -49,7 +56,11 @@ export class NwcRelayUnavailableError extends Error {
 
 /** A NIP-47 error object returned by the wallet service (authenticated). Internal carrier; mapped by the provider. */
 export class NwcWalletError extends Error {
-  constructor(public readonly code: string, public readonly walletMessage: string, public readonly method: string) {
+  constructor(
+    public readonly code: string,
+    public readonly walletMessage: string,
+    public readonly method: string,
+  ) {
     super(`wallet service returned ${code} for ${method}`);
     this.name = "NwcWalletError";
   }

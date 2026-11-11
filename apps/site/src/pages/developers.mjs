@@ -9,20 +9,44 @@ const endpointGroups = [
     id: "ep-payouts",
     title: "Payouts and payments",
     rows: [
-      ["POST", "/v1/obligations", "Create a payout obligation (draft). Optional <code>Idempotency-Key</code>."],
-      ["POST", "/v1/lnurl/resolve", "Resolve a Lightning Address into a verified invoice for an exact amount (<code>address</code>, <code>amount_msat</code>)."],
+      [
+        "POST",
+        "/v1/obligations",
+        "Create a payout obligation (draft). Optional <code>Idempotency-Key</code>.",
+      ],
+      [
+        "POST",
+        "/v1/lnurl/resolve",
+        "Resolve a Lightning Address into a verified invoice for an exact amount (<code>address</code>, <code>amount_msat</code>).",
+      ],
       ["GET", "/v1/obligations", "List obligations, filter by state."],
       ["GET", "/v1/obligations/:id", "One obligation with approvals, payment and next safe actions."],
       ["PUT", "/v1/obligations/:id", "New immutable revision; voids earlier approvals."],
       ["POST", "/v1/obligations/:id/submit", "Freeze the revision, bind the policy, request approval."],
-      ["POST", "/v1/obligations/:id/approve", "Approve with a signature over the intent digest (people only)."],
-      ["POST", "/v1/obligations/:id/execute", "Send exactly once. <code>Idempotency-Key</code> required. 202 means not yet certain."],
+      [
+        "POST",
+        "/v1/obligations/:id/approve",
+        "Approve with a signature over the intent digest (people only).",
+      ],
+      [
+        "POST",
+        "/v1/obligations/:id/execute",
+        "Send exactly once. <code>Idempotency-Key</code> required. 202 means not yet certain.",
+      ],
       ["GET", "/v1/payments/:id", "Payment attempts and settlement evidence."],
       ["POST", "/v1/payments/:id/reconcile", "Ask the wallet for its authoritative record."],
-      ["GET", "/v1/payments/:id/receipt", "Issue (once) and download the signed receipt for a settled payment."],
+      [
+        "GET",
+        "/v1/payments/:id/receipt",
+        "Issue (once) and download the signed receipt for a settled payment.",
+      ],
       ["GET", "/v1/audit/verify", "Re-verify every audit hash chain in the workspace."],
       ["POST", "/v1/webhooks", "Register an endpoint; the signing secret is shown once."],
-      ["GET", "/v1/public/issuer-keys", "Receipt-issuer public keys (informational; get your trust root out-of-band)."],
+      [
+        "GET",
+        "/v1/public/issuer-keys",
+        "Receipt-issuer public keys (informational; get your trust root out-of-band).",
+      ],
       ["GET", "/v1/openapi.json", "The OpenAPI document, generated from the same contract the server uses."],
     ],
   },
@@ -31,10 +55,18 @@ const endpointGroups = [
     title: "Batches",
     rows: [
       ["POST", "/v1/batches/preview", "Validate a payout CSV. Creates nothing."],
-      ["POST", "/v1/batches", "Create draft payouts from CSV. <code>label</code>, <code>csv</code>, optional <code>wallet_connection_id</code>. 201."],
+      [
+        "POST",
+        "/v1/batches",
+        "Create draft payouts from CSV. <code>label</code>, <code>csv</code>, optional <code>wallet_connection_id</code>. 201.",
+      ],
       ["GET", "/v1/batches/:id", "Batch status with per-item states."],
       ["POST", "/v1/batches/:id/submit", "Submit every draft item for approval."],
-      ["POST", "/v1/batches/:id/execute", "Execute every approved item; each is single-use and guarded on its own."],
+      [
+        "POST",
+        "/v1/batches/:id/execute",
+        "Execute every approved item; each is single-use and guarded on its own.",
+      ],
     ],
   },
   {
@@ -42,18 +74,34 @@ const endpointGroups = [
     title: "Recurring schedules",
     rows: [
       ["GET", "/v1/schedules", "List schedules."],
-      ["POST", "/v1/schedules", "Create a schedule. Opens an invoice-needed task each cycle; never pays by itself. 201."],
-      ["POST", "/v1/schedules/:id/:action", "<code>action</code> is <code>pause</code>, <code>resume</code> or <code>cancel</code>."],
+      [
+        "POST",
+        "/v1/schedules",
+        "Create a schedule. Opens an invoice-needed task each cycle; never pays by itself. 201.",
+      ],
+      [
+        "POST",
+        "/v1/schedules/:id/:action",
+        "<code>action</code> is <code>pause</code>, <code>resume</code> or <code>cancel</code>.",
+      ],
       ["POST", "/v1/schedules/run-due", "Open invoice-needed tasks for schedules that are due now."],
       ["GET", "/v1/schedule-cycles", "Cycles (the invoice-needed tasks)."],
-      ["POST", "/v1/schedule-cycles/:id/invoice", "Provide the invoice for a cycle; creates a normal draft payout. 201."],
+      [
+        "POST",
+        "/v1/schedule-cycles/:id/invoice",
+        "Provide the invoice for a cycle; creates a normal draft payout. 201.",
+      ],
     ],
   },
   {
     id: "ep-reports",
     title: "Reports",
     rows: [
-      ["GET", "/v1/reports/payouts", "Payout report as JSON or CSV. Real settlements only are summed; no fiat values."],
+      [
+        "GET",
+        "/v1/reports/payouts",
+        "Payout report as JSON or CSV. Real settlements only are summed; no fiat values.",
+      ],
       ["GET", "/v1/reports/recipients/:id", "Statement for one recipient."],
     ],
   },
@@ -63,10 +111,22 @@ const endpointGroups = [
     rows: [
       ["GET", "/v1/plans", "Public plan catalogue. Prices are hypotheses."],
       ["GET", "/v1/billing", "Current plan, status, entitlements and usage."],
-      ["POST", "/v1/billing/checkout", "Start a checkout for a plan (<code>plan_id</code>). Sandbox provider by default."],
-      ["POST", "/v1/billing/sandbox/complete", "Sandbox only: complete a checkout through the real webhook path."],
+      [
+        "POST",
+        "/v1/billing/checkout",
+        "Start a checkout for a plan (<code>plan_id</code>). Sandbox provider by default.",
+      ],
+      [
+        "POST",
+        "/v1/billing/sandbox/complete",
+        "Sandbox only: complete a checkout through the real webhook path.",
+      ],
       ["POST", "/v1/billing/cancel", "Cancel at the end of the paid period."],
-      ["POST", "/v1/billing/webhook/:provider", "Billing-provider webhook. Signature-verified and idempotent. <code>provider</code> is <code>stripe</code>, <code>paystack</code> or <code>sandbox</code>."],
+      [
+        "POST",
+        "/v1/billing/webhook/:provider",
+        "Billing-provider webhook. Signature-verified and idempotent. <code>provider</code> is <code>stripe</code>, <code>paystack</code> or <code>sandbox</code>.",
+      ],
     ],
   },
   {
@@ -130,7 +190,8 @@ ${section({
   id: "quickstart",
   tint: true,
   title: "Quickstart: one payout, end to end.",
-  intro: "Against a local API on regtest. The wallet connection and approver setup happen in the web app first.",
+  intro:
+    "Against a local API on regtest. The wallet connection and approver setup happen in the web app first.",
   body: `<div class="code-stack">
 ${codeBlock(snippet("1-create.ts.txt"), { label: "1 · create and submit (TypeScript)" })}
 ${codeBlock(snippet("2-approve.ts.txt"), { label: "2 · approve (TypeScript, run as the approver)" })}
@@ -143,7 +204,8 @@ ${codeBlock(snippet("4-receipt.ts.txt"), { label: "4 · fetch the receipt (TypeS
 ${section({
   id: "verify",
   title: "Verify a receipt, offline.",
-  intro: "The verifier is a separate program that does not contact Orynt. It rejects tampered, replayed, stale or forged receipts, and tells you what a receipt cannot prove.",
+  intro:
+    "The verifier is a separate program that does not contact Orynt. It rejects tampered, replayed, stale or forged receipts, and tells you what a receipt cannot prove.",
   body: `<div class="code-stack">${codeBlock(snippet("5-verify.sh.txt"), { lang: "sh", label: "shell" })}</div>
 <p class="small muted" style="margin-top:16px">The verifier lives in ${repoPath("packages/verifier")}. Build it with the command above; no binary is published.</p>`,
 })}
@@ -152,7 +214,8 @@ ${section({
   id: "webhooks",
   tint: true,
   title: "Webhooks.",
-  intro: "Verify every delivery with the raw body. Deliveries are at-least-once, so de-duplicate on the event id.",
+  intro:
+    "Verify every delivery with the raw body. Deliveries are at-least-once, so de-duplicate on the event id.",
   body: `<div class="code-stack">${codeBlock(snippet("6-webhook.ts.txt"), { label: "TypeScript" })}</div>
 <h3 style="margin:40px 0 16px">Event types</h3>
 ${table({ caption: "Webhook event types", head: ["Event", "When"], rows: events.map(([e, w]) => [`<code>${e}</code>`, w]) })}`,
@@ -161,7 +224,8 @@ ${table({ caption: "Webhook event types", head: ["Event", "When"], rows: events.
 ${section({
   id: "api",
   title: "Endpoints.",
-  intro: "Every method and path here is checked against the API contract (<code>packages/contract/src/routes.ts</code>) when this site is built. The OpenAPI document served by the API is the full reference; the SDK covers the payout flow, and the newer endpoints below are called with <code>orynt.request</code> or plain HTTP.",
+  intro:
+    "Every method and path here is checked against the API contract (<code>packages/contract/src/routes.ts</code>) when this site is built. The OpenAPI document served by the API is the full reference; the SDK covers the payout flow, and the newer endpoints below are called with <code>orynt.request</code> or plain HTTP.",
   body: `${endpointGroups
     .map(
       (g) => `<h3 id="${g.id}" style="margin:${g === endpointGroups[0] ? "0" : "40px"} 0 16px">${g.title}</h3>
@@ -179,7 +243,8 @@ ${section({
   id: "batches",
   tint: true,
   title: "Batches: payouts from a CSV.",
-  intro: "Up to 200 rows per batch. Header <code>counterparty,amount_sats,invoice</code>, optionally <code>memo</code> and <code>external_ref</code>. Rows are validated one by one: a bad row is reported and never stops the others, and the same invoice twice in one file is flagged.",
+  intro:
+    "Up to 200 rows per batch. Header <code>counterparty,amount_sats,invoice</code>, optionally <code>memo</code> and <code>external_ref</code>. Rows are validated one by one: a bad row is reported and never stops the others, and the same invoice twice in one file is flagged.",
   body: `<div class="code-stack">${codeBlock(snippet("8-batch.ts.txt"), { label: "TypeScript" })}</div>
 <ul class="list" style="margin-top:24px;max-width:48rem">
 <li>Batches are verified with the practice wallet and automated tests, not against real nodes.</li>
@@ -192,7 +257,8 @@ ${section({
 ${section({
   id: "schedules",
   title: "Recurring schedules never pay by themselves.",
-  intro: "A Lightning invoice is single-use and expires, so a schedule cannot hold one. Each cycle becomes an “invoice needed” task instead, and only one task can exist per schedule per cycle.",
+  intro:
+    "A Lightning invoice is single-use and expires, so a schedule cannot hold one. Each cycle becomes an “invoice needed” task instead, and only one task can exist per schedule per cycle.",
   body: `<div class="code-stack">${codeBlock(snippet("9-schedule.ts.txt"), { label: "TypeScript" })}</div>
 <p class="small muted" style="margin-top:16px">Cadence is <code>weekly</code> or <code>monthly</code>. Recurring schedules need a plan that includes them. Amounts are given in sats as a string here (<code>amount_sats</code>); payouts elsewhere use millisatoshi strings.</p>`,
 })}
@@ -201,20 +267,25 @@ ${section({
   id: "reports",
   tint: true,
   title: "Reports and CSV export.",
-  intro: "Totals count real settled payouts only. Simulated settlements are listed but never summed, and no fiat values are produced.",
+  intro:
+    "Totals count real settled payouts only. Simulated settlements are listed but never summed, and no fiat values are produced.",
   body: `<div class="code-stack">${codeBlock(snippet("10-report.sh.txt"), { lang: "sh", label: "plain HTTP" })}</div>`,
 })}
 
 ${section({
   id: "limits",
   title: "Plan limits: 402 <code>entitlement_exceeded</code>.",
-  intro: "Plan limits are enforced on the server, so an API call that would exceed one is refused with HTTP 402 and the code <code>entitlement_exceeded</code>.",
+  intro:
+    "Plan limits are enforced on the server, so an API call that would exceed one is refused with HTTP 402 and the code <code>entitlement_exceeded</code>.",
   body: `<div class="code-stack">${codeBlock(snippet("11-limit.ts.txt"), { label: "TypeScript" })}</div>
 <div style="margin-top:32px">
 ${table({
   caption: "Current plan limits (from the plan catalogue)",
   head: ["Limit", ...PLANS.map((p) => esc(p.name))],
-  rows: DIMENSIONS.map((d) => [`<code>${d.key}</code>`, ...PLANS.map((p) => valueLabel(d.key, p.entitlements[d.key]))]),
+  rows: DIMENSIONS.map((d) => [
+    `<code>${d.key}</code>`,
+    ...PLANS.map((p) => valueLabel(d.key, p.entitlements[d.key])),
+  ]),
 })}
 <p class="small muted" style="margin-top:12px">Read from the plan catalogue the server runs; prices are <a href="/pricing/">hypotheses under test</a>. Your live usage: <code>GET /v1/billing</code> or <a href="${APP.billing}">the billing page</a>.</p>
 </div>`,
@@ -224,7 +295,8 @@ ${section({
   id: "billing-webhooks",
   tint: true,
   title: "Billing webhooks: the signature scheme.",
-  intro: "<code>POST /v1/billing/webhook/:provider</code> is called by a billing provider, not by your code. It is public, so every request is authenticated by its signature, and each event is applied at most once.",
+  intro:
+    "<code>POST /v1/billing/webhook/:provider</code> is called by a billing provider, not by your code. It is public, so every request is authenticated by its signature, and each event is applied at most once.",
   body: `<div class="code-stack">${codeBlock(snippet("12-billing-signature.ts.txt"), { label: "TypeScript (Node)" })}</div>
 <ul class="list" style="margin-top:24px;max-width:48rem">
 <li>A missing, wrong or stale signature is <code>401 unauthenticated</code>. The secret is a server setting, <code>ORYNT_BILLING_WEBHOOK_SECRET</code>.</li>

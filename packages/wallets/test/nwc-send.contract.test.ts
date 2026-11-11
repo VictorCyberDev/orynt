@@ -22,14 +22,20 @@ afterEach(async () => {
 
 const AMT = 100_000n;
 const payCount = () => h!.wallet.requests.filter((r) => r.method === "pay_invoice").length;
-const reasons = () => h!.diagnostics.filter((d) => d.type === "response_rejected").map((d) => (d as { reason: string }).reason);
+const reasons = () =>
+  h!.diagnostics.filter((d) => d.type === "response_rejected").map((d) => (d as { reason: string }).reason);
 
 describe("CONTRACT (local fake): pay_invoice happy path", () => {
   it("pays, returns the preimage and fee, and the wallet executed exactly once", async () => {
     h = await harness();
     const inv = h.invoice(AMT);
     const rec = await h.provider.sendPayment(h.req(inv, AMT));
-    expect(rec).toMatchObject({ status: "SUCCEEDED", paymentHash: inv.paymentHash, preimage: inv.preimage, feeMsat: 1000n });
+    expect(rec).toMatchObject({
+      status: "SUCCEEDED",
+      paymentHash: inv.paymentHash,
+      preimage: inv.preimage,
+      feeMsat: 1000n,
+    });
     expect(h.wallet.executions(inv.paymentHash)).toBe(1);
   });
 
@@ -55,7 +61,10 @@ describe("CONTRACT (local fake): pay_invoice happy path", () => {
     const inv = h.invoice(null);
     const rec = await h.provider.sendPayment(h.req(inv, 42_000n, { zeroAmountInvoice: true }));
     expect(rec.status).toBe("SUCCEEDED");
-    expect(h.wallet.requests.find((r) => r.method === "pay_invoice")!.params).toEqual({ invoice: inv.invoice, amount: 42_000 });
+    expect(h.wallet.requests.find((r) => r.method === "pay_invoice")!.params).toEqual({
+      invoice: inv.invoice,
+      amount: 42_000,
+    });
   });
 
   it("works end to end over legacy NIP-04", async () => {
@@ -115,11 +124,16 @@ describe("CONTRACT (local fake): pay_invoice happy path", () => {
 
 describe("CONTRACT (local fake): pre-flight refusals never touch the wallet", () => {
   async function expectNotSent(p: Promise<unknown>, reason: string) {
-    const err = await p.then(() => null, (e) => e);
+    const err = await p.then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(NotSentError);
     expect(err.reason).toBe(reason);
     expect(payCount()).toBe(0);
-    expect(h!.relay.received.some((e) => e.kind === KIND_REQUEST && h!.wallet.requests.length === 0)).toBe(false);
+    expect(h!.relay.received.some((e) => e.kind === KIND_REQUEST && h!.wallet.requests.length === 0)).toBe(
+      false,
+    );
   }
 
   it("fee limit cannot be enforced by NIP-47 => refused by default", async () => {
@@ -130,13 +144,19 @@ describe("CONTRACT (local fake): pre-flight refusals never touch the wallet", ()
 
   it("invoice that does not decode", async () => {
     h = await harness();
-    await expectNotSent(h.provider.sendPayment({ ...h.req(h.invoice(AMT), AMT), invoice: "lnbcrt1notaninvoice" }), "invalid_request");
+    await expectNotSent(
+      h.provider.sendPayment({ ...h.req(h.invoice(AMT), AMT), invoice: "lnbcrt1notaninvoice" }),
+      "invalid_request",
+    );
   });
 
   it("payment hash that is not the invoice's", async () => {
     h = await harness();
     const inv = h.invoice(AMT);
-    await expectNotSent(h.provider.sendPayment({ ...h.req(inv, AMT), paymentHash: "00".repeat(32) }), "invalid_request");
+    await expectNotSent(
+      h.provider.sendPayment({ ...h.req(inv, AMT), paymentHash: "00".repeat(32) }),
+      "invalid_request",
+    );
   });
 
   it("amount differing from the invoice amount", async () => {
@@ -150,7 +170,10 @@ describe("CONTRACT (local fake): pre-flight refusals never touch the wallet", ()
     const zero = h.invoice(null);
     await expectNotSent(h.provider.sendPayment(h.req(zero, 1000n)), "invalid_request");
     const amt = h.invoice(AMT);
-    await expectNotSent(h.provider.sendPayment(h.req(amt, AMT, { zeroAmountInvoice: true })), "invalid_request");
+    await expectNotSent(
+      h.provider.sendPayment(h.req(amt, AMT, { zeroAmountInvoice: true })),
+      "invalid_request",
+    );
   });
 
   it("adapter closed (connection revoked locally)", async () => {
@@ -163,12 +186,23 @@ describe("CONTRACT (local fake): pre-flight refusals never touch the wallet", ()
 
 describe("CONTRACT (local fake): NIP-47 error codes -> wallet-contract classification", () => {
   // The wallet itself says it did not attempt the payment.
-  for (const code of ["RATE_LIMITED", "QUOTA_EXCEEDED", "INSUFFICIENT_BALANCE", "RESTRICTED", "UNAUTHORIZED", "NOT_IMPLEMENTED", "UNSUPPORTED_ENCRYPTION"]) {
+  for (const code of [
+    "RATE_LIMITED",
+    "QUOTA_EXCEEDED",
+    "INSUFFICIENT_BALANCE",
+    "RESTRICTED",
+    "UNAUTHORIZED",
+    "NOT_IMPLEMENTED",
+    "UNSUPPORTED_ENCRYPTION",
+  ]) {
     it(`${code} => NotSentError (explicit pre-processing refusal), walletCode preserved`, async () => {
       h = await harness();
       const inv = h.invoice(AMT);
       h.wallet.script("pay_invoice", { do: "error", code, execute: false });
-      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+        () => null,
+        (e) => e,
+      );
       expect(err).toBeInstanceOf(NotSentError);
       expect(err).toBeInstanceOf(NwcNotSentError);
       expect(err.reason).toBe("wallet_rejected");
@@ -183,7 +217,10 @@ describe("CONTRACT (local fake): NIP-47 error codes -> wallet-contract classific
       h = await harness();
       const inv = h.invoice(AMT);
       h.wallet.script("pay_invoice", { do: "error", code, execute: true });
-      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+        () => null,
+        (e) => e,
+      );
       expect(err).toBeInstanceOf(OutcomeUnknownError);
       expect(err).not.toBeInstanceOf(NotSentError);
     });
@@ -193,7 +230,10 @@ describe("CONTRACT (local fake): NIP-47 error codes -> wallet-contract classific
     h = await harness();
     const inv = h.invoice(AMT);
     await h.provider.sendPayment(h.req(inv, AMT));
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(AlreadyExistsError);
     expect(h.wallet.executions(inv.paymentHash)).toBe(1);
   });
@@ -210,7 +250,12 @@ describe("CONTRACT (local fake): NIP-47 error codes -> wallet-contract classific
   it("PAYMENT_FAILED but the wallet's own record says SETTLED => SUCCEEDED, not FAILED (the dangerous case)", async () => {
     h = await harness();
     const inv = h.invoice(AMT);
-    h.wallet.script("pay_invoice", { do: "error", code: "PAYMENT_FAILED", message: "timeout waiting for the payment", execute: true });
+    h.wallet.script("pay_invoice", {
+      do: "error",
+      code: "PAYMENT_FAILED",
+      message: "timeout waiting for the payment",
+      execute: true,
+    });
     const rec = await h.provider.sendPayment(h.req(inv, AMT));
     expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: inv.preimage });
   });
@@ -233,7 +278,15 @@ describe("CONTRACT (local fake): NIP-47 error codes -> wallet-contract classific
     h = await harness();
     const inv = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "error", code: "PAYMENT_FAILED", execute: false });
-    h.wallet.payments.set(inv.paymentHash, { state: "pending", preimage: null, amountMsat: AMT, feesMsat: 0n, type: "outgoing", settledAt: null, executions: 1 });
+    h.wallet.payments.set(inv.paymentHash, {
+      state: "pending",
+      preimage: null,
+      amountMsat: AMT,
+      feesMsat: 0n,
+      type: "outgoing",
+      settledAt: null,
+      executions: 1,
+    });
     expect((await h.provider.sendPayment(h.req(inv, AMT))).status).toBe("IN_FLIGHT");
   });
 });
@@ -244,12 +297,20 @@ describe("CONTRACT (local fake): a timeout is UNKNOWN, never a failure, and reco
     const inv = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "silent", execute: true });
     const t0 = Date.now();
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(err).not.toBeInstanceOf(NotSentError);
     expect(Date.now() - t0).toBeGreaterThanOrEqual(350);
     const rec = await h.provider.lookupPayment(inv.paymentHash);
-    expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: inv.preimage, feeMsat: 1000n, amountMsat: AMT });
+    expect(rec).toMatchObject({
+      status: "SUCCEEDED",
+      preimage: inv.preimage,
+      feeMsat: 1000n,
+      amountMsat: AMT,
+    });
     expect(h.wallet.executions(inv.paymentHash)).toBe(1);
   });
 
@@ -282,7 +343,10 @@ describe("CONTRACT (local fake): a timeout is UNKNOWN, never a failure, and reco
     const inv = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "drop_connection", execute: true });
     const t0 = Date.now();
-    const err = await h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 5 })).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 5 })).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(err).not.toBeInstanceOf(NotSentError);
     expect(Date.now() - t0).toBeLessThan(2500); // did not sit out the 5s timeout
@@ -313,7 +377,10 @@ describe("CONTRACT (local fake): inauthentic or irrelevant responses can never d
       h.relay.verifyEvents = false; // a relay that forwards forgeries (real relays reject them; the client must not rely on that)
       const inv = h.invoice(AMT);
       h.wallet.script("pay_invoice", action);
-      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+        () => null,
+        (e) => e,
+      );
       expect(err).toBeInstanceOf(OutcomeUnknownError);
       expect(err).not.toBeInstanceOf(NotSentError);
       expect(reasons()).toContain(reason);
@@ -327,7 +394,10 @@ describe("CONTRACT (local fake): inauthentic or irrelevant responses can never d
     expect((await h.provider.sendPayment(h.req(first, AMT))).status).toBe("SUCCEEDED");
     const second = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "replay" });
-    const err = await h.provider.sendPayment(h.req(second, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(second, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(reasons()).toContain("wrong_e_tag");
   });
@@ -349,7 +419,15 @@ describe("CONTRACT (local fake): inauthentic or irrelevant responses can never d
     const inv = h.invoice(AMT);
     // the fake wallet answers with a forgery first, then (second scripted action is not consumed by the same request), so emulate
     // the race directly: a hostile relay injects a forged response the moment the request arrives, the wallet then answers properly.
-    const forged = { id: "ab".repeat(32), pubkey: h.wallet.walletPubkey, created_at: Math.floor(Date.now() / 1000), kind: 23195, tags: [["p", h.provider.clientPubkey]], content: "AAAA", sig: "cd".repeat(64) };
+    const forged = {
+      id: "ab".repeat(32),
+      pubkey: h.wallet.walletPubkey,
+      created_at: Math.floor(Date.now() / 1000),
+      kind: 23195,
+      tags: [["p", h.provider.clientPubkey]],
+      content: "AAAA",
+      sig: "cd".repeat(64),
+    };
     h.relay.hostileExtras = [forged];
     h.relay.inject(forged);
     const rec = await h.provider.sendPayment(h.req(inv, AMT));
@@ -363,7 +441,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     h = await harness();
     const inv = h.invoice(AMT);
     await h.relay.stop();
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(NotSentError);
     expect(["wallet_info_unavailable", "relay_unreachable"]).toContain(err.reason);
   });
@@ -374,7 +455,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     // prime the send-path caches through a successful payment, then kill the relay
     expect((await h.provider.sendPayment(h.req(h.invoice(AMT), AMT))).status).toBe("SUCCEEDED");
     await h.relay.stop();
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(NwcNotSentError);
     expect(err.reason).toBe("relay_unreachable");
     expect(h.wallet.executions(inv.paymentHash)).toBe(0);
@@ -386,7 +470,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     const publishedBefore = h.relay.received.filter((e) => e.kind === KIND_REQUEST).length;
     h.relay.refuseSubscriptions = "auth-required: this relay needs NIP-42 authentication";
     const inv = h.invoice(AMT);
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(NotSentError);
     expect(h.relay.received.filter((e) => e.kind === KIND_REQUEST)).toHaveLength(publishedBefore);
   });
@@ -397,7 +484,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     const publishedBefore = h.relay.received.filter((e) => e.kind === KIND_REQUEST).length;
     h.relay.blackhole = true;
     const inv = h.invoice(AMT);
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(NotSentError);
     expect(h.relay.received.filter((e) => e.kind === KIND_REQUEST)).toHaveLength(publishedBefore);
   });
@@ -408,19 +498,30 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
       await h.provider.getInfo(); // prime caches so that the rejection hits the payment request itself
       h.relay.rejectEvents = { kind: KIND_REQUEST, message: `${prefix}: not today` };
       const inv = h.invoice(AMT);
-      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+        () => null,
+        (e) => e,
+      );
       expect(err).toBeInstanceOf(NwcNotSentError);
       expect(err.reason).toBe("relay_rejected");
     });
   }
 
-  for (const message of ["error: could not connect to the database", "duplicate: already have this event", "mute: ignored", "something unexpected"]) {
+  for (const message of [
+    "error: could not connect to the database",
+    "duplicate: already have this event",
+    "mute: ignored",
+    "something unexpected",
+  ]) {
     it(`OK false with ambiguous message "${message}" => UNKNOWN (the relay may have forwarded it)`, async () => {
       h = await harness({ provider: { infoCacheMs: 60_000 } });
       await h.provider.getInfo();
       h.relay.rejectEvents = { kind: KIND_REQUEST, message };
       const inv = h.invoice(AMT);
-      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+      const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+        () => null,
+        (e) => e,
+      );
       expect(err).toBeInstanceOf(OutcomeUnknownError);
       expect(err).not.toBeInstanceOf(NotSentError);
     });
@@ -430,7 +531,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     h = await harness();
     const inv = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "silent", execute: false });
-    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT)).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(h.diagnostics).toContainEqual(expect.objectContaining({ type: "publish_ack", accepted: true }));
   });
@@ -440,7 +544,10 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     await h.provider.getInfo();
     h.relay.dropOnEventKind = KIND_REQUEST;
     const inv = h.invoice(AMT);
-    const err = await h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 3 })).then(() => null, (e) => e);
+    const err = await h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 3 })).then(
+      () => null,
+      (e) => e,
+    );
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(err).not.toBeInstanceOf(NotSentError);
   });
@@ -468,7 +575,12 @@ describe("CONTRACT (local fake): relay behaviour decides 'not sent' vs 'unknown'
     const second = new FakeRelay();
     const url2 = await second.start();
     // the same wallet service listens on both relays
-    const w2 = new FakeWallet({ relays: [url2], walletSecret: (h.wallet as never as { o: { walletSecret: Uint8Array } }).o.walletSecret, clientPubkey: h.provider.clientPubkey, network: "regtest" });
+    const w2 = new FakeWallet({
+      relays: [url2],
+      walletSecret: (h.wallet as never as { o: { walletSecret: Uint8Array } }).o.walletSecret,
+      clientPubkey: h.provider.clientPubkey,
+      network: "regtest",
+    });
     for (const [k, v] of h.wallet.knownPreimages) w2.knownPreimages.set(k, v);
     await w2.start();
     const p = h.makeProvider({ uri: `${h.uri}&relay=${encodeURIComponent(url2)}` });
@@ -490,13 +602,18 @@ describe("CONTRACT (local fake): local revocation (close)", () => {
     h = await harness();
     const inv = h.invoice(AMT);
     h.wallet.script("pay_invoice", { do: "silent", execute: true });
-    const pending = h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 10 })).then(() => null, (e) => e);
+    const pending = h.provider.sendPayment(h.req(inv, AMT, { timeoutSeconds: 10 })).then(
+      () => null,
+      (e) => e,
+    );
     await until(() => h!.wallet.requests.some((r) => r.method === "pay_invoice"));
     h.provider.close();
     const err = await pending;
     expect(err).toBeInstanceOf(OutcomeUnknownError);
     expect(h.provider.closed).toBe(true);
-    await expect(h.provider.sendPayment(h.req(h.invoice(AMT), AMT))).rejects.toMatchObject({ reason: "adapter_closed" });
+    await expect(h.provider.sendPayment(h.req(h.invoice(AMT), AMT))).rejects.toMatchObject({
+      reason: "adapter_closed",
+    });
     await expect(h.provider.lookupPayment(inv.paymentHash)).rejects.toBeInstanceOf(NotSentError);
     await expect(h.provider.getInfo()).rejects.toBeInstanceOf(Error);
     expect((await h.provider.discoverCapabilities()).canSendPayments).toBe("unknown");

@@ -6,10 +6,18 @@ const components = [
   ["Marketing site", "Static pages served by the same API process as the app.", "None"],
   ["Web app (<code>/app</code>)", "The product interface.", "None"],
   ["API (<code>/v1</code>)", "REST API, webhooks, receipts.", "None"],
-  ["Customer wallets", "Owned and run by you, not by us. Orynt can only report what the wallet tells it.", "Not ours to monitor"],
+  [
+    "Customer wallets",
+    "Owned and run by you, not by us. Orynt can only report what the wallet tells it.",
+    "Not ours to monitor",
+  ],
   ["Billing provider", "Sandbox provider only; live providers are not commissioned.", "None"],
   ["Email delivery", "Not commissioned; mail is queued, not delivered, by default.", "None"],
-  ["Webhook delivery", "At-least-once with backoff; each endpoint has a delivery log in the app.", "Per-endpoint log only"],
+  [
+    "Webhook delivery",
+    "At-least-once with backoff; each endpoint has a delivery log in the app.",
+    "Per-endpoint log only",
+  ],
 ].map(([c, w, m]) => [c, w, m]);
 
 export default {
@@ -49,7 +57,8 @@ ${section({
   id: "health",
   tint: true,
   title: "What the health endpoints mean.",
-  intro: "If you run Orynt yourself, the API exposes two probes for your own monitoring or orchestrator. They are public and need no credentials.",
+  intro:
+    "If you run Orynt yourself, the API exposes two probes for your own monitoring or orchestrator. They are public and need no credentials.",
   body: `<div class="two-col">
 <div class="prose">
 <h3><code>GET /health/live</code></h3>
@@ -58,12 +67,15 @@ ${section({
 <p>Readiness. It checks that the database answers a query and that no migrations are pending. If both are fine it returns <code>200</code> with <code>"status":"ready"</code>. Otherwise it returns <code>503</code> with <code>"status":"not_ready"</code>. Use it to decide whether to send traffic.</p>
 </div>
 <div class="stack">
-${codeBlock(`GET /health/ready
+${codeBlock(
+  `GET /health/ready
 
 200 {"status":"ready","checks":{"database":"ok","migrations":"ok"}}
 
 503 {"status":"not_ready","checks":{"database":"unavailable","migrations":"unknown"}}
-# migrations can also read "pending: <names>"`, { lang: "sh", label: "response shape" })}
+# migrations can also read "pending: <names>"`,
+  { lang: "sh", label: "response shape" },
+)}
 </div>
 </div>
 <div class="callout callout--warn" style="margin-top:28px;max-width:52rem"><p><strong>What “ready” does not tell you.</strong></p>

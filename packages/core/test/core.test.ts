@@ -1,9 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
-  AmountError, assertTransition, canonicalize, CanonicalError, canTransition, evaluatePolicy, DEFAULT_POLICY_RULES,
-  formatMsat, generateKeyPair, hasPermission, intentDigest, makeEntry, parseSatsInput, revisionHash, signApproval,
-  verifyApproval, verifyChainSegment, GENESIS_HASH, STATES, stateActions, toMsat, TransitionError, timingSafeEqualStr,
-  type AuditEntry, type IntentBinding,
+  AmountError,
+  assertTransition,
+  canonicalize,
+  CanonicalError,
+  canTransition,
+  evaluatePolicy,
+  DEFAULT_POLICY_RULES,
+  formatMsat,
+  generateKeyPair,
+  hasPermission,
+  intentDigest,
+  makeEntry,
+  parseSatsInput,
+  revisionHash,
+  signApproval,
+  verifyApproval,
+  verifyChainSegment,
+  GENESIS_HASH,
+  STATES,
+  stateActions,
+  toMsat,
+  TransitionError,
+  timingSafeEqualStr,
+  type AuditEntry,
+  type IntentBinding,
 } from "../src";
 
 describe("amounts", () => {
@@ -55,13 +76,21 @@ describe("state machine", () => {
   });
   it("SETTLED needs a verified preimage and a real provider; simulator can never settle", () => {
     expect(() => assertTransition("RECONCILING", "SETTLED", {})).toThrow(TransitionError);
-    expect(() => assertTransition("RECONCILING", "SETTLED", { providerKind: "simulator", preimageVerified: true })).toThrow(TransitionError);
-    expect(() => assertTransition("RECONCILING", "SETTLED", { providerKind: "lnd", preimageVerified: true })).not.toThrow();
-    expect(() => assertTransition("RECONCILING", "SIMULATED_SETTLED", { providerKind: "lnd", preimageVerified: true })).toThrow(TransitionError);
+    expect(() =>
+      assertTransition("RECONCILING", "SETTLED", { providerKind: "simulator", preimageVerified: true }),
+    ).toThrow(TransitionError);
+    expect(() =>
+      assertTransition("RECONCILING", "SETTLED", { providerKind: "lnd", preimageVerified: true }),
+    ).not.toThrow();
+    expect(() =>
+      assertTransition("RECONCILING", "SIMULATED_SETTLED", { providerKind: "lnd", preimageVerified: true }),
+    ).toThrow(TransitionError);
   });
   it("DEFINITIVELY_FAILED requires provider-reported failure or proof of non-dispatch (not expiry/timeout)", () => {
     expect(() => assertTransition("RECONCILING", "DEFINITIVELY_FAILED", {})).toThrow(TransitionError);
-    expect(() => assertTransition("RECONCILING", "DEFINITIVELY_FAILED", { providerReportedTerminalFailure: true })).not.toThrow();
+    expect(() =>
+      assertTransition("RECONCILING", "DEFINITIVELY_FAILED", { providerReportedTerminalFailure: true }),
+    ).not.toThrow();
   });
   it("explains why execute is disabled in unresolved states", () => {
     const exec = stateActions("UNKNOWN").find((a) => a.action === "execute")!;
@@ -83,38 +112,82 @@ describe("roles", () => {
 
 describe("policy", () => {
   it("applies tiers and limits", () => {
-    const small = evaluatePolicy(DEFAULT_POLICY_RULES, { amountMsat: 1_000_000n, network: "regtest", dispatchedLast24hMsat: 0n });
+    const small = evaluatePolicy(DEFAULT_POLICY_RULES, {
+      amountMsat: 1_000_000n,
+      network: "regtest",
+      dispatchedLast24hMsat: 0n,
+    });
     expect(small.requiredApprovals).toBe(1);
     expect(small.violations).toEqual([]);
-    const big = evaluatePolicy(DEFAULT_POLICY_RULES, { amountMsat: 500_000_000n, network: "regtest", dispatchedLast24hMsat: 0n });
+    const big = evaluatePolicy(DEFAULT_POLICY_RULES, {
+      amountMsat: 500_000_000n,
+      network: "regtest",
+      dispatchedLast24hMsat: 0n,
+    });
     expect(big.requiredApprovals).toBe(2);
-    const over = evaluatePolicy(DEFAULT_POLICY_RULES, { amountMsat: 2_000_000_000n, network: "regtest", dispatchedLast24hMsat: 0n });
+    const over = evaluatePolicy(DEFAULT_POLICY_RULES, {
+      amountMsat: 2_000_000_000n,
+      network: "regtest",
+      dispatchedLast24hMsat: 0n,
+    });
     expect(over.violations.map((v) => v.code)).toContain("over_payment_limit");
-    const day = evaluatePolicy(DEFAULT_POLICY_RULES, { amountMsat: 900_000_000n, network: "regtest", dispatchedLast24hMsat: 4_500_000_000n });
+    const day = evaluatePolicy(DEFAULT_POLICY_RULES, {
+      amountMsat: 900_000_000n,
+      network: "regtest",
+      dispatchedLast24hMsat: 4_500_000_000n,
+    });
     expect(day.violations.map((v) => v.code)).toContain("over_daily_limit");
-    const main = evaluatePolicy(DEFAULT_POLICY_RULES, { amountMsat: 1n, network: "mainnet", dispatchedLast24hMsat: 0n });
+    const main = evaluatePolicy(DEFAULT_POLICY_RULES, {
+      amountMsat: 1n,
+      network: "mainnet",
+      dispatchedLast24hMsat: 0n,
+    });
     expect(main.violations.map((v) => v.code)).toContain("network_not_allowed");
   });
 });
 
 describe("intent digest and approvals", () => {
   const binding: IntentBinding = {
-    workspaceId: "w1", obligationId: "o1", revision: 1, revisionHash: "a".repeat(64), amountMsat: 1000n, network: "regtest",
-    paymentHash: "b".repeat(64), payeePubkey: "02" + "c".repeat(64), invoiceExpiresAt: 2000000000, policyId: "p1", policyRevision: 1,
-    policyDigest: "d".repeat(64), walletConnectionId: "c1",
+    workspaceId: "w1",
+    obligationId: "o1",
+    revision: 1,
+    revisionHash: "a".repeat(64),
+    amountMsat: 1000n,
+    network: "regtest",
+    paymentHash: "b".repeat(64),
+    payeePubkey: "02" + "c".repeat(64),
+    invoiceExpiresAt: 2000000000,
+    policyId: "p1",
+    policyRevision: 1,
+    policyDigest: "d".repeat(64),
+    walletConnectionId: "c1",
   };
   it("changes when ANY bound field changes", () => {
     const base = intentDigest(binding);
     const variants: Partial<IntentBinding>[] = [
-      { amountMsat: 1001n }, { revision: 2 }, { paymentHash: "e".repeat(64) }, { payeePubkey: "03" + "c".repeat(64) },
-      { network: "mainnet" }, { invoiceExpiresAt: 2000000001 }, { policyRevision: 2 }, { walletConnectionId: "c2" }, { workspaceId: "w2" },
+      { amountMsat: 1001n },
+      { revision: 2 },
+      { paymentHash: "e".repeat(64) },
+      { payeePubkey: "03" + "c".repeat(64) },
+      { network: "mainnet" },
+      { invoiceExpiresAt: 2000000001 },
+      { policyRevision: 2 },
+      { walletConnectionId: "c2" },
+      { workspaceId: "w2" },
     ];
     for (const v of variants) expect(intentDigest({ ...binding, ...v })).not.toBe(base);
   });
   it("approval signatures verify only for the exact payload and key", () => {
     const kp = generateKeyPair();
     const other = generateKeyPair();
-    const payload = { v: 1 as const, type: "approval" as const, intent_digest: intentDigest(binding), approver_user_id: "u1", workspace_id: "w1", signed_at: "2026-11-09T12:00:00Z" };
+    const payload = {
+      v: 1 as const,
+      type: "approval" as const,
+      intent_digest: intentDigest(binding),
+      approver_user_id: "u1",
+      workspace_id: "w1",
+      signed_at: "2026-11-09T12:00:00Z",
+    };
     const sig = signApproval(kp.privateKey, payload);
     expect(verifyApproval(kp.publicKey, payload, sig)).toBe(true);
     expect(verifyApproval(other.publicKey, payload, sig)).toBe(false);
@@ -123,7 +196,19 @@ describe("intent digest and approvals", () => {
     expect(verifyApproval(kp.publicKey, payload, sig.replace(/^./, sig[0] === "0" ? "1" : "0"))).toBe(false);
   });
   it("revision hash depends on destination and amount", () => {
-    const c = { obligationId: "o", revision: 1, counterpartyId: "c", boundPayeePubkey: "", amountMsat: 5n, memo: "m", externalRef: "", invoice: "lnbcrt1", paymentHash: "a".repeat(64), payeePubkey: "02" + "a".repeat(64), network: "regtest" as const };
+    const c = {
+      obligationId: "o",
+      revision: 1,
+      counterpartyId: "c",
+      boundPayeePubkey: "",
+      amountMsat: 5n,
+      memo: "m",
+      externalRef: "",
+      invoice: "lnbcrt1",
+      paymentHash: "a".repeat(64),
+      payeePubkey: "02" + "a".repeat(64),
+      network: "regtest" as const,
+    };
     expect(revisionHash(c)).not.toBe(revisionHash({ ...c, amountMsat: 6n }));
     expect(revisionHash(c)).not.toBe(revisionHash({ ...c, payeePubkey: "03" + "a".repeat(64) }));
   });
@@ -134,7 +219,16 @@ describe("audit chain", () => {
     const out: AuditEntry[] = [];
     let prev = GENESIS_HASH;
     for (let i = 1; i <= n; i++) {
-      const e = makeEntry(prev, { seq: i, workspace_id: "w", stream: "org", at: "2026-11-09T00:00:00Z", actor: "system:test", type: "t", subject: "s", data: { i } });
+      const e = makeEntry(prev, {
+        seq: i,
+        workspace_id: "w",
+        stream: "org",
+        at: "2026-11-09T00:00:00Z",
+        actor: "system:test",
+        type: "t",
+        subject: "s",
+        data: { i },
+      });
       out.push(e);
       prev = e.hash;
     }

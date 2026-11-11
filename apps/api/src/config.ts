@@ -40,10 +40,18 @@ export interface Config {
   reconcileInitialDelaySeconds: number;
 }
 
-export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
-  if (!e["ORYNT_ENV"]) throw new Error("ORYNT_ENV must be set explicitly (development | test | production). Refusing to guess: the development defaults use publicly known keys.");
+export function loadConfig(raw: NodeJS.ProcessEnv = process.env): Config {
+  // Docker Compose and shells pass unset variables as "": an empty value means "not set", never a real setting (a blank mail sender, a blank billing provider).
+  const e: NodeJS.ProcessEnv = Object.fromEntries(
+    Object.entries(raw).filter(([, v]) => v !== undefined && v !== ""),
+  );
+  if (!e["ORYNT_ENV"])
+    throw new Error(
+      "ORYNT_ENV must be set explicitly (development | test | production). Refusing to guess: the development defaults use publicly known keys.",
+    );
   const env = e["ORYNT_ENV"] as Env;
-  if (!["development", "test", "production"].includes(env)) throw new Error("ORYNT_ENV must be development|test|production");
+  if (!["development", "test", "production"].includes(env))
+    throw new Error("ORYNT_ENV must be development|test|production");
   const prod = env === "production";
   let secretHex = e["ORYNT_SECRET_KEY"];
   if (!secretHex) {
@@ -64,19 +72,39 @@ export function loadConfig(e: NodeJS.ProcessEnv = process.env): Config {
   // Staging that deliberately runs uncommissioned providers must say so explicitly.
   if (prod && e["ORYNT_ALLOW_UNCOMMISSIONED"] !== "1") {
     const missing: string[] = [];
-    if ((e["ORYNT_BILLING_PROVIDER"] ?? "sandbox") === "sandbox") missing.push("ORYNT_BILLING_PROVIDER (still the sandbox: no real billing)");
-    if ((e["ORYNT_MAIL_PROVIDER"] ?? "log") === "log") missing.push("ORYNT_MAIL_PROVIDER (still 'log': no mail is ever sent)");
-    if (!/^https:\/\//.test(e["ORYNT_APP_URL"] ?? "")) missing.push("ORYNT_APP_URL (must be the public https URL used in e-mailed links)");
-    if (missing.length) throw new Error(`Refusing to start in production with uncommissioned settings: ${missing.join("; ")}. Configure them, or set ORYNT_ALLOW_UNCOMMISSIONED=1 for a staging environment that knowingly runs without them.`);
+    if ((e["ORYNT_BILLING_PROVIDER"] ?? "sandbox") === "sandbox")
+      missing.push("ORYNT_BILLING_PROVIDER (still the sandbox: no real billing)");
+    if ((e["ORYNT_MAIL_PROVIDER"] ?? "log") === "log")
+      missing.push("ORYNT_MAIL_PROVIDER (still 'log': no mail is ever sent)");
+    if (!/^https:\/\//.test(e["ORYNT_APP_URL"] ?? ""))
+      missing.push("ORYNT_APP_URL (must be the public https URL used in e-mailed links)");
+    if (missing.length)
+      throw new Error(
+        `Refusing to start in production with uncommissioned settings: ${missing.join("; ")}. Configure them, or set ORYNT_ALLOW_UNCOMMISSIONED=1 for a staging environment that knowingly runs without them.`,
+      );
   }
-  if (prod && (e["ORYNT_DEFAULT_PLAN"] ?? "developer") !== "developer") throw new Error("ORYNT_DEFAULT_PLAN must be developer in production: paid plans are granted only by verified billing events");
+  if (prod && (e["ORYNT_DEFAULT_PLAN"] ?? "developer") !== "developer")
+    throw new Error(
+      "ORYNT_DEFAULT_PLAN must be developer in production: paid plans are granted only by verified billing events",
+    );
   return {
-    env, port: Number(e["PORT"] ?? 8787), host: e["HOST"] ?? "127.0.0.1",
+    env,
+    port: Number(e["PORT"] ?? 8787),
+    host: e["HOST"] ?? "127.0.0.1",
     databaseUrl: e["DATABASE_URL"] ?? "postgres://orynt:orynt@127.0.0.1:5432/orynt_dev",
-    secretKey: Buffer.from(secretHex, "hex"), issuerPrivateKey: issuer, allowMainnet, failpoints,
-    workerEnabled: e["ORYNT_WORKER"] !== "0", workerIntervalMs: Number(e["ORYNT_WORKER_INTERVAL_MS"] ?? 2000),
+    secretKey: Buffer.from(secretHex, "hex"),
+    issuerPrivateKey: issuer,
+    allowMainnet,
+    failpoints,
+    workerEnabled: e["ORYNT_WORKER"] !== "0",
+    workerIntervalMs: Number(e["ORYNT_WORKER_INTERVAL_MS"] ?? 2000),
     cookieSecure: prod || e["COOKIE_SECURE"] === "1",
-    allowedOrigins: (e["ORYNT_ALLOWED_ORIGINS"] ?? "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8787").split(",").map((s) => s.trim()).filter(Boolean),
+    allowedOrigins: (
+      e["ORYNT_ALLOWED_ORIGINS"] ?? "http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8787"
+    )
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
     allowPrivateWebhookTargets: !prod,
     logLevel: e["LOG_LEVEL"] ?? (env === "test" ? "silent" : "info"),
     trustProxy: e["ORYNT_TRUST_PROXY"] === "1",

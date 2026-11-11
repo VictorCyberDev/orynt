@@ -50,14 +50,20 @@ export interface SendRequest {
 
 /** The request provably never reached the wallet (connection refused, TLS/DNS failure, explicit pre-processing rejection). */
 export class NotSentError extends Error {
-  constructor(message: string, public override readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public override readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "NotSentError";
   }
 }
 /** The request may or may not have reached the wallet (timeout, reset, 5xx, cut stream). NEVER treat as failure. */
 export class OutcomeUnknownError extends Error {
-  constructor(message: string, public override readonly cause?: unknown) {
+  constructor(
+    message: string,
+    public override readonly cause?: unknown,
+  ) {
     super(message);
     this.name = "OutcomeUnknownError";
   }

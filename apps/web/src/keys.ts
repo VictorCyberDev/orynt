@@ -7,7 +7,14 @@ import { keyRegistrationProof, signApprovalBody } from "@orynt/sdk";
  */
 const slot = (userId: string, orgId: string) => `orynt.approvalKey.${orgId}.${userId}`;
 export function loadKey(userId: string, orgId: string): KeyPair | null {
-  try { const v = localStorage.getItem(slot(userId, orgId)); if (!v) return null; const k = JSON.parse(v) as KeyPair; return publicKeyFromPrivate(k.privateKey) === k.publicKey ? k : null; } catch { return null; }
+  try {
+    const v = localStorage.getItem(slot(userId, orgId));
+    if (!v) return null;
+    const k = JSON.parse(v) as KeyPair;
+    return publicKeyFromPrivate(k.privateKey) === k.publicKey ? k : null;
+  } catch {
+    return null;
+  }
 }
 export function createKey(userId: string, orgId: string): KeyPair {
   const k = generateKeyPair();

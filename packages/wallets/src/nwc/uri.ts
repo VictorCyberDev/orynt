@@ -45,15 +45,19 @@ function normalizeRelay(raw: string, opts: ParseNwcUriOptions): string {
   if (u.protocol === "wss:") return u.href;
   if (u.protocol === "ws:") {
     if (opts.allowInsecureLoopbackRelays && isLoopbackHost(u.hostname)) return u.href;
-    throw new NwcUriError("relay must use wss:// (ws:// is only allowed for loopback hosts when explicitly enabled)");
+    throw new NwcUriError(
+      "relay must use wss:// (ws:// is only allowed for loopback hosts when explicitly enabled)",
+    );
   }
   throw new NwcUriError("relay must use the wss:// scheme");
 }
 
 export function parseNwcUri(uri: string, opts: ParseNwcUriOptions = {}): NwcConnection {
-  if (typeof uri !== "string" || uri.length === 0 || uri.length > MAX_URI_LENGTH) throw new NwcUriError("connection URI is empty or too long");
+  if (typeof uri !== "string" || uri.length === 0 || uri.length > MAX_URI_LENGTH)
+    throw new NwcUriError("connection URI is empty or too long");
   if (uri.trim() !== uri) throw new NwcUriError("connection URI has leading or trailing whitespace");
-  if (uri.slice(0, NWC_URI_SCHEME.length).toLowerCase() !== NWC_URI_SCHEME) throw new NwcUriError("connection URI must start with nostr+walletconnect://");
+  if (uri.slice(0, NWC_URI_SCHEME.length).toLowerCase() !== NWC_URI_SCHEME)
+    throw new NwcUriError("connection URI must start with nostr+walletconnect://");
   const rest = uri.slice(NWC_URI_SCHEME.length);
   if (rest.includes("#")) throw new NwcUriError("connection URI must not contain a fragment");
   const q = rest.indexOf("?");
@@ -62,11 +66,15 @@ export function parseNwcUri(uri: string, opts: ParseNwcUriOptions = {}): NwcConn
 
   const walletPubkey = authority.toLowerCase();
   if (!isHex64(walletPubkey)) throw new NwcUriError("wallet service public key must be 32 bytes of hex");
-  if (!isValidXOnlyPubkey(walletPubkey)) throw new NwcUriError("wallet service public key is not a valid secp256k1 point");
+  if (!isValidXOnlyPubkey(walletPubkey))
+    throw new NwcUriError("wallet service public key is not a valid secp256k1 point");
 
   const params = new URLSearchParams(query);
   const secrets = params.getAll("secret");
-  if (secrets.length !== 1) throw new NwcUriError(secrets.length === 0 ? "secret parameter is required" : "secret parameter must appear exactly once");
+  if (secrets.length !== 1)
+    throw new NwcUriError(
+      secrets.length === 0 ? "secret parameter is required" : "secret parameter must appear exactly once",
+    );
   const secretHex = (secrets[0] as string).toLowerCase();
   if (!isHex64(secretHex)) throw new NwcUriError("secret must be 32 bytes of hex");
   const secretBytes = hexToBytes(secretHex);
@@ -110,5 +118,11 @@ export function parseNwcUri(uri: string, opts: ParseNwcUriOptions = {}): NwcConn
     lud16 = v;
   }
 
-  return { walletPubkey, clientPubkey: getPublicKeyHex(secretBytes), relays, lud16, secret: new RedactedSecret(secretBytes) };
+  return {
+    walletPubkey,
+    clientPubkey: getPublicKeyHex(secretBytes),
+    relays,
+    lud16,
+    secret: new RedactedSecret(secretBytes),
+  };
 }

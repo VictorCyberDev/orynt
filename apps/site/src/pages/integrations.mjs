@@ -8,22 +8,81 @@ const plan = (t = "Planned · not implemented") => tag(t, "pending");
 // Wallet capability matrix. Only LND (and the labelled simulator) exist; every other row is stated as not implemented.
 // Evidence: docs/EXECUTION-REGISTER.md (M4 rows; "NWC adapter, BTCPay adapter: NOT STARTED"), docs/product/product-spec.md, docs/hackathon/devpost-entry.md.
 const wallets = [
-  ["LND (REST)", ok("Verified · regtest"), "Yes", "Yes, by payment hash", "Discovered by authorization probes", "Rejected, with the reason shown", "Refused (mainnet is disabled)"],
-  ["Practice wallet (simulator)", tag("Built · labelled", "info"), "Simulated", "Simulated", "Simulated", "Simulated", "Not applicable"],
+  [
+    "LND (REST)",
+    ok("Verified · regtest"),
+    "Yes",
+    "Yes, by payment hash",
+    "Discovered by authorization probes",
+    "Rejected, with the reason shown",
+    "Refused (mainnet is disabled)",
+  ],
+  [
+    "Practice wallet (simulator)",
+    tag("Built · labelled", "info"),
+    "Simulated",
+    "Simulated",
+    "Simulated",
+    "Simulated",
+    "Not applicable",
+  ],
   ["Nostr Wallet Connect (NWC)", plan(), "—", "—", "—", "—", "—"],
   ["BTCPay Server", plan(), "—", "—", "—", "—", "—"],
   ["Core Lightning", plan(), "—", "—", "—", "—", "—"],
-  ["LNURL-pay and Lightning Address", ok("Verified · regtest, local LNURL server"), "Resolved to a checked BOLT11 invoice, then paid through LND", "As LND", "As LND", "As LND", "Refused (mainnet is disabled)"],
+  [
+    "LNURL-pay and Lightning Address",
+    ok("Verified · regtest, local LNURL server"),
+    "Resolved to a checked BOLT11 invoice, then paid through LND",
+    "As LND",
+    "As LND",
+    "As LND",
+    "Refused (mainnet is disabled)",
+  ],
 ];
 
 const other = [
-  ["REST API and OpenAPI", tag("Built", "neutral"), "JSON over HTTPS under <code>/v1</code>. The OpenAPI document is served at <code>/v1/openapi.json</code>.", `<a href="/developers/">Developers</a>`],
-  ["TypeScript SDK", tag("Built · not on npm", "neutral"), "A typed client in the repository; it is not published to a package registry.", `<a href="/developers/#quickstart">Quickstart</a>`],
-  ["Outbound webhooks", ok("Verified · tests"), "Signed with HMAC-SHA256, timestamped, at-least-once, de-duplicated by event id.", `<a href="/developers/#webhooks">Webhooks</a>`],
-  ["Billing provider: sandbox", ok("Verified"), "Simulates checkout through the real signed-webhook path. No card is charged.", `<a href="/pricing/#billing-faq">Billing FAQ</a>`],
-  ["Billing providers: Stripe, Paystack", plan("Implemented · not commissioned"), "Checkout and signature-verified webhooks are written but have never run against a live provider account. No real charge has ever happened.", `<a href="/pricing/#billing-faq">Billing FAQ</a>`],
-  ["Email delivery", plan("Implemented · not commissioned"), "By default mail is written to an outbox and marked sent without being delivered. A Resend adapter exists but has never been exercised with a real key and a verified sending domain.", `<a href="/help/#account">Account help</a>`],
-  ["CSV import and export", tag("Built", "neutral"), "Batch payouts in from CSV (up to 200 rows) and payout reports out as CSV. No accounting-package connectors.", `<a href="/solutions/">Solutions</a>`],
+  [
+    "REST API and OpenAPI",
+    tag("Built", "neutral"),
+    "JSON over HTTPS under <code>/v1</code>. The OpenAPI document is served at <code>/v1/openapi.json</code>.",
+    `<a href="/developers/">Developers</a>`,
+  ],
+  [
+    "TypeScript SDK",
+    tag("Built · not on npm", "neutral"),
+    "A typed client in the repository; it is not published to a package registry.",
+    `<a href="/developers/#quickstart">Quickstart</a>`,
+  ],
+  [
+    "Outbound webhooks",
+    ok("Verified · tests"),
+    "Signed with HMAC-SHA256, timestamped, at-least-once, de-duplicated by event id.",
+    `<a href="/developers/#webhooks">Webhooks</a>`,
+  ],
+  [
+    "Billing provider: sandbox",
+    ok("Verified"),
+    "Simulates checkout through the real signed-webhook path. No card is charged.",
+    `<a href="/pricing/#billing-faq">Billing FAQ</a>`,
+  ],
+  [
+    "Billing providers: Stripe, Paystack",
+    plan("Implemented · not commissioned"),
+    "Checkout and signature-verified webhooks are written but have never run against a live provider account. No real charge has ever happened.",
+    `<a href="/pricing/#billing-faq">Billing FAQ</a>`,
+  ],
+  [
+    "Email delivery",
+    plan("Implemented · not commissioned"),
+    "By default mail is written to an outbox and marked sent without being delivered. A Resend adapter exists but has never been exercised with a real key and a verified sending domain.",
+    `<a href="/help/#account">Account help</a>`,
+  ],
+  [
+    "CSV import and export",
+    tag("Built", "neutral"),
+    "Batch payouts in from CSV (up to 200 rows) and payout reports out as CSV. No accounting-package connectors.",
+    `<a href="/solutions/">Solutions</a>`,
+  ],
 ];
 
 export default {
@@ -44,8 +103,17 @@ ${section({
   title: "Wallet capability matrix.",
   intro: `Verified means a command was run against real software and the result recorded in ${repoPath("docs/EXECUTION-REGISTER.md")}: 15 real-node tests plus an end-to-end demo against bitcoind and two LND nodes on regtest.`,
   body: `${table({
-    caption: "Wallet adapters and what each one supports. A dash means the capability does not exist because the adapter is not built.",
-    head: ["Wallet", "Status", "Pay an invoice", "Look up a payment", "Capability discovery", "Read-only credential", "Mainnet"],
+    caption:
+      "Wallet adapters and what each one supports. A dash means the capability does not exist because the adapter is not built.",
+    head: [
+      "Wallet",
+      "Status",
+      "Pay an invoice",
+      "Look up a payment",
+      "Capability discovery",
+      "Read-only credential",
+      "Mainnet",
+    ],
     rows: wallets,
     className: "table--matrix table--wide",
   })}

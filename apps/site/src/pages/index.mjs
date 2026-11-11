@@ -39,12 +39,27 @@ ${verifiedHtml}
 }
 
 const steps = [
-  ["Obligation", "Record who is owed what: the exact amount and a Lightning invoice that is decoded, checked and bound to the payout."],
-  ["Approval", "The right people approve the exact payout, each signing with a key held on their own device."],
+  [
+    "Obligation",
+    "Record who is owed what: the exact amount and a Lightning invoice that is decoded, checked and bound to the payout.",
+  ],
+  [
+    "Approval",
+    "The right people approve the exact payout, each signing with a key held on their own device.",
+  ],
   ["Execution", "An approved payout is reserved once, then sent through a wallet you control."],
-  ["Truthful state", "If an answer is lost, the payout says <strong>Unknown</strong>, not Failed, and is not sent twice."],
-  ["Evidence", "A receipt ties the agreement, the approvals and proof of payment together. A separate command-line verifier checks it offline."],
-  ["Developer platform", "A REST API, a typed TypeScript SDK and signed webhooks, so payouts can live inside your own tools."],
+  [
+    "Truthful state",
+    "If an answer is lost, the payout says <strong>Unknown</strong>, not Failed, and is not sent twice.",
+  ],
+  [
+    "Evidence",
+    "A receipt ties the agreement, the approvals and proof of payment together. A separate command-line verifier checks it offline.",
+  ],
+  [
+    "Developer platform",
+    "A REST API, a typed TypeScript SDK and signed webhooks, so payouts can live inside your own tools.",
+  ],
 ];
 
 export default {
@@ -78,7 +93,8 @@ ${section({
   id: "problem",
   tint: true,
   title: "Paying people in Bitcoin leaves a trail in too many places.",
-  intro: "Teams that pay contractors, contributors or grant recipients over Lightning often keep each piece somewhere different.",
+  intro:
+    "Teams that pay contractors, contributors or grant recipients over Lightning often keep each piece somewhere different.",
   body: `<div class="grid grid--3">
 <article class="card"><h3>Scattered records</h3><p>The amount is in a spreadsheet, the &ldquo;ok&rdquo; is in a chat, the payment is in a wallet app, and the proof is a screenshot. Answering &ldquo;who approved this, and was it paid?&rdquo; becomes detective work.</p></article>
 <article class="card"><h3>A lost answer</h3><p>When a wallet&rsquo;s reply is lost mid-payment, nobody can tell whether the money moved. People either retry and risk paying twice, or wait and leave someone unpaid.</p></article>
@@ -146,7 +162,8 @@ ${section({
   id: "app",
   tint: true,
   title: "What you can do in the app today.",
-  intro: "Beyond a single payout. Each of these exists in the app and the API; the limits per plan are on the <a href=\"/pricing/\">pricing page</a>.",
+  intro:
+    'Beyond a single payout. Each of these exists in the app and the API; the limits per plan are on the <a href="/pricing/">pricing page</a>.',
   body: `<div class="grid grid--3">
 <article class="card"><h3>Batch CSV payouts</h3><p>Upload up to 200 rows. A preview flags bad rows without creating anything, and each item still needs its own approval.</p></article>
 <article class="card"><h3>Recurring schedules</h3><p>Weekly or monthly. Each cycle asks for a fresh invoice and never pays by itself.</p></article>

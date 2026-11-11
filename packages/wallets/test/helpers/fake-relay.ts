@@ -11,10 +11,19 @@ import type { AddressInfo } from "node:net";
 import { parseEventShape, verifyEventSignature, type NostrEvent } from "../../src/nwc/nostr";
 
 interface Filter {
-  ids?: string[]; authors?: string[]; kinds?: number[]; since?: number; until?: number; limit?: number;
+  ids?: string[];
+  authors?: string[];
+  kinds?: number[];
+  since?: number;
+  until?: number;
+  limit?: number;
   [tag: string]: unknown;
 }
-interface Sub { ws: WebSocket; id: string; filters: Filter[] }
+interface Sub {
+  ws: WebSocket;
+  id: string;
+  filters: Filter[];
+}
 
 export function matches(f: Filter, e: NostrEvent): boolean {
   if (f.ids && !f.ids.includes(e.id)) return false;
@@ -99,9 +108,17 @@ export class FakeRelay {
 
   private onFrame(ws: WebSocket, raw: string) {
     let m: unknown;
-    try { m = JSON.parse(raw); } catch { return this.send(ws, ["NOTICE", "error: invalid JSON"]); }
+    try {
+      m = JSON.parse(raw);
+    } catch {
+      return this.send(ws, ["NOTICE", "error: invalid JSON"]);
+    }
     if (!Array.isArray(m)) return this.send(ws, ["NOTICE", "error: expected array"]);
-    this.frameLog.push({ conn: this.connNo.get(ws) ?? 0, type: String(m[0]), kind: m[0] === "EVENT" ? (m[1] as { kind?: number } | undefined)?.kind : undefined });
+    this.frameLog.push({
+      conn: this.connNo.get(ws) ?? 0,
+      type: String(m[0]),
+      kind: m[0] === "EVENT" ? (m[1] as { kind?: number } | undefined)?.kind : undefined,
+    });
     if (m[0] === "EVENT") return this.onEvent(ws, m[1]);
     if (m[0] === "REQ" && typeof m[1] === "string") return this.onReq(ws, m[1], m.slice(2) as Filter[]);
     if (m[0] === "CLOSE" && typeof m[1] === "string") {
@@ -116,9 +133,13 @@ export class FakeRelay {
     const ev = parseEventShape(raw);
     const idGuess = typeof (raw as { id?: unknown })?.id === "string" ? (raw as { id: string }).id : "";
     if (!ev) return this.send(ws, ["OK", idGuess, false, "invalid: malformed event"]);
-    if (this.dropOnEventKind === ev.kind) { ws.terminate(); return; }
+    if (this.dropOnEventKind === ev.kind) {
+      ws.terminate();
+      return;
+    }
     this.received.push(ev);
-    if (this.verifyEvents && !verifyEventSignature(ev)) return this.send(ws, ["OK", ev.id, false, "invalid: bad signature or id"]);
+    if (this.verifyEvents && !verifyEventSignature(ev))
+      return this.send(ws, ["OK", ev.id, false, "invalid: bad signature or id"]);
     if (this.rejectEvents && (this.rejectEvents.kind === undefined || this.rejectEvents.kind === ev.kind)) {
       return this.send(ws, ["OK", ev.id, false, this.rejectEvents.message]);
     }
@@ -126,7 +147,8 @@ export class FakeRelay {
       if (isReplaceable(ev.kind)) {
         for (const [id, old] of this.stored) {
           if (old.pubkey === ev.pubkey && old.kind === ev.kind) {
-            if (old.created_at > ev.created_at || (old.created_at === ev.created_at && old.id < ev.id)) return this.send(ws, ["OK", ev.id, true, "duplicate: have a newer version"]);
+            if (old.created_at > ev.created_at || (old.created_at === ev.created_at && old.id < ev.id))
+              return this.send(ws, ["OK", ev.id, true, "duplicate: have a newer version"]);
             this.stored.delete(id);
           }
         }
@@ -145,22 +167,28 @@ export class FakeRelay {
     const sub: Sub = { ws, id, filters };
     this.subs.push(sub);
     for (const f of filters) {
-      let hits = [...this.stored.values()].filter((e) => this.lax || matches(f, e)).sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1));
+      let hits = [...this.stored.values()]
+        .filter((e) => this.lax || matches(f, e))
+        .sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1));
       if (f.limit !== undefined) hits = hits.slice(0, f.limit);
       for (const e of hits) this.send(ws, ["EVENT", id, e]);
     }
     for (const e of this.hostileExtras) this.send(ws, ["EVENT", id, e]);
     const eose = () => this.send(ws, ["EOSE", id]);
-    if (this.eoseDelayMs > 0) setTimeout(eose, this.eoseDelayMs); else eose();
+    if (this.eoseDelayMs > 0) setTimeout(eose, this.eoseDelayMs);
+    else eose();
   }
 
   /** Inject an event as if some client had published it (stored/broadcast subject to the normal rules). */
   inject(ev: NostrEvent): void {
     if (!isEphemeral(ev.kind)) {
-      if (isReplaceable(ev.kind)) for (const [id, old] of this.stored) if (old.pubkey === ev.pubkey && old.kind === ev.kind) this.stored.delete(id);
+      if (isReplaceable(ev.kind))
+        for (const [id, old] of this.stored)
+          if (old.pubkey === ev.pubkey && old.kind === ev.kind) this.stored.delete(id);
       this.stored.set(ev.id, ev);
     }
-    for (const s of this.subs) if (this.lax || s.filters.some((f) => matches(f, ev))) this.send(s.ws, ["EVENT", s.id, ev]);
+    for (const s of this.subs)
+      if (this.lax || s.filters.some((f) => matches(f, ev))) this.send(s.ws, ["EVENT", s.id, ev]);
   }
   storedEvents(): NostrEvent[] {
     return [...this.stored.values()];

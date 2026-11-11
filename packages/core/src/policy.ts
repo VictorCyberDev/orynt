@@ -20,7 +20,11 @@ export const PolicyRulesSchema = z.object({
   /** A payee node key not yet verified by an admin requires the admin/owner role among approvers. */
   unverifiedPayeeNeedsAdmin: z.boolean(),
   /** Approvals older than this at execution time are stale. */
-  approvalMaxAgeSeconds: z.number().int().min(60).max(30 * 86400),
+  approvalMaxAgeSeconds: z
+    .number()
+    .int()
+    .min(60)
+    .max(30 * 86400),
 });
 export type PolicyRules = z.infer<typeof PolicyRulesSchema>;
 
@@ -52,13 +56,26 @@ export interface PolicyResult {
 
 export function evaluatePolicy(rules: PolicyRules, ctx: PolicyContext): PolicyResult {
   const violations: PolicyResult["violations"] = [];
-  if (ctx.amountMsat <= 0n) violations.push({ code: "amount_not_positive", message: "Amount must be greater than zero." });
+  if (ctx.amountMsat <= 0n)
+    violations.push({ code: "amount_not_positive", message: "Amount must be greater than zero." });
   if (ctx.amountMsat > BigInt(rules.maxPaymentMsat))
-    violations.push({ code: "over_payment_limit", message: "Amount exceeds the per-payment limit set by your policy." });
-  if (rules.dailyLimitMsat !== null && ctx.dispatchedLast24hMsat + ctx.amountMsat > BigInt(rules.dailyLimitMsat))
-    violations.push({ code: "over_daily_limit", message: "This payment would exceed the 24-hour limit set by your policy." });
+    violations.push({
+      code: "over_payment_limit",
+      message: "Amount exceeds the per-payment limit set by your policy.",
+    });
+  if (
+    rules.dailyLimitMsat !== null &&
+    ctx.dispatchedLast24hMsat + ctx.amountMsat > BigInt(rules.dailyLimitMsat)
+  )
+    violations.push({
+      code: "over_daily_limit",
+      message: "This payment would exceed the 24-hour limit set by your policy.",
+    });
   if (!rules.allowedNetworks.includes(ctx.network))
-    violations.push({ code: "network_not_allowed", message: `The ${ctx.network} network is not allowed by your policy.` });
+    violations.push({
+      code: "network_not_allowed",
+      message: `The ${ctx.network} network is not allowed by your policy.`,
+    });
   const tier = rules.tiers.find((t) => t.upToMsat === null || ctx.amountMsat <= BigInt(t.upToMsat));
   const required = tier ? tier.requiredApprovals : Math.max(...rules.tiers.map((t) => t.requiredApprovals));
   return { requiredApprovals: required, violations };

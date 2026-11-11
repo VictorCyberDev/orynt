@@ -92,7 +92,15 @@ export function parseEventShape(v: unknown): NostrEvent | null {
     if (!Array.isArray(t) || t.length === 0 || t.length > 32) return null;
     for (const x of t) if (typeof x !== "string") return null;
   }
-  return { id: o["id"], pubkey: o["pubkey"], created_at: createdAt, kind, tags: tags as string[][], content: o["content"], sig: o["sig"] };
+  return {
+    id: o["id"],
+    pubkey: o["pubkey"],
+    created_at: createdAt,
+    kind,
+    tags: tags as string[][],
+    content: o["content"],
+    sig: o["sig"],
+  };
 }
 
 /** Recomputes the id from the content AND verifies the BIP-340 signature over it. Never throws. */

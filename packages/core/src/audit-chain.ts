@@ -40,10 +40,13 @@ export function verifyChainSegment(entries: AuditEntry[], expectedPrev?: string)
   let prev = expectedPrev;
   let lastSeq: number | undefined;
   for (const e of entries) {
-    if (prev !== undefined && e.prev_hash !== prev) return { ok: false, error: "prev_hash mismatch", brokenAtSeq: e.seq };
-    if (lastSeq !== undefined && e.seq !== lastSeq + 1) return { ok: false, error: "sequence gap", brokenAtSeq: e.seq };
+    if (prev !== undefined && e.prev_hash !== prev)
+      return { ok: false, error: "prev_hash mismatch", brokenAtSeq: e.seq };
+    if (lastSeq !== undefined && e.seq !== lastSeq + 1)
+      return { ok: false, error: "sequence gap", brokenAtSeq: e.seq };
     const { prev_hash, hash, ...body } = e;
-    if (entryHash(prev_hash, body) !== hash) return { ok: false, error: "entry hash mismatch", brokenAtSeq: e.seq };
+    if (entryHash(prev_hash, body) !== hash)
+      return { ok: false, error: "entry hash mismatch", brokenAtSeq: e.seq };
     prev = hash;
     lastSeq = e.seq;
   }

@@ -17,7 +17,13 @@ afterEach(async () => {
 });
 
 const HASH = "11".repeat(32);
-const base = (over: Record<string, unknown>) => ({ type: "outgoing", payment_hash: HASH, amount: 5000, created_at: 1_700_000_000, ...over });
+const base = (over: Record<string, unknown>) => ({
+  type: "outgoing",
+  payment_hash: HASH,
+  amount: 5000,
+  created_at: 1_700_000_000,
+  ...over,
+});
 
 async function lookupWith(result: Record<string, unknown>, hash = HASH) {
   h!.wallet.script("lookup_invoice", { do: "result", result });
@@ -39,14 +45,30 @@ describe("CONTRACT (local fake): lookup_invoice -> PaymentRecord", () => {
   it("settled + matching preimage => SUCCEEDED with amount, fee and settlement time", async () => {
     h = await harness();
     const inv = h.invoice(100_000n);
-    h.wallet.payments.set(inv.paymentHash, { state: "settled", preimage: inv.preimage, amountMsat: 100_000n, feesMsat: 250n, type: "outgoing", settledAt: 1_700_000_123, executions: 1 });
+    h.wallet.payments.set(inv.paymentHash, {
+      state: "settled",
+      preimage: inv.preimage,
+      amountMsat: 100_000n,
+      feesMsat: 250n,
+      type: "outgoing",
+      settledAt: 1_700_000_123,
+      executions: 1,
+    });
     const rec = await h.provider.lookupPayment(inv.paymentHash);
-    expect(rec).toMatchObject({ status: "SUCCEEDED", preimage: inv.preimage, amountMsat: 100_000n, feeMsat: 250n, settledAt: "2023-11-14T22:15:23.000Z" });
+    expect(rec).toMatchObject({
+      status: "SUCCEEDED",
+      preimage: inv.preimage,
+      amountMsat: 100_000n,
+      feeMsat: 250n,
+      settledAt: "2023-11-14T22:15:23.000Z",
+    });
   });
 
   it("settled with a WRONG preimage is passed through (the state machine flags it), with a diagnostic", async () => {
     h = await harness();
-    const rec = await lookupWith(base({ state: "settled", preimage: "ab".repeat(32), settled_at: 1_700_000_100 }));
+    const rec = await lookupWith(
+      base({ state: "settled", preimage: "ab".repeat(32), settled_at: 1_700_000_100 }),
+    );
     expect(rec.status).toBe("SUCCEEDED");
     expect(rec.preimage).toBe("ab".repeat(32));
     expect(h.diagnostics).toContainEqual({ type: "preimage_mismatch", where: "lookup_invoice" });
@@ -67,7 +89,10 @@ describe("CONTRACT (local fake): lookup_invoice -> PaymentRecord", () => {
 
   it("failed without a reason => FAILED with a generic reason", async () => {
     h = await harness();
-    expect(await lookupWith(base({ state: "failed" }))).toMatchObject({ status: "FAILED", failureReason: "NWC_STATE_FAILED" });
+    expect(await lookupWith(base({ state: "failed" }))).toMatchObject({
+      status: "FAILED",
+      failureReason: "NWC_STATE_FAILED",
+    });
   });
 
   it("pending and accepted => IN_FLIGHT", async () => {
@@ -79,7 +104,10 @@ describe("CONTRACT (local fake): lookup_invoice -> PaymentRecord", () => {
   it("`state` is optional in NIP-47: a preimage that hashes to the payment hash is proof of payment => SUCCEEDED", async () => {
     h = await harness();
     const inv = h.invoice(1000n);
-    expect((await lookupWith(base({ payment_hash: inv.paymentHash, preimage: inv.preimage }), inv.paymentHash)).status).toBe("SUCCEEDED");
+    expect(
+      (await lookupWith(base({ payment_hash: inv.paymentHash, preimage: inv.preimage }), inv.paymentHash))
+        .status,
+    ).toBe("SUCCEEDED");
   });
 
   it("no state and no provable preimage => UNKNOWN", async () => {
@@ -97,14 +125,22 @@ describe("CONTRACT (local fake): lookup_invoice -> PaymentRecord", () => {
 
   it("a record for a DIFFERENT payment hash is not trusted", async () => {
     h = await harness();
-    await expect(lookupWith(base({ payment_hash: "22".repeat(32), state: "failed" }))).rejects.toBeInstanceOf(OutcomeUnknownError);
-    await expect(lookupWith({ type: "outgoing", state: "failed" })).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(lookupWith(base({ payment_hash: "22".repeat(32), state: "failed" }))).rejects.toBeInstanceOf(
+      OutcomeUnknownError,
+    );
+    await expect(lookupWith({ type: "outgoing", state: "failed" })).rejects.toBeInstanceOf(
+      OutcomeUnknownError,
+    );
   });
 
   it("an INCOMING record with the same hash says nothing about our outgoing payment => UNKNOWN", async () => {
     h = await harness();
-    await expect(lookupWith(base({ type: "incoming", state: "settled", preimage: "ab".repeat(32) }))).rejects.toBeInstanceOf(OutcomeUnknownError);
-    await expect(lookupWith(base({ type: undefined, state: "failed" }))).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(
+      lookupWith(base({ type: "incoming", state: "settled", preimage: "ab".repeat(32) })),
+    ).rejects.toBeInstanceOf(OutcomeUnknownError);
+    await expect(lookupWith(base({ type: undefined, state: "failed" }))).rejects.toBeInstanceOf(
+      OutcomeUnknownError,
+    );
   });
 
   it("garbage numbers are dropped, not trusted", async () => {
@@ -149,7 +185,9 @@ describe("CONTRACT (local fake): lookup_invoice errors and permissions", () => {
     h.relay.verifyEvents = false;
     h.wallet.script("lookup_invoice", { do: "bad_signature" });
     await expect(h.provider.lookupPayment(HASH)).rejects.toBeInstanceOf(OutcomeUnknownError);
-    expect(h.diagnostics).toContainEqual(expect.objectContaining({ type: "response_rejected", reason: "bad_signature" }));
+    expect(h.diagnostics).toContainEqual(
+      expect.objectContaining({ type: "response_rejected", reason: "bad_signature" }),
+    );
   });
 
   it("relays unreachable => OutcomeUnknownError", async () => {

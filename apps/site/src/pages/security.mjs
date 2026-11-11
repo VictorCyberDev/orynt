@@ -8,15 +8,47 @@ const secDocs = REGISTER_PATH.replace("EXECUTION-REGISTER.md", "security");
 const secDocsEmpty = !existsSync(secDocs) || readdirSync(secDocs).length === 0;
 
 const glance = [
-  ["Independent audit, penetration test or certification", "None by a human. No SOC 2, ISO 27001, penetration test or bug bounty exists. One AI-assisted independent review was done, its findings were fixed and regression tests added.", tag("Not done", "danger")],
-  ["Real funds", "Real Lightning payments are verified on Bitcoin regtest only, a test network. Mainnet execution is disabled, and we are not asking anyone to use Orynt with real funds.", tag("Regtest only", "hypothesis")],
-  ["Custody of funds or keys", "Designed not to. The operator connects a wallet they control. Whether that is legally &ldquo;non-custodial&rdquo; is an open question for counsel.", tag("Designed", "neutral")],
-  ["Protection against a double send", "A single-use execution record is reserved before the wallet is called; a second send is refused until the wallet&rsquo;s own record says what happened. On a real regtest node, 10 concurrent executes produced one payment.", tag("Verified · real regtest", "ok")],
-  ["Lost answers", "In a real regtest run the API was killed after the wallet accepted a payment; after restart the payout was Unknown, was reconciled from the wallet&rsquo;s record, and settled once.", tag("Verified · real regtest", "ok")],
-  ["Sign-in protections", "Authenticator-app (TOTP) two-factor step-up, email verification, password reset and rate limits exist. Single sign-on does not.", tag("Built", "neutral")],
-  ["Billing and card data", "Billing uses a sandbox provider. No card details are collected and no card has ever been charged. Live checkout is written but not commissioned.", tag("Sandbox", "hypothesis")],
+  [
+    "Independent audit, penetration test or certification",
+    "None by a human. No SOC 2, ISO 27001, penetration test or bug bounty exists. One AI-assisted independent review was done, its findings were fixed and regression tests added.",
+    tag("Not done", "danger"),
+  ],
+  [
+    "Real funds",
+    "Real Lightning payments are verified on Bitcoin regtest only, a test network. Mainnet execution is disabled, and we are not asking anyone to use Orynt with real funds.",
+    tag("Regtest only", "hypothesis"),
+  ],
+  [
+    "Custody of funds or keys",
+    "Designed not to. The operator connects a wallet they control. Whether that is legally &ldquo;non-custodial&rdquo; is an open question for counsel.",
+    tag("Designed", "neutral"),
+  ],
+  [
+    "Protection against a double send",
+    "A single-use execution record is reserved before the wallet is called; a second send is refused until the wallet&rsquo;s own record says what happened. On a real regtest node, 10 concurrent executes produced one payment.",
+    tag("Verified · real regtest", "ok"),
+  ],
+  [
+    "Lost answers",
+    "In a real regtest run the API was killed after the wallet accepted a payment; after restart the payout was Unknown, was reconciled from the wallet&rsquo;s record, and settled once.",
+    tag("Verified · real regtest", "ok"),
+  ],
+  [
+    "Sign-in protections",
+    "Authenticator-app (TOTP) two-factor step-up, email verification, password reset and rate limits exist. Single sign-on does not.",
+    tag("Built", "neutral"),
+  ],
+  [
+    "Billing and card data",
+    "Billing uses a sandbox provider. No card details are collected and no card has ever been charged. Live checkout is written but not commissioned.",
+    tag("Sandbox", "hypothesis"),
+  ],
   ["Security contact and disclosure policy", "Not published yet.", tag("Planned", "pending")],
-  ["Who is responsible for security", "One person, the founder. There is no dedicated security role and no second reviewer yet.", tag("Honest limit", "hypothesis")],
+  [
+    "Who is responsible for security",
+    "One person, the founder. There is no dedicated security role and no second reviewer yet.",
+    tag("Honest limit", "hypothesis"),
+  ],
 ];
 
 export default {
@@ -34,7 +66,11 @@ ${pageHero({
 ${section({
   id: "glance",
   title: "At a glance.",
-  body: table({ caption: "Security status at a glance", head: ["Question", "Honest answer", "Status"], rows: glance }),
+  body: table({
+    caption: "Security status at a glance",
+    head: ["Question", "Honest answer", "Status"],
+    rows: glance,
+  }),
 })}
 
 ${section({

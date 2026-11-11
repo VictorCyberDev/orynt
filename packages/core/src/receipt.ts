@@ -28,7 +28,11 @@ export const ReceiptSchema = z.object({
   issuer: z.object({ key_id: z.string(), public_key: hex(32) }),
   network,
   environment: z.enum(["REAL_PROVIDER", "SIMULATOR"]),
-  provider: z.object({ kind: z.enum(["lnd", "nwc", "simulator"]), node_pubkey: hex(33).nullable(), label: z.string() }),
+  provider: z.object({
+    kind: z.enum(["lnd", "nwc", "simulator"]),
+    node_pubkey: hex(33).nullable(),
+    label: z.string(),
+  }),
   workspace: z.object({ id: z.string(), name: z.string() }),
   agreement: z.object({
     obligation_id: z.string(),
@@ -107,7 +111,13 @@ export const ReceiptSchema = z.object({
   }),
   audit: z.object({
     segment: z.array(AuditEntrySchema),
-    checkpoint: z.object({ workspace_id: z.string(), stream: z.string(), seq: z.number().int(), head_hash: hex(32), at: iso }),
+    checkpoint: z.object({
+      workspace_id: z.string(),
+      stream: z.string(),
+      seq: z.number().int(),
+      head_hash: hex(32),
+      at: iso,
+    }),
     checkpoint_signature: hex(64),
   }),
   limitations: z.array(z.string()),
@@ -136,5 +146,10 @@ export function attestReceipt(privateKeyHex: string, keyId: string, body: Receip
 }
 export function verifyReceiptAttestation(r: Receipt): boolean {
   const { attestation, ...body } = r;
-  return verifyMessage(r.issuer.public_key, SIG_CONTEXT.receipt, receiptAttestationDigest(body), attestation.signature);
+  return verifyMessage(
+    r.issuer.public_key,
+    SIG_CONTEXT.receipt,
+    receiptAttestationDigest(body),
+    attestation.signature,
+  );
 }

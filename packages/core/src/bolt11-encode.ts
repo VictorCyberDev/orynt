@@ -28,13 +28,22 @@ function bytesToWords(bytes: Uint8Array): number[] {
 }
 function intToWords(n: number, len: number): number[] {
   const w: number[] = [];
-  for (let i = 0; i < len; i++) { w.unshift(n % 32); n = Math.floor(n / 32); }
+  for (let i = 0; i < len; i++) {
+    w.unshift(n % 32);
+    n = Math.floor(n / 32);
+  }
   return w;
 }
 function amountPart(msat: bigint | null): string {
   if (msat === null) return "";
   const pico = msat * 10n;
-  for (const [unit, div] of [["", 1_000_000_000_000n], ["m", 1_000_000_000n], ["u", 1_000_000n], ["n", 1_000n], ["p", 1n]] as const) {
+  for (const [unit, div] of [
+    ["", 1_000_000_000_000n],
+    ["m", 1_000_000_000n],
+    ["u", 1_000_000n],
+    ["n", 1_000n],
+    ["p", 1n],
+  ] as const) {
     if (pico % div === 0n) return (pico / div).toString() + unit;
   }
   throw new Error("unreachable");
@@ -72,18 +81,28 @@ export function encodeInvoice(p: EncodeInvoiceParams): string {
     } while (n > 0);
     words.push(...tag(6, ws));
   }
-  const msg = sha256Bytes(concatBytes(utf8ToBytes(hrp), (() => {
-    // 5-bit words -> bytes with zero padding (matches decoder)
-    const out: number[] = [];
-    let acc = 0, bits = 0;
-    for (const w of words) {
-      acc = (acc << 5) | w;
-      bits += 5;
-      while (bits >= 8) { bits -= 8; out.push((acc >> bits) & 0xff); acc &= (1 << bits) - 1; }
-    }
-    if (bits > 0) out.push((acc << (8 - bits)) & 0xff);
-    return Uint8Array.from(out);
-  })()));
+  const msg = sha256Bytes(
+    concatBytes(
+      utf8ToBytes(hrp),
+      (() => {
+        // 5-bit words -> bytes with zero padding (matches decoder)
+        const out: number[] = [];
+        let acc = 0,
+          bits = 0;
+        for (const w of words) {
+          acc = (acc << 5) | w;
+          bits += 5;
+          while (bits >= 8) {
+            bits -= 8;
+            out.push((acc >> bits) & 0xff);
+            acc &= (1 << bits) - 1;
+          }
+        }
+        if (bits > 0) out.push((acc << (8 - bits)) & 0xff);
+        return Uint8Array.from(out);
+      })(),
+    ),
+  );
   const rec = secp256k1.sign(msg, hexToBytes(p.privateKeyHex), { prehash: false, format: "recovered" }); // [recid, r, s]
   const sig = concatBytes(rec.slice(1), rec.slice(0, 1));
   words.push(...bytesToWords(sig));

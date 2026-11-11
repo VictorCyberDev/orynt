@@ -25,7 +25,14 @@ export const PERMISSIONS = [
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
-const READ: Permission[] = ["obligation:read", "receipt:read", "connection:read", "audit:read", "report:read", "support:create"];
+const READ: Permission[] = [
+  "obligation:read",
+  "receipt:read",
+  "connection:read",
+  "audit:read",
+  "report:read",
+  "support:create",
+];
 const OPERATE: Permission[] = [
   ...READ,
   "obligation:create",

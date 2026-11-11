@@ -49,36 +49,49 @@ export interface PermissionAssessment {
   warnings: string[];
 }
 
-export function assessApiKeyPermissions(permissions: readonly string[], storeId: string): PermissionAssessment {
+export function assessApiKeyPermissions(
+  permissions: readonly string[],
+  storeId: string,
+): PermissionAssessment {
   const parsed = permissions.map(parsePermission).filter((p): p is ParsedPermission => p !== null);
   const granting = (p: ParsedPermission): boolean => {
     if (p.policy === UNRESTRICTED) return p.scope === null;
-    if (p.policy === STORE_LIGHTNING_USE || p.policy === STORE_MODIFY_SETTINGS) return p.scope === null || p.scope === storeId;
+    if (p.policy === STORE_LIGHTNING_USE || p.policy === STORE_MODIFY_SETTINGS)
+      return p.scope === null || p.scope === storeId;
     return false;
   };
   // Prefer the least-privilege grant when several are present.
   const grants = parsed.filter(granting);
-  const best = grants.find((p) => p.policy === STORE_LIGHTNING_USE && p.scope === storeId) ?? grants[0] ?? null;
+  const best =
+    grants.find((p) => p.policy === STORE_LIGHTNING_USE && p.scope === storeId) ?? grants[0] ?? null;
 
   const excess: string[] = [];
   for (const p of parsed) {
     const minimal =
       p.scope === storeId &&
-      (p.policy === STORE_LIGHTNING_USE || p.policy === STORE_LIGHTNING_VIEW_INVOICE || p.policy === STORE_LIGHTNING_CREATE_INVOICE);
+      (p.policy === STORE_LIGHTNING_USE ||
+        p.policy === STORE_LIGHTNING_VIEW_INVOICE ||
+        p.policy === STORE_LIGHTNING_CREATE_INVOICE);
     if (minimal) continue;
     if (p.policy === UNRESTRICTED) excess.push(`${p.raw}: full account access`);
-    else if (p.policy.startsWith("btcpay.store.") && p.scope === null) excess.push(`${p.raw}: applies to ALL stores of the user`);
-    else if (p.policy.startsWith("btcpay.store.") && p.scope !== storeId) excess.push(`${p.raw}: scoped to a different store`);
+    else if (p.policy.startsWith("btcpay.store.") && p.scope === null)
+      excess.push(`${p.raw}: applies to ALL stores of the user`);
+    else if (p.policy.startsWith("btcpay.store.") && p.scope !== storeId)
+      excess.push(`${p.raw}: scoped to a different store`);
     else if (p.policy.startsWith("btcpay.store.")) excess.push(`${p.raw}: not needed for paying`);
     else excess.push(`${p.raw}: server/user-level permission, not needed for paying`);
   }
 
   const warnings: string[] = [];
   if (!best) {
-    warnings.push(`The API key does not list ${STORE_LIGHTNING_USE} for this store (it is required both to pay and to look payments up).`);
+    warnings.push(
+      `The API key does not list ${STORE_LIGHTNING_USE} for this store (it is required both to pay and to look payments up).`,
+    );
   } else {
     if (best.scope === null || best.policy !== STORE_LIGHTNING_USE) {
-      warnings.push(`The granting permission "${best.raw}" is broader than ${STORE_LIGHTNING_USE}:<storeId>. Create a key limited to that single permission and this store.`);
+      warnings.push(
+        `The granting permission "${best.raw}" is broader than ${STORE_LIGHTNING_USE}:<storeId>. Create a key limited to that single permission and this store.`,
+      );
     }
   }
   if (best) {
@@ -87,7 +100,8 @@ export function assessApiKeyPermissions(permissions: readonly string[], storeId:
         "Treat the key as a spending credential.",
     );
   }
-  if (excess.length > 0 && best) warnings.push(`The key carries more than the minimum: ${excess.join("; ")}.`);
+  if (excess.length > 0 && best)
+    warnings.push(`The key carries more than the minimum: ${excess.join("; ")}.`);
 
   return {
     grantsLightningUse: best !== null,

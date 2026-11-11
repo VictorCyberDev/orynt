@@ -76,14 +76,18 @@ export function validateBaseUrl(raw: string, allowInsecureLoopback: boolean): st
   } catch {
     throw new BtcpayConfigurationError("BTCPay base URL is not a valid URL.");
   }
-  if (u.username || u.password) throw new BtcpayConfigurationError("BTCPay base URL must not contain credentials.");
-  if (u.search || u.hash) throw new BtcpayConfigurationError("BTCPay base URL must not contain a query string or fragment.");
+  if (u.username || u.password)
+    throw new BtcpayConfigurationError("BTCPay base URL must not contain credentials.");
+  if (u.search || u.hash)
+    throw new BtcpayConfigurationError("BTCPay base URL must not contain a query string or fragment.");
   if (!u.hostname) throw new BtcpayConfigurationError("BTCPay base URL has no host.");
   if (u.protocol === "https:") {
     // ok
   } else if (u.protocol === "http:") {
     if (!(allowInsecureLoopback && LOOPBACK.has(u.hostname))) {
-      throw new BtcpayConfigurationError("BTCPay base URL must use https (plain http is accepted only for loopback with allowInsecureLoopback).");
+      throw new BtcpayConfigurationError(
+        "BTCPay base URL must use https (plain http is accepted only for loopback with allowInsecureLoopback).",
+      );
     }
   } else {
     throw new BtcpayConfigurationError("BTCPay base URL must use https.");
@@ -93,20 +97,28 @@ export function validateBaseUrl(raw: string, allowInsecureLoopback: boolean): st
 }
 
 export function resolveConfig(cfg: BtcpayConfig): { resolved: ResolvedConfig; apiKey: string } {
-  if (typeof cfg.apiKey !== "string" || cfg.apiKey.length < 8 || cfg.apiKey.length > 256 || !/^[\x21-\x7e]+$/.test(cfg.apiKey)) {
+  if (
+    typeof cfg.apiKey !== "string" ||
+    cfg.apiKey.length < 8 ||
+    cfg.apiKey.length > 256 ||
+    !/^[\x21-\x7e]+$/.test(cfg.apiKey)
+  ) {
     throw new BtcpayConfigurationError("API key is missing or malformed.");
   }
   if (typeof cfg.storeId !== "string" || !/^[A-Za-z0-9_-]{8,64}$/.test(cfg.storeId)) {
     throw new BtcpayConfigurationError("Store id is missing or malformed.");
   }
-  if (!NETWORKS.has(cfg.network)) throw new BtcpayConfigurationError("Network must be declared: mainnet, testnet, signet or regtest.");
+  if (!NETWORKS.has(cfg.network))
+    throw new BtcpayConfigurationError("Network must be declared: mainnet, testnet, signet or regtest.");
   const cryptoCode = cfg.cryptoCode ?? "BTC";
   if (cryptoCode !== "BTC") throw new BtcpayConfigurationError("Only BTC is supported.");
   const fetchImpl = cfg.fetch ?? globalThis.fetch;
-  if (typeof fetchImpl !== "function") throw new BtcpayConfigurationError("No fetch implementation available.");
+  if (typeof fetchImpl !== "function")
+    throw new BtcpayConfigurationError("No fetch implementation available.");
   const positive = (v: number | undefined, d: number, name: string): number => {
     const n = v ?? d;
-    if (!Number.isInteger(n) || n < 1 || n > 600_000) throw new BtcpayConfigurationError(`${name} must be an integer between 1 and 600000.`);
+    if (!Number.isInteger(n) || n < 1 || n > 600_000)
+      throw new BtcpayConfigurationError(`${name} must be an integer between 1 and 600000.`);
     return n;
   };
   return {

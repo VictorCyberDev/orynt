@@ -21,6 +21,8 @@ export function redactSecrets(text: string, secrets: readonly string[] = []): st
     if (s.length >= 4) out = out.split(s).join("[REDACTED]");
   }
   for (const re of SHAPES) out = out.replace(re, "[REDACTED]");
-  out = Array.from(out, (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? " " : ch)).join("").trim();
+  out = Array.from(out, (ch) => (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) === 127 ? " " : ch))
+    .join("")
+    .trim();
   return out.length > MAX_LEN ? `${out.slice(0, MAX_LEN)}...` : out;
 }

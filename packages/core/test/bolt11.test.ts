@@ -59,19 +59,57 @@ describe("bolt11 encoder round-trips through the independent decoder", () => {
     expect(nodePubkeyFromPrivate(priv)).toBe(PAYEE);
     const preimage = "07".repeat(32);
     const inv = encodeInvoice({
-      network: "regtest", amountMsat: 123_456n, paymentHashHex: sha256Hex(Buffer.from(preimage, "hex")),
-      paymentSecretHex: "11".repeat(32), description: "invoice #42 — café", timestamp: 1_800_000_000, expirySeconds: 600, privateKeyHex: priv,
+      network: "regtest",
+      amountMsat: 123_456n,
+      paymentHashHex: sha256Hex(Buffer.from(preimage, "hex")),
+      paymentSecretHex: "11".repeat(32),
+      description: "invoice #42 — café",
+      timestamp: 1_800_000_000,
+      expirySeconds: 600,
+      privateKeyHex: priv,
     });
     const d = decodeInvoice(inv);
-    expect(d).toMatchObject({ network: "regtest", amountMsat: 123_456n, timestamp: 1_800_000_000, expirySeconds: 600, payeePubkey: PAYEE });
+    expect(d).toMatchObject({
+      network: "regtest",
+      amountMsat: 123_456n,
+      timestamp: 1_800_000_000,
+      expirySeconds: 600,
+      payeePubkey: PAYEE,
+    });
     expect(d.description).toBe("invoice #42 — café");
     expect(d.paymentHash).toBe(sha256Hex(Buffer.from(preimage, "hex")));
   });
   it("encodes amounts exactly across units", () => {
-    for (const amt of [1n, 10n, 1000n, 1_000_000n, 123_456_789n, 100_000_000_000n, 2_100_000_000_000_000_000n]) {
-      const d = decodeInvoice(encodeInvoice({ network: "regtest", amountMsat: amt, paymentHashHex: "ab".repeat(32), timestamp: 1_800_000_000, privateKeyHex: priv }));
+    for (const amt of [
+      1n,
+      10n,
+      1000n,
+      1_000_000n,
+      123_456_789n,
+      100_000_000_000n,
+      2_100_000_000_000_000_000n,
+    ]) {
+      const d = decodeInvoice(
+        encodeInvoice({
+          network: "regtest",
+          amountMsat: amt,
+          paymentHashHex: "ab".repeat(32),
+          timestamp: 1_800_000_000,
+          privateKeyHex: priv,
+        }),
+      );
       expect(d.amountMsat).toBe(amt);
     }
-    expect(decodeInvoice(encodeInvoice({ network: "mainnet", amountMsat: null, paymentHashHex: "ab".repeat(32), timestamp: 1_800_000_000, privateKeyHex: priv })).amountMsat).toBeNull();
+    expect(
+      decodeInvoice(
+        encodeInvoice({
+          network: "mainnet",
+          amountMsat: null,
+          paymentHashHex: "ab".repeat(32),
+          timestamp: 1_800_000_000,
+          privateKeyHex: priv,
+        }),
+      ).amountMsat,
+    ).toBeNull();
   });
 });

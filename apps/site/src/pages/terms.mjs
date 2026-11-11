@@ -3,7 +3,8 @@ import { draftBanner, pageHero, section } from "../components.mjs";
 export default {
   path: "/terms/",
   title: "Terms of use (draft)",
-  description: "Draft terms for using the Orynt website. Information only; no offers; early-stage software. Not reviewed by counsel.",
+  description:
+    "Draft terms for using the Orynt website. Information only; no offers; early-stage software. Not reviewed by counsel.",
   body: () => `
 ${pageHero({
   eyebrow: "Terms",

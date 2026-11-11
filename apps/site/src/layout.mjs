@@ -9,7 +9,10 @@ export function head(page) {
   const title = page.path === "/" ? `${NAME} — ${TAGLINE}` : `${page.title} — ${NAME}`;
   const url = abs(page.path);
   const img = abs("/brand/og.png");
-  const jsonLd = page.path === "/" ? `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: NAME })}</script>` : "";
+  const jsonLd =
+    page.path === "/"
+      ? `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@type": "Organization", name: NAME })}</script>`
+      : "";
   return `<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

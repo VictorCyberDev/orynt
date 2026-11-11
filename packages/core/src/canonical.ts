@@ -23,7 +23,8 @@ export function canonicalize(value: unknown): string {
     case "string":
       return JSON.stringify(value);
     case "number":
-      if (!Number.isSafeInteger(value)) throw new CanonicalError("only safe integers are allowed in canonical JSON");
+      if (!Number.isSafeInteger(value))
+        throw new CanonicalError("only safe integers are allowed in canonical JSON");
       return String(value);
     case "bigint":
       throw new CanonicalError("bigint must be serialised as a string");
@@ -32,11 +33,14 @@ export function canonicalize(value: unknown): string {
     case "object": {
       if (Array.isArray(value)) return "[" + value.map((v) => canonicalize(v)).join(",") + "]";
       const proto = Object.getPrototypeOf(value);
-      if (proto !== Object.prototype && proto !== null) throw new CanonicalError("only plain objects are allowed");
+      if (proto !== Object.prototype && proto !== null)
+        throw new CanonicalError("only plain objects are allowed");
       const keys = Object.keys(value as object).sort();
       return (
         "{" +
-        keys.map((k) => JSON.stringify(k) + ":" + canonicalize((value as Record<string, unknown>)[k])).join(",") +
+        keys
+          .map((k) => JSON.stringify(k) + ":" + canonicalize((value as Record<string, unknown>)[k]))
+          .join(",") +
         "}"
       );
     }

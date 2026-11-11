@@ -11,7 +11,8 @@ ${extra}
 </section>`;
 
 /** A button link for one of the four standard calls to action. kind: primary | secondary */
-export const ctaButton = (key, kind = "primary", label) => `<a class="btn btn--${kind}" href="${CTA[key].href}">${esc(label ?? CTA[key].label)}</a>`;
+export const ctaButton = (key, kind = "primary", label) =>
+  `<a class="btn btn--${kind}" href="${CTA[key].href}">${esc(label ?? CTA[key].label)}</a>`;
 
 /** Row of standard CTA buttons, e.g. ctaRow(["signup","pilot"]). The first is primary, the rest secondary. */
 export const ctaRow = (keys = ["signup", "pilot"], { extra = "", style = "" } = {}) =>
@@ -30,7 +31,8 @@ ${ctaRow(keys, { extra: more })}
 </div>
 </section>`;
 
-export const draftBanner = (text = "Draft — not reviewed by counsel") => `<p class="draft-banner" role="note">${esc(text)}</p>`;
+export const draftBanner = (text = "Draft — not reviewed by counsel") =>
+  `<p class="draft-banner" role="note">${esc(text)}</p>`;
 
 export const section = ({ id, tint = false, tight = false, title, intro = "", body, headingId }) => {
   const hid = headingId ?? (id ? `${id}-title` : undefined);

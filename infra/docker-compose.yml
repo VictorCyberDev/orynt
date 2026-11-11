@@ -12,7 +12,7 @@ services:
     depends_on: { postgres: { condition: service_healthy } }
     environment:
       DATABASE_URL: postgres://orynt:orynt@postgres:5432/orynt_dev
-      ORYNT_ENV: development            # production requires ORYNT_SECRET_KEY and ORYNT_ISSUER_KEY — see .env.example
+      ORYNT_ENV: development # production requires ORYNT_SECRET_KEY and ORYNT_ISSUER_KEY — see .env.example
       ORYNT_SEED_DEMO: "1"
       ORYNT_FAILPOINTS: "1"
       HOST: 0.0.0.0

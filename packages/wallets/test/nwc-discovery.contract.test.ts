@@ -62,17 +62,30 @@ describe("CONTRACT (local fake): info event + encryption negotiation", () => {
     const { signEvent, KIND_INFO, getPublicKeyHex } = await import("../src/nwc/nostr");
     const { randomBytes } = await import("@noble/hashes/utils.js");
     const attacker = randomBytes(32);
-    const genuine = h.relay.storedEvents().find((e) => e.kind === KIND_INFO && e.pubkey === h!.wallet.walletPubkey)!;
+    const genuine = h.relay
+      .storedEvents()
+      .find((e) => e.kind === KIND_INFO && e.pubkey === h!.wallet.walletPubkey)!;
     h.relay.hostileExtras = [
       // newer, advertises everything and downgrades to nip04 — but signed by somebody else
-      signEvent({ pubkey: getPublicKeyHex(attacker), created_at: 4_000_000_000, kind: KIND_INFO, tags: [["encryption", "nip04"]], content: "pay_invoice" }, attacker),
+      signEvent(
+        {
+          pubkey: getPublicKeyHex(attacker),
+          created_at: 4_000_000_000,
+          kind: KIND_INFO,
+          tags: [["encryption", "nip04"]],
+          content: "pay_invoice",
+        },
+        attacker,
+      ),
       // right author and newer, but content altered after signing (id/sig no longer match)
       { ...genuine, created_at: genuine.created_at + 10, content: "pay_invoice list_transactions" },
     ];
     const caps = await h.provider.discoverCapabilities();
     expect(caps.notes.join(" ")).toContain("Encryption: nip44_v2");
     expect(caps.notes.join(" ")).not.toContain("list_transactions");
-    const reasons = h.diagnostics.filter((d) => d.type === "info_rejected").map((d) => (d as { reason: string }).reason);
+    const reasons = h.diagnostics
+      .filter((d) => d.type === "info_rejected")
+      .map((d) => (d as { reason: string }).reason);
     expect(reasons).toEqual(expect.arrayContaining(["bad_signature", "wrong_author"]));
   });
 });
@@ -106,7 +119,9 @@ describe("CONTRACT (local fake): network determination (NWC has no mandatory net
     h = await harness({ wallet: { network: "mainnet" }, provider: { network: "regtest" } });
     await expect(h.provider.getInfo()).rejects.toMatchObject({ kind: "mismatch" });
     const inv = h.invoice();
-    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({ reason: "network_refused" });
+    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({
+      reason: "network_refused",
+    });
     expect(h.wallet.requests.some((r) => r.method === "pay_invoice")).toBe(false);
   });
 
@@ -123,7 +138,9 @@ describe("CONTRACT (local fake): network determination (NWC has no mandatory net
   it("an invoice for another network than the wallet's is refused before sending", async () => {
     h = await harness({ wallet: { network: "regtest" } });
     const inv = h.invoice(100_000n, "testnet");
-    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({ reason: "network_refused" });
+    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({
+      reason: "network_refused",
+    });
     expect(h.wallet.requests.some((r) => r.method === "pay_invoice")).toBe(false);
   });
 
@@ -131,9 +148,14 @@ describe("CONTRACT (local fake): network determination (NWC has no mandatory net
     h = await harness({ wallet: { methods: ["pay_invoice", "lookup_invoice"] } });
     await expect(h.provider.getInfo()).rejects.toBeInstanceOf(NwcNetworkError);
     const inv = h.invoice();
-    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({ reason: "network_refused" });
+    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({
+      reason: "network_refused",
+    });
     await h.stop();
-    h = await harness({ wallet: { methods: ["pay_invoice", "lookup_invoice"] }, provider: { network: "regtest" } });
+    h = await harness({
+      wallet: { methods: ["pay_invoice", "lookup_invoice"] },
+      provider: { network: "regtest" },
+    });
     expect((await h.provider.getInfo()).network).toBe("regtest");
     const inv2 = h.invoice();
     const rec = await h.provider.sendPayment(h.req(inv2, 100_000n));
@@ -155,7 +177,9 @@ describe("CONTRACT (local fake): capability discovery never over-claims", () => 
     expect(caps.canLookupPayments).toBe(true);
     expect(caps.notes.join(" ")).toMatch(/pay_invoice is not advertised/);
     const inv = h.invoice();
-    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({ reason: "method_not_advertised" });
+    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({
+      reason: "method_not_advertised",
+    });
     expect(h.wallet.requests.some((r) => r.method === "pay_invoice")).toBe(false);
   });
 
@@ -165,7 +189,9 @@ describe("CONTRACT (local fake): capability discovery never over-claims", () => 
     expect(caps.canSendPayments).toBe(false);
     expect(caps.notes.join(" ")).toMatch(/not authorised for pay_invoice/);
     const inv = h.invoice();
-    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({ reason: "method_not_advertised" });
+    await expect(h.provider.sendPayment(h.req(inv, 100_000n))).rejects.toMatchObject({
+      reason: "method_not_advertised",
+    });
   });
 
   it("advertised but unconfirmable (get_info not offered) => 'unknown', never true", async () => {
@@ -194,35 +220,61 @@ describe("CONTRACT (local fake): capability discovery never over-claims", () => 
     h = await harness();
     await h.relay.stop();
     const caps = await h.provider.discoverCapabilities();
-    expect(caps).toMatchObject({ canSendPayments: "unknown", canLookupPayments: "unknown", canReadInfo: "unknown" });
+    expect(caps).toMatchObject({
+      canSendPayments: "unknown",
+      canLookupPayments: "unknown",
+      canReadInfo: "unknown",
+    });
   });
 
   it("states that the fee limit cannot be enforced by NIP-47", async () => {
     h = await harness({ provider: { unenforcedFeeLimit: "refuse" } });
-    expect((await h.provider.discoverCapabilities()).notes.join(" ")).toMatch(/no fee-limit parameter.*sends are refused/);
+    expect((await h.provider.discoverCapabilities()).notes.join(" ")).toMatch(
+      /no fee-limit parameter.*sends are refused/,
+    );
   });
 });
 
 describe("CONTRACT (local fake): get_budget (NWC-13) interpretation", () => {
   it("reports remaining budget in notes and via getBudget()", async () => {
-    h = await harness({ wallet: { methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"], budget: { used: 10_000, total: 100_000, renewsAt: 4_000_000_000, period: "monthly" } } });
-    expect(await h.provider.getBudget()).toMatchObject({ usedMsat: 10_000n, totalMsat: 100_000n, remainingMsat: 90_000n, renewalPeriod: "monthly" });
+    h = await harness({
+      wallet: {
+        methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"],
+        budget: { used: 10_000, total: 100_000, renewsAt: 4_000_000_000, period: "monthly" },
+      },
+    });
+    expect(await h.provider.getBudget()).toMatchObject({
+      usedMsat: 10_000n,
+      totalMsat: 100_000n,
+      remainingMsat: 90_000n,
+      renewalPeriod: "monthly",
+    });
     const caps = await h.provider.discoverCapabilities();
     expect(caps.canSendPayments).toBe(true);
     expect(caps.notes.join(" ")).toMatch(/90000 msat remaining of 100000/);
   });
 
   it("an exhausted budget is flagged but is not a permission change", async () => {
-    h = await harness({ wallet: { methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"], budget: { used: 100_000, total: 100_000, period: "never" } } });
+    h = await harness({
+      wallet: {
+        methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"],
+        budget: { used: 100_000, total: 100_000, period: "never" },
+      },
+    });
     const caps = await h.provider.discoverCapabilities();
     expect(caps.canSendPayments).toBe(true);
     expect(caps.notes.join(" ")).toMatch(/budget is exhausted/);
   });
 
   it("an empty result means 'no budget configured' (distinct from a zero budget)", async () => {
-    h = await harness({ wallet: { methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"], budget: "none" } });
+    h = await harness({
+      wallet: { methods: ["pay_invoice", "get_info", "lookup_invoice", "get_budget"], budget: "none" },
+    });
     expect(await h.provider.getBudget()).toBeNull();
-    h.wallet.script("get_budget", { do: "result", result: { used_budget: 0, total_budget: 0, renewal_period: "never" } });
+    h.wallet.script("get_budget", {
+      do: "result",
+      result: { used_budget: 0, total_budget: 0, renewal_period: "never" },
+    });
     expect(await h.provider.getBudget()).toMatchObject({ totalMsat: 0n, remainingMsat: 0n });
   });
 

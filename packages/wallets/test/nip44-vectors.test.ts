@@ -9,7 +9,13 @@ import { createCipheriv, createDecipheriv } from "node:crypto";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { secp256k1 } from "@noble/curves/secp256k1.js";
 import {
-  nip04Decrypt, nip04Encrypt, nip44CalcPaddedLen, nip44ConversationKey, nip44Decrypt, nip44Encrypt, nip44MessageKeys,
+  nip04Decrypt,
+  nip04Encrypt,
+  nip44CalcPaddedLen,
+  nip44ConversationKey,
+  nip44Decrypt,
+  nip44Encrypt,
+  nip44MessageKeys,
 } from "../src/nwc/encryption";
 
 const raw = readFileSync(new URL("./fixtures/nip44.vectors.json", import.meta.url));
@@ -24,7 +30,9 @@ describe("NIP-44 v2 official vectors (spec vectors)", () => {
 
   it("valid.get_conversation_key", () => {
     for (const v of V.valid.get_conversation_key) {
-      expect(bytesToHex(nip44ConversationKey(hexToBytes(v.sec1), hexToBytes(v.pub2)))).toBe(v.conversation_key);
+      expect(bytesToHex(nip44ConversationKey(hexToBytes(v.sec1), hexToBytes(v.pub2)))).toBe(
+        v.conversation_key,
+      );
     }
     expect(V.valid.get_conversation_key.length).toBeGreaterThan(30);
   });
@@ -69,9 +77,21 @@ describe("NIP-44 v2 official vectors (spec vectors)", () => {
     const ck = hexToBytes("c41c775356fd92eadc63ff5a0dc1da211b268cbea22316767095b2871ea1412d");
     const nonce = hexToBytes("0000000000000000000000000000000000000000000000000000000000000001");
     const table: Array<[number, string, string]> = [
-      [65535, "6e1bebca6a8229364a162a72ef064826c4cd7457bf54f190ef782bd9deff3e42", "6d8c2810d1e870fbaa1f0a0937126cca837a15f9260e27060c331d70a3c0bc84"],
-      [65536, "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a", "b7b4edb36ba92e267d322d56d9aebc22e7fa96ff52e3c12adc07f07a43cbc616"],
-      [65537, "008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430", "eeb7c7c5373894ea2c1547cfd3ccb15d5a0b2d619da852e5c79df792dcc9e435"],
+      [
+        65535,
+        "6e1bebca6a8229364a162a72ef064826c4cd7457bf54f190ef782bd9deff3e42",
+        "6d8c2810d1e870fbaa1f0a0937126cca837a15f9260e27060c331d70a3c0bc84",
+      ],
+      [
+        65536,
+        "bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a",
+        "b7b4edb36ba92e267d322d56d9aebc22e7fa96ff52e3c12adc07f07a43cbc616",
+      ],
+      [
+        65537,
+        "008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430",
+        "eeb7c7c5373894ea2c1547cfd3ccb15d5a0b2d619da852e5c79df792dcc9e435",
+      ],
     ];
     for (const [len, plainSha, payloadSha] of table) {
       const plaintext = "a".repeat(len);
@@ -126,7 +146,9 @@ describe("NIP-04 (legacy) — no official vectors exist, so: round trip + indepe
     expect(nip04Encrypt("hello nip04", a, bPub, iv)).toBe(expected);
     const [ctB64, ivB64] = expected.split("?iv=") as [string, string];
     const d = createDecipheriv("aes-256-cbc", x, Buffer.from(ivB64, "base64"));
-    expect(Buffer.concat([d.update(Buffer.from(ctB64, "base64")), d.final()]).toString("utf8")).toBe("hello nip04");
+    expect(Buffer.concat([d.update(Buffer.from(ctB64, "base64")), d.final()]).toString("utf8")).toBe(
+      "hello nip04",
+    );
   });
 
   it("rejects malformed payloads and the wrong key", () => {

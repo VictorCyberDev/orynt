@@ -93,18 +93,8 @@
     "LightningPaymentStatus": {
       "type": "string",
       "description": "",
-      "x-enumNames": [
-        "Complete",
-        "Failed",
-        "Pending",
-        "Unknown"
-      ],
-      "enum": [
-        "Complete",
-        "Failed",
-        "Pending",
-        "Unknown"
-      ]
+      "x-enumNames": ["Complete", "Failed", "Pending", "Unknown"],
+      "enum": ["Complete", "Failed", "Pending", "Unknown"]
     },
     "LightningNodeInformationData": {
       "type": "object",
@@ -341,9 +331,7 @@
         },
         "security": [
           {
-            "API_Key": [
-              "btcpay.store.cancreatelightninginvoice"
-            ],
+            "API_Key": ["btcpay.store.cancreatelightninginvoice"],
             "Basic": []
           }
         ]
@@ -359,9 +347,7 @@
         },
         "security": [
           {
-            "API_Key": [
-              "btcpay.store.canuselightningnode"
-            ],
+            "API_Key": ["btcpay.store.canuselightningnode"],
             "Basic": []
           }
         ]

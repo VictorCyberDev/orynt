@@ -3,7 +3,14 @@ import { ctaBand, ctaRow, pageHero, section } from "../components.mjs";
 
 const REAL = tag("Verified · real regtest", "ok");
 const TESTED = tag("Verified · simulator + tests", "ok");
-const statusById = { obligation: REAL, approval: TESTED, execution: REAL, truth: REAL, evidence: REAL, platform: tag("Built · SDK not on npm", "neutral") };
+const statusById = {
+  obligation: REAL,
+  approval: TESTED,
+  execution: REAL,
+  truth: REAL,
+  evidence: REAL,
+  platform: tag("Built · SDK not on npm", "neutral"),
+};
 
 const steps = [
   {
@@ -11,16 +18,20 @@ const steps = [
     title: "Obligation",
     lead: "Write down the payout before anything moves: who, how much, and which invoice.",
     does: "An operator creates or imports a payout with the payee, the exact amount (whole millisatoshis, never decimals) and a Lightning invoice. Orynt decodes the invoice, checks its signature, and binds its network, amount, expiry and payee node key to the record. Any edit creates a new immutable revision and cancels earlier approvals.",
-    prevents: "Paying a different amount, network or node than was agreed. Approving something that has since changed.",
-    limits: "Orynt checks that the invoice is well formed and matches the record. To catch a swapped invoice, bind the payee to their node key.",
+    prevents:
+      "Paying a different amount, network or node than was agreed. Approving something that has since changed.",
+    limits:
+      "Orynt checks that the invoice is well formed and matches the record. To catch a swapped invoice, bind the payee to their node key.",
   },
   {
     id: "approval",
     title: "Approval",
     lead: "The right people approve the exact payout, and their approval is signed.",
     does: "A policy decides how many approvers are needed (for example maker-checker, thresholds, limits). Each approver signs the exact payout fingerprint (the &ldquo;intent digest&rdquo;) with an Ed25519 key held on their own device. Roles are checked when approving and checked again at execution.",
-    prevents: "&ldquo;I thought you meant a different amount.&rdquo; One person creating and approving their own payout. Approvals that quietly survive an edit.",
-    limits: "Operators and API keys cannot approve. What a signature means legally is a question for counsel, not something we claim.",
+    prevents:
+      "&ldquo;I thought you meant a different amount.&rdquo; One person creating and approving their own payout. Approvals that quietly survive an edit.",
+    limits:
+      "Operators and API keys cannot approve. What a signature means legally is a question for counsel, not something we claim.",
   },
   {
     id: "execution",
@@ -35,22 +46,26 @@ const steps = [
     title: "Truthful state",
     lead: "If the wallet&rsquo;s answer is lost, the payout says so, and waits.",
     does: "States only move forward and are based on evidence. A lost response becomes <strong>Unknown</strong>, then <strong>Reconciling</strong>, never Failed. A second send is refused until the wallet&rsquo;s own record, looked up by payment hash, says what happened. An expired invoice is not proof of failure.",
-    prevents: "Paying twice because a timeout looked like a failure. Leaving a payee unpaid because nobody was sure.",
-    limits: "Orynt can only be as truthful as the wallet&rsquo;s record. If the wallet cannot answer, a person resolves the case with fresh evidence, and that action is logged.",
+    prevents:
+      "Paying twice because a timeout looked like a failure. Leaving a payee unpaid because nobody was sure.",
+    limits:
+      "Orynt can only be as truthful as the wallet&rsquo;s record. If the wallet cannot answer, a person resolves the case with fresh evidence, and that action is logged.",
   },
   {
     id: "evidence",
     title: "Evidence",
     lead: "A receipt anyone can check, without asking us.",
     does: "A versioned receipt binds the agreement, the approvals (with their signatures), the payee, amount and invoice, and the wallet&rsquo;s payment result including the payment preimage. Hashing the preimage gives the payment hash, which is cryptographic proof of payment independent of Orynt. A standalone command-line verifier checks it offline and rejects tampered, replayed, stale or forged receipts.",
-    prevents: "Disputes that rest on screenshots. Needing to trust Orynt&rsquo;s database to prove a payment happened.",
-    limits: "A receipt cannot prove that work was delivered or good, that an agreement is legally enforceable, that no other payments exist, or that funds were held in trustless escrow. You obtain the issuer&rsquo;s public key out-of-band; the verifier tells you when it is missing.",
+    prevents:
+      "Disputes that rest on screenshots. Needing to trust Orynt&rsquo;s database to prove a payment happened.",
+    limits:
+      "A receipt cannot prove that work was delivered or good, that an agreement is legally enforceable, that no other payments exist, or that funds were held in trustless escrow. You obtain the issuer&rsquo;s public key out-of-band; the verifier tells you when it is missing.",
   },
   {
     id: "platform",
     title: "Developer platform",
     lead: "Everything above is available to your own code.",
-    does: "A REST API described by OpenAPI, a typed TypeScript SDK, signed webhooks and the verifier CLI. See the <a href=\"/developers/\">developer page</a> for real samples.",
+    does: 'A REST API described by OpenAPI, a typed TypeScript SDK, signed webhooks and the verifier CLI. See the <a href="/developers/">developer page</a> for real samples.',
     prevents: "Rebuilding payout safety logic inside every internal script.",
     limits: "Early and unstable. The SDK lives in the repository and is not published to a package registry.",
   },
@@ -67,7 +82,11 @@ const stateRows = [
   ["RECONCILING", "Asking the wallet for its authoritative record.", "Possibly"],
   ["SETTLED", "The wallet&rsquo;s record shows it paid, with the preimage.", "Yes"],
   ["SIMULATED_SETTLED", "Settled in the simulator only. Not a real payment.", "No (simulated)"],
-  ["DEFINITIVELY_FAILED", "The wallet&rsquo;s record proves it did not pay. Only now can a new attempt start.", "No"],
+  [
+    "DEFINITIVELY_FAILED",
+    "The wallet&rsquo;s record proves it did not pay. Only now can a new attempt start.",
+    "No",
+  ],
   ["REJECTED", "An approver declined it. Only possible before any send.", "No"],
   ["CANCELLED", "Stopped before any send.", "No"],
 ].map(([s, m, mv]) => [`<code>${s}</code>`, m, mv]);
@@ -110,7 +129,8 @@ ${section({
   id: "states",
   tint: true,
   title: "Payment states, and why Unknown is not red.",
-  intro: "States only move forward, and each move needs evidence. The colour carries meaning: green is proven paid, indigo is not yet proven either way, red is proven not paid.",
+  intro:
+    "States only move forward, and each move needs evidence. The colour carries meaning: green is proven paid, indigo is not yet proven either way, red is proven not paid.",
   body: `<figure class="figure">
 <div class="only-wide">${svgPartial("states-wide")}</div>
 <div class="only-narrow">${svgPartial("states-narrow")}</div>

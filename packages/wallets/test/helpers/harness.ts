@@ -18,8 +18,16 @@ export interface Harness {
   secretHex: string;
   diagnostics: NwcDiagnostic[];
   /** mints a validly signed regtest invoice whose preimage the fake wallet knows */
-  invoice(amountMsat?: bigint | null, network?: Network, opts?: { known?: boolean }): { invoice: string; paymentHash: string; preimage: string };
-  req(inv: { invoice: string; paymentHash: string }, amountMsat: bigint, extra?: Partial<SendRequest>): SendRequest;
+  invoice(
+    amountMsat?: bigint | null,
+    network?: Network,
+    opts?: { known?: boolean },
+  ): { invoice: string; paymentHash: string; preimage: string };
+  req(
+    inv: { invoice: string; paymentHash: string },
+    amountMsat: bigint,
+    extra?: Partial<SendRequest>,
+  ): SendRequest;
   makeProvider(over?: Partial<NwcConfig>): NwcProvider;
   stop(): Promise<void>;
 }
@@ -40,7 +48,10 @@ export async function harness(opts: HarnessOptions = {}): Promise<Harness> {
   const walletPub = getPublicKeyHex(walletSecret);
   const clientPub = getPublicKeyHex(clientSecret);
   const wallet = new FakeWallet({
-    relays: [url], walletSecret, clientPubkey: clientPub, network: "regtest",
+    relays: [url],
+    walletSecret,
+    clientPubkey: clientPub,
+    network: "regtest",
     dropRelays: () => relay.dropAllConnections(),
     ...opts.wallet,
   });
@@ -49,23 +60,53 @@ export async function harness(opts: HarnessOptions = {}): Promise<Harness> {
   const diagnostics: NwcDiagnostic[] = [];
   const makeProvider = (over: Partial<NwcConfig> = {}) =>
     new NwcProvider({
-      uri, allowInsecureLoopbackRelays: true, unenforcedFeeLimit: "accept_and_report",
-      connectTimeoutMs: 1500, infoTimeoutMs: 1500, readTimeoutMs: 800, payTimeoutMarginMs: 0, relayGraceMs: 150, infoCacheMs: 0,
+      uri,
+      allowInsecureLoopbackRelays: true,
+      unenforcedFeeLimit: "accept_and_report",
+      connectTimeoutMs: 1500,
+      infoTimeoutMs: 1500,
+      readTimeoutMs: 800,
+      payTimeoutMarginMs: 0,
+      relayGraceMs: 150,
+      infoCacheMs: 0,
       onDiagnostic: (d) => diagnostics.push(d),
-      ...opts.provider, ...over,
+      ...opts.provider,
+      ...over,
     });
   const provider = makeProvider();
   const h: Harness = {
-    relay, wallet, provider, uri, secretHex, diagnostics,
+    relay,
+    wallet,
+    provider,
+    uri,
+    secretHex,
+    diagnostics,
     invoice(amountMsat: bigint | null = 100_000n, network: Network = "regtest", o = {}) {
       const preimage = bytesToHex(randomBytes(32));
       const paymentHash = bytesToHex(sha256(Buffer.from(preimage, "hex")));
       if (o.known !== false) wallet.registerInvoicePreimage(preimage);
-      const invoice = encodeInvoice({ network, amountMsat, paymentHashHex: paymentHash, paymentSecretHex: bytesToHex(randomBytes(32)), description: "contract test", timestamp: Math.floor(Date.now() / 1000), expirySeconds: 3600, privateKeyHex: PAYEE_KEY });
+      const invoice = encodeInvoice({
+        network,
+        amountMsat,
+        paymentHashHex: paymentHash,
+        paymentSecretHex: bytesToHex(randomBytes(32)),
+        description: "contract test",
+        timestamp: Math.floor(Date.now() / 1000),
+        expirySeconds: 3600,
+        privateKeyHex: PAYEE_KEY,
+      });
       return { invoice, paymentHash, preimage };
     },
     req(inv, amountMsat, extra = {}) {
-      return { invoice: inv.invoice, paymentHash: inv.paymentHash, amountMsat, zeroAmountInvoice: false, feeLimitMsat: 5_000n, timeoutSeconds: 0.4, ...extra };
+      return {
+        invoice: inv.invoice,
+        paymentHash: inv.paymentHash,
+        amountMsat,
+        zeroAmountInvoice: false,
+        feeLimitMsat: 5_000n,
+        timeoutSeconds: 0.4,
+        ...extra,
+      };
     },
     makeProvider,
     async stop() {

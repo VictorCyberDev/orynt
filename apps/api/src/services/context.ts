@@ -19,7 +19,11 @@ export interface Deps {
   config: Config;
   issuerPublicKey: string;
   issuerKeyId: string;
-  log: { info: (o: object, m?: string) => void; warn: (o: object, m?: string) => void; error: (o: object, m?: string) => void };
+  log: {
+    info: (o: object, m?: string) => void;
+    warn: (o: object, m?: string) => void;
+    error: (o: object, m?: string) => void;
+  };
 }
 export const actorTag = (a: Actor) => `${a.kind}:${a.id}`;
 export const iso = (d: Date | string) => new Date(d).toISOString().replace(/\.\d{3}Z$/, "Z");

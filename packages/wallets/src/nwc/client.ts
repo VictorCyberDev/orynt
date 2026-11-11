@@ -13,14 +13,33 @@
 import { randomBytes, bytesToHex } from "@noble/hashes/utils.js";
 import { decryptPayload, encryptPayload, type EncryptionScheme } from "./encryption";
 import { NwcNotSentError, NwcRelayUnavailableError } from "./errors";
-import { KIND_INFO, KIND_REQUEST, KIND_RESPONSE, isExpired, parseEventShape, signEvent, tagValues, verifyEventSignature, type NostrEvent } from "./nostr";
+import {
+  KIND_INFO,
+  KIND_REQUEST,
+  KIND_RESPONSE,
+  isExpired,
+  parseEventShape,
+  signEvent,
+  tagValues,
+  verifyEventSignature,
+  type NostrEvent,
+} from "./nostr";
 import { RelaySocket, relayLabel } from "./relay";
 import { unsafeRevealSecret, type RedactedSecret } from "./secret";
 import { OutcomeUnknownError } from "../types";
 
 export type ResponseRejection =
-  | "malformed" | "wrong_kind" | "wrong_author" | "wrong_p_tag" | "wrong_e_tag" | "expired" | "stale"
-  | "bad_signature" | "undecryptable" | "malformed_payload" | "wrong_result_type";
+  | "malformed"
+  | "wrong_kind"
+  | "wrong_author"
+  | "wrong_p_tag"
+  | "wrong_e_tag"
+  | "expired"
+  | "stale"
+  | "bad_signature"
+  | "undecryptable"
+  | "malformed_payload"
+  | "wrong_result_type";
 
 export type NwcDiagnostic =
   | { type: "response_rejected"; reason: ResponseRejection; relay: string }
@@ -62,7 +81,14 @@ export interface NwcClientOptions {
 }
 
 /** OK-false prefixes (NIP-01) that mean the relay did NOT accept/forward the event. Anything else is ambiguous. */
-const DEFINITIVE_REJECT_PREFIXES = ["blocked", "invalid", "restricted", "rate-limited", "pow", "auth-required"];
+const DEFINITIVE_REJECT_PREFIXES = [
+  "blocked",
+  "invalid",
+  "restricted",
+  "rate-limited",
+  "pow",
+  "auth-required",
+];
 
 interface RelayState {
   sock: RelaySocket;
@@ -94,7 +120,13 @@ export class NwcClient {
   }
 
   private sockets(): RelaySocket[] {
-    return this.o.relays.map((url) => new RelaySocket(url, { connectTimeoutMs: this.o.connectTimeoutMs, maxPayloadBytes: this.o.maxPayloadBytes }));
+    return this.o.relays.map(
+      (url) =>
+        new RelaySocket(url, {
+          connectTimeoutMs: this.o.connectTimeoutMs,
+          maxPayloadBytes: this.o.maxPayloadBytes,
+        }),
+    );
   }
 
   // ---- info event (kind 13194) ----------------------------------------------------------------------------------
@@ -112,7 +144,12 @@ export class NwcClient {
     let aborted = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let wake: () => void = () => undefined;
-    const op: Op = { abort: () => { aborted = true; wake(); } };
+    const op: Op = {
+      abort: () => {
+        aborted = true;
+        wake();
+      },
+    };
     this.ops.add(op);
 
     const consider = (relay: string, raw: unknown) => {
@@ -123,7 +160,8 @@ export class NwcClient {
       if (ev.pubkey !== this.o.walletPubkey) return rej("wrong_author");
       if (isExpired(ev, this.o.nowSeconds())) return rej("expired");
       if (!verifyEventSignature(ev)) return rej("bad_signature");
-      if (!best || ev.created_at > best.created_at || (ev.created_at === best.created_at && ev.id < best.id)) best = ev;
+      if (!best || ev.created_at > best.created_at || (ev.created_at === best.created_at && ev.id < best.id))
+        best = ev;
     };
 
     try {
@@ -141,12 +179,28 @@ export class NwcClient {
           s.onMessage = (m) => {
             if (m[1] !== subId) return;
             if (m[0] === "EVENT") consider(relayLabel(s.url), m[2]);
-            else if (m[0] === "EOSE") { eose++; finish(); }
-            else if (m[0] === "CLOSED") { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: "subscription closed by relay" }); finish(); }
+            else if (m[0] === "EOSE") {
+              eose++;
+              finish();
+            } else if (m[0] === "CLOSED") {
+              this.o.onDiagnostic({
+                type: "relay_failed",
+                relay: relayLabel(s.url),
+                reason: "subscription closed by relay",
+              });
+              finish();
+            }
           };
           s.onClose = () => finish();
-          s.open().then(() => { connected++; return s.send(["REQ", subId, { kinds: [KIND_INFO], authors: [this.o.walletPubkey], limit: 1 }]); })
-            .catch((e: Error) => { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: e.message }); finish(); });
+          s.open()
+            .then(() => {
+              connected++;
+              return s.send(["REQ", subId, { kinds: [KIND_INFO], authors: [this.o.walletPubkey], limit: 1 }]);
+            })
+            .catch((e: Error) => {
+              this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: e.message });
+              finish();
+            });
         }
       });
     } finally {
@@ -157,36 +211,65 @@ export class NwcClient {
     if (aborted) throw new NwcRelayUnavailableError("adapter closed");
     if (best) return parseInfo(best);
     if (connected === 0) throw new NwcRelayUnavailableError("no relay could be reached");
-    if (eose === 0) throw new NwcRelayUnavailableError("relays connected but did not answer the info request");
+    if (eose === 0)
+      throw new NwcRelayUnavailableError("relays connected but did not answer the info request");
     return null;
   }
 
   // ---- request / response ----------------------------------------------------------------------------------------
-  async call(method: string, params: Record<string, unknown>, o: { scheme: EncryptionScheme; timeoutMs: number; expireAfterSeconds?: number }): Promise<NwcResponse> {
+  async call(
+    method: string,
+    params: Record<string, unknown>,
+    o: { scheme: EncryptionScheme; timeoutMs: number; expireAfterSeconds?: number },
+  ): Promise<NwcResponse> {
     if (this.closed) throw new NwcNotSentError("adapter is closed", "adapter_closed");
 
     // 1. build + sign the request (nothing is on the wire yet; any failure here is a provable "not sent")
     const createdAt = this.o.nowSeconds();
     let request: NostrEvent;
     try {
-      const tags: string[][] = [["encryption", o.scheme], ["p", this.o.walletPubkey]];
-      if (o.expireAfterSeconds !== undefined) tags.push(["expiration", String(createdAt + Math.max(1, Math.ceil(o.expireAfterSeconds)))]);
+      const tags: string[][] = [
+        ["encryption", o.scheme],
+        ["p", this.o.walletPubkey],
+      ];
+      if (o.expireAfterSeconds !== undefined)
+        tags.push(["expiration", String(createdAt + Math.max(1, Math.ceil(o.expireAfterSeconds)))]);
       const sk = unsafeRevealSecret(this.o.secret);
       const content = encryptPayload(o.scheme, JSON.stringify({ method, params }), sk, this.o.walletPubkey);
-      request = signEvent({ pubkey: this.o.clientPubkey, created_at: createdAt, kind: KIND_REQUEST, tags, content }, sk);
+      request = signEvent(
+        { pubkey: this.o.clientPubkey, created_at: createdAt, kind: KIND_REQUEST, tags, content },
+        sk,
+      );
     } catch (e) {
-      throw new NwcNotSentError(`could not build the request: ${(e as Error).message}`, this.closed ? "adapter_closed" : "invalid_request");
+      throw new NwcNotSentError(
+        `could not build the request: ${(e as Error).message}`,
+        this.closed ? "adapter_closed" : "invalid_request",
+      );
     }
 
     const subId = `nwc-${bytesToHex(randomBytes(8))}`;
-    const filter = { kinds: [KIND_RESPONSE], authors: [this.o.walletPubkey], "#e": [request.id], "#p": [this.o.clientPubkey] };
-    const states: RelayState[] = this.sockets().map((sock) => ({ sock, ready: false, settled: false, written: false, ack: "none" }));
+    const filter = {
+      kinds: [KIND_RESPONSE],
+      authors: [this.o.walletPubkey],
+      "#e": [request.id],
+      "#p": [this.o.clientPubkey],
+    };
+    const states: RelayState[] = this.sockets().map((sock) => ({
+      sock,
+      ready: false,
+      settled: false,
+      written: false,
+      ack: "none",
+    }));
     const seen = new Set<string>();
     let published = false;
     let finished = false;
     let resolveFn!: (r: NwcResponse) => void;
     let rejectFn!: (e: Error) => void;
-    const outcome = new Promise<NwcResponse>((res, rej) => { resolveFn = res; rejectFn = rej; });
+    const outcome = new Promise<NwcResponse>((res, rej) => {
+      resolveFn = res;
+      rejectFn = rej;
+    });
     outcome.catch(() => undefined); // an early rejection must never surface as an unhandled rejection; callers await `outcome` below
     const timers: Array<ReturnType<typeof setTimeout>> = [];
     let phaseWake: () => void = () => undefined;
@@ -195,11 +278,13 @@ export class NwcClient {
     const finish = (err: Error | null, res?: NwcResponse) => {
       if (finished) return;
       finished = true;
-      if (err) rejectFn(err); else resolveFn(res as NwcResponse);
+      if (err) rejectFn(err);
+      else resolveFn(res as NwcResponse);
     };
     const abort: Op = {
       abort: () => {
-        if (published) finish(new OutcomeUnknownError("adapter closed while waiting for the wallet's response"));
+        if (published)
+          finish(new OutcomeUnknownError("adapter closed while waiting for the wallet's response"));
         else finish(new NwcNotSentError("adapter closed before the request was published", "adapter_closed"));
         phaseWake();
       },
@@ -213,12 +298,17 @@ export class NwcClient {
       if (written.every((s) => s.ack === "rejected_definitive")) {
         finish(new NwcNotSentError("every relay refused the request event", "relay_rejected"));
       } else if (written.every((s) => s.sock.closed)) {
-        finish(new OutcomeUnknownError("all relay connections were lost after the request was published; the wallet may or may not have executed it"));
+        finish(
+          new OutcomeUnknownError(
+            "all relay connections were lost after the request was published; the wallet may or may not have executed it",
+          ),
+        );
       }
     };
 
     const handleResponse = (relay: string, raw: unknown) => {
-      const rej = (reason: ResponseRejection) => this.o.onDiagnostic({ type: "response_rejected", reason, relay });
+      const rej = (reason: ResponseRejection) =>
+        this.o.onDiagnostic({ type: "response_rejected", reason, relay });
       const ev = parseEventShape(raw);
       if (!ev) return rej("malformed");
       if (seen.has(ev.id)) return; // same accepted event echoed by another relay
@@ -231,7 +321,9 @@ export class NwcClient {
       if (!verifyEventSignature(ev)) return rej("bad_signature"); // BEFORE decrypting (NIP-44)
       let parsed: unknown;
       try {
-        parsed = JSON.parse(decryptPayload(o.scheme, ev.content, unsafeRevealSecret(this.o.secret), this.o.walletPubkey));
+        parsed = JSON.parse(
+          decryptPayload(o.scheme, ev.content, unsafeRevealSecret(this.o.secret), this.o.walletPubkey),
+        );
       } catch (e) {
         return rej(e instanceof SyntaxError ? "malformed_payload" : "undecryptable");
       }
@@ -253,7 +345,9 @@ export class NwcClient {
 
     try {
       // 2. connect to every relay and subscribe for the response BEFORE publishing
-      const allSettled = new Promise<void>((resolve) => { phaseWake = resolve; });
+      const allSettled = new Promise<void>((resolve) => {
+        phaseWake = resolve;
+      });
       const checkPhase = () => {
         if (states.every((s) => s.settled)) phaseWake();
         else if (!graceStarted && states.some((s) => s.ready)) {
@@ -266,14 +360,28 @@ export class NwcClient {
         const s = st.sock;
         s.onMessage = (m) => {
           if (m[0] === "EVENT" && m[1] === subId) handleResponse(relayLabel(s.url), m[2]);
-          else if (m[0] === "EOSE" && m[1] === subId) { st.ready = true; st.settled = true; checkPhase(); }
-          else if (m[0] === "CLOSED" && m[1] === subId) { this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: "subscription closed by relay" }); st.ready = false; st.settled = true; checkPhase(); }
-          else if (m[0] === "OK" && m[1] === request.id) {
+          else if (m[0] === "EOSE" && m[1] === subId) {
+            st.ready = true;
+            st.settled = true;
+            checkPhase();
+          } else if (m[0] === "CLOSED" && m[1] === subId) {
+            this.o.onDiagnostic({
+              type: "relay_failed",
+              relay: relayLabel(s.url),
+              reason: "subscription closed by relay",
+            });
+            st.ready = false;
+            st.settled = true;
+            checkPhase();
+          } else if (m[0] === "OK" && m[1] === request.id) {
             const accepted = m[2] === true;
             const message = typeof m[3] === "string" ? m[3].slice(0, 200) : "";
             this.o.onDiagnostic({ type: "publish_ack", relay: relayLabel(s.url), accepted, message });
             if (accepted) st.ack = "accepted";
-            else st.ack = DEFINITIVE_REJECT_PREFIXES.some((p) => message.startsWith(`${p}:`)) ? "rejected_definitive" : "rejected_other";
+            else
+              st.ack = DEFINITIVE_REJECT_PREFIXES.some((p) => message.startsWith(`${p}:`))
+                ? "rejected_definitive"
+                : "rejected_other";
             evaluate();
           }
         };
@@ -281,7 +389,8 @@ export class NwcClient {
           this.o.onDiagnostic({ type: "relay_failed", relay: relayLabel(s.url), reason: why });
           st.ready = false;
           st.settled = true;
-          if (!published) checkPhase(); else evaluate();
+          if (!published) checkPhase();
+          else evaluate();
         };
         s.open()
           .then(() => s.send(["REQ", subId, filter]))
@@ -295,24 +404,38 @@ export class NwcClient {
       if (finished) return await outcome; // aborted while connecting
 
       const ready = states.filter((s) => s.ready && !s.sock.closed);
-      if (ready.length === 0) throw new NwcNotSentError("could not subscribe to a relay for the response; nothing was published", "relay_unreachable");
+      if (ready.length === 0)
+        throw new NwcNotSentError(
+          "could not subscribe to a relay for the response; nothing was published",
+          "relay_unreachable",
+        );
 
       // 3. publish. From the first byte written, "not sent" can no longer be assumed.
       published = true;
-      const deadline = setTimeout(() => finish(new OutcomeUnknownError(`no authentic response from the wallet service within ${o.timeoutMs}ms; the request may or may not have been executed`)), o.timeoutMs);
+      const deadline = setTimeout(
+        () =>
+          finish(
+            new OutcomeUnknownError(
+              `no authentic response from the wallet service within ${o.timeoutMs}ms; the request may or may not have been executed`,
+            ),
+          ),
+        o.timeoutMs,
+      );
       timers.push(deadline);
       let anyWritten = false;
-      await Promise.all(ready.map(async (st) => {
-        try {
-          await st.sock.send(["EVENT", request]);
-          st.written = true;
-          anyWritten = true;
-        } catch (e) {
-          // A frame that was never handed to the socket is provably not sent on that relay; any other write error is ambiguous.
-          if (!(e as { notWritten?: boolean }).notWritten) st.written = true;
-          if (st.written) anyWritten = true;
-        }
-      }));
+      await Promise.all(
+        ready.map(async (st) => {
+          try {
+            await st.sock.send(["EVENT", request]);
+            st.written = true;
+            anyWritten = true;
+          } catch (e) {
+            // A frame that was never handed to the socket is provably not sent on that relay; any other write error is ambiguous.
+            if (!(e as { notWritten?: boolean }).notWritten) st.written = true;
+            if (st.written) anyWritten = true;
+          }
+        }),
+      );
       if (!anyWritten) {
         published = false;
         throw new NwcNotSentError("the request could not be written to any relay", "relay_unreachable");
@@ -327,14 +450,30 @@ export class NwcClient {
 
 // ---- parsing helpers ---------------------------------------------------------------------------------------------
 export function parseInfo(ev: NostrEvent): NwcInfo {
-  const methods = new Set(ev.content.split(/\s+/).filter((m) => /^[a-z0-9_]{1,64}$/.test(m)).slice(0, 128));
+  const methods = new Set(
+    ev.content
+      .split(/\s+/)
+      .filter((m) => /^[a-z0-9_]{1,64}$/.test(m))
+      .slice(0, 128),
+  );
   const enc = tagValues(ev, "encryption")[0];
-  const encryption = enc === undefined ? null : enc.split(/\s+/).filter((x) => x.length > 0 && x.length <= 32);
+  const encryption =
+    enc === undefined ? null : enc.split(/\s+/).filter((x) => x.length > 0 && x.length <= 32);
   const ext = tagValues(ev, "extensions")[0];
-  return { eventId: ev.id, createdAt: ev.created_at, methods, encryption: encryption && encryption.length > 0 ? encryption : null, extensions: ext ? ext.split(/\s+/).filter(Boolean).slice(0, 64) : [] };
+  return {
+    eventId: ev.id,
+    createdAt: ev.created_at,
+    methods,
+    encryption: encryption && encryption.length > 0 ? encryption : null,
+    extensions: ext ? ext.split(/\s+/).filter(Boolean).slice(0, 64) : [],
+  };
 }
 
-function validateResponsePayload(v: unknown): { resultType: string; error: { code: string; message: string } | null; result: Record<string, unknown> | null } | null {
+function validateResponsePayload(v: unknown): {
+  resultType: string;
+  error: { code: string; message: string } | null;
+  result: Record<string, unknown> | null;
+} | null {
   if (typeof v !== "object" || v === null || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   if (typeof o["result_type"] !== "string") return null;
@@ -344,7 +483,11 @@ function validateResponsePayload(v: unknown): { resultType: string; error: { cod
     if (typeof err !== "object" || Array.isArray(err)) return null;
     const e = err as Record<string, unknown>;
     if (typeof e["code"] !== "string" || e["code"].length === 0 || e["code"].length > 64) return null;
-    return { resultType: o["result_type"], error: { code: e["code"], message: typeof e["message"] === "string" ? e["message"] : "" }, result: null };
+    return {
+      resultType: o["result_type"],
+      error: { code: e["code"], message: typeof e["message"] === "string" ? e["message"] : "" },
+      result: null,
+    };
   }
   if (typeof res !== "object" || res === null || Array.isArray(res)) return null;
   return { resultType: o["result_type"], error: null, result: res as Record<string, unknown> };

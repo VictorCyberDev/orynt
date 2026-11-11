@@ -1,0 +1,11 @@
+# Automatic HTTPS for the domain in ORYNT_DOMAIN. /metrics and /staff are NOT exposed publicly by default.
+{$ORYNT_DOMAIN} {
+	encode zstd gzip
+	@internal path /metrics /staff /staff/*
+	respond @internal 404
+	reverse_proxy api:8787
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+}

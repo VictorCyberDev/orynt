@@ -31,7 +31,13 @@
   var endpoint = form.getAttribute("data-endpoint");
   var status = document.getElementById("form-status");
   var button = form.querySelector("button[type=submit]");
-  var labels = { name: "name", email: "email", organization: "organisation", message: "message", consent: "consent" };
+  var labels = {
+    name: "name",
+    email: "email",
+    organization: "organisation",
+    message: "message",
+    consent: "consent",
+  };
 
   function showStatus(kind, title, text) {
     status.hidden = false;
@@ -72,7 +78,8 @@
     if (!f.name.value.trim()) bad.push(["name", "Please enter your name."]);
     var email = f.email.value.trim();
     if (!email) bad.push(["email", "Please enter your email address."]);
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) bad.push(["email", "That does not look like an email address."]);
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      bad.push(["email", "That does not look like an email address."]);
     if (!f.consent.checked) bad.push(["consent", "Please tick the box so we may reply to you."]);
     return bad;
   }
@@ -82,7 +89,9 @@
     clearErrors();
     var bad = validate();
     if (bad.length) {
-      bad.forEach(function (b) { fieldError(b[0], b[1]); });
+      bad.forEach(function (b) {
+        fieldError(b[0], b[1]);
+      });
       form.elements[bad[0][0]].focus();
       return;
     }
@@ -93,7 +102,7 @@
       organization: f.organization.value.trim(),
       message: f.message.value.trim(),
       consent: true,
-      source: "site"
+      source: "site",
     };
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
@@ -103,33 +112,53 @@
     fetch(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     })
       .then(function (res) {
         if (res.status === 201 || res.ok) {
           form.reset();
-          showStatus("ok", "Thank you. Your request was received.", "This is a one-person project, so replies can take a few days. Nothing was charged and no account was created.");
+          showStatus(
+            "ok",
+            "Thank you. Your request was received.",
+            "This is a one-person project, so replies can take a few days. Nothing was charged and no account was created.",
+          );
           return;
         }
-        return res.json().catch(function () { return {}; }).then(function (problem) {
-          var shown = false;
-          if (res.status === 422 && Array.isArray(problem.errors)) {
-            problem.errors.forEach(function (er) {
-              var key = String(er.path || "").split(".")[0];
-              if (labels[key] && fieldError(key, er.message || "Please check this field.")) shown = true;
-            });
-          }
-          if (shown) {
-            showStatus("err", "Please check the highlighted fields.", "Your request was not accepted yet.");
-          } else if (res.status === 429) {
-            showStatus("err", "Too many requests.", "Please wait a minute and try again.");
-          } else {
-            showStatus("err", "Sorry, we could not send your request.", "Please try again later; the service may be unavailable. (HTTP " + res.status + (problem.request_id ? ", request " + problem.request_id : "") + ")");
-          }
-        });
+        return res
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (problem) {
+            var shown = false;
+            if (res.status === 422 && Array.isArray(problem.errors)) {
+              problem.errors.forEach(function (er) {
+                var key = String(er.path || "").split(".")[0];
+                if (labels[key] && fieldError(key, er.message || "Please check this field.")) shown = true;
+              });
+            }
+            if (shown) {
+              showStatus("err", "Please check the highlighted fields.", "Your request was not accepted yet.");
+            } else if (res.status === 429) {
+              showStatus("err", "Too many requests.", "Please wait a minute and try again.");
+            } else {
+              showStatus(
+                "err",
+                "Sorry, we could not send your request.",
+                "Please try again later; the service may be unavailable. (HTTP " +
+                  res.status +
+                  (problem.request_id ? ", request " + problem.request_id : "") +
+                  ")",
+              );
+            }
+          });
       })
       .catch(function () {
-        showStatus("err", "Could not reach the server.", "Check your connection and try again. We could not confirm that your request was sent.");
+        showStatus(
+          "err",
+          "Could not reach the server.",
+          "Check your connection and try again. We could not confirm that your request was sent.",
+        );
       })
       .then(function () {
         button.disabled = false;

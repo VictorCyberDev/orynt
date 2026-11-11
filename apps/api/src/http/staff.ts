@@ -9,8 +9,15 @@ import * as staff from "../services/staff";
  * Cookie: HttpOnly, SameSite=Strict, scoped to /staff. Writes need the per-session CSRF header. There are NO routes for wallets, secrets, approvals, payments or impersonation.
  */
 const COOKIE = "orynt_staff";
-const Login = z.object({ email: z.string().email(), password: z.string().min(1).max(200), mfa_code: z.string().regex(/^\d{6}$/) });
-const Reply = z.object({ body: z.string().min(1).max(4000), status: z.enum(["pending_customer", "resolved", "acknowledged"]).default("pending_customer") });
+const Login = z.object({
+  email: z.string().email(),
+  password: z.string().min(1).max(200),
+  mfa_code: z.string().regex(/^\d{6}$/),
+});
+const Reply = z.object({
+  body: z.string().min(1).max(4000),
+  status: z.enum(["pending_customer", "resolved", "acknowledged"]).default("pending_customer"),
+});
 const Ref = z.object({ ref: z.string().regex(/^SUP-[0-9A-F]{8}$/) });
 const Reason = z.object({ reason: z.string().min(8).max(300) });
 
@@ -19,34 +26,97 @@ export function registerStaff(app: FastifyInstance, d: Deps, problem: (...a: any
     const tok = (req.cookies as Record<string, string | undefined>)[COOKIE];
     const s = tok ? await staff.staffFromToken(d, tok) : null;
     if (!s) throw new OryntError("unauthenticated", 401, "Staff sign-in required.");
-    if (write && req.headers["x-staff-csrf"] !== s.csrf) throw new OryntError("forbidden", 403, "Missing or wrong CSRF token.");
+    if (write && req.headers["x-staff-csrf"] !== s.csrf)
+      throw new OryntError("forbidden", 403, "Missing or wrong CSRF token.");
     return s;
   };
-  const wrap = (fn: (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
-    try { return await fn(req, reply); } catch (e) {
-      if (e instanceof OryntError) return problem(reply, req, e.status, e.code, e.message, e.extra ?? {});
-      if (e instanceof z.ZodError) return problem(reply, req, 422, "validation_failed", "The request is not valid.");
-      throw e;
-    }
-  };
+  const wrap =
+    (fn: (req: FastifyRequest, reply: FastifyReply) => Promise<unknown>) =>
+    async (req: FastifyRequest, reply: FastifyReply) => {
+      try {
+        return await fn(req, reply);
+      } catch (e) {
+        if (e instanceof OryntError) return problem(reply, req, e.status, e.code, e.message, e.extra ?? {});
+        if (e instanceof z.ZodError)
+          return problem(reply, req, 422, "validation_failed", "The request is not valid.");
+        throw e;
+      }
+    };
   const tight = { config: { rateLimit: { max: 10, timeWindow: "1 minute" } } };
 
-  app.post("/staff/api/login", tight, wrap(async (req, reply) => {
-    const b = Login.parse(req.body);
-    const r = await staff.staffLogin(d, b.email, b.password, b.mfa_code);
-    reply.setCookie(COOKIE, r.token, { httpOnly: true, sameSite: "strict", path: "/staff", secure: d.config.cookieSecure, maxAge: 8 * 3600 });
-    return { staff: r.staff, csrf_token: r.csrf };
-  }));
-  app.post("/staff/api/logout", wrap(async (req, reply) => { await staff.staffLogout(d, await ctxOf(req, true)); reply.clearCookie(COOKIE, { path: "/staff" }); return { ok: true }; }));
-  app.get("/staff/api/me", wrap(async (req) => { const s = await ctxOf(req, false); return { staff: { id: s.id, email: s.email, name: s.name, role: s.role }, csrf_token: s.csrf }; }));
-  app.get("/staff/api/tickets", wrap(async (req) => staff.listTickets(d, await ctxOf(req, false), z.object({ status: z.enum(["open", "acknowledged", "pending_customer", "resolved"]).optional() }).parse(req.query).status)));
-  app.get("/staff/api/tickets/:ref", wrap(async (req) => staff.getTicket(d, await ctxOf(req, false), Ref.parse(req.params).ref)));
-  app.post("/staff/api/tickets/:ref/reply", wrap(async (req) => { const s = await ctxOf(req, true); const b = Reply.parse(req.body); await staff.replyTicket(d, s, Ref.parse(req.params).ref, b.body, b.status); return { ok: true }; }));
-  app.get("/staff/api/orgs/:id/summary", wrap(async (req) => staff.orgSummary(d, await ctxOf(req, false), z.object({ id: z.string().uuid() }).parse(req.params).id, Reason.parse(req.query).reason)));
+  app.post(
+    "/staff/api/login",
+    tight,
+    wrap(async (req, reply) => {
+      const b = Login.parse(req.body);
+      const r = await staff.staffLogin(d, b.email, b.password, b.mfa_code);
+      reply.setCookie(COOKIE, r.token, {
+        httpOnly: true,
+        sameSite: "strict",
+        path: "/staff",
+        secure: d.config.cookieSecure,
+        maxAge: 8 * 3600,
+      });
+      return { staff: r.staff, csrf_token: r.csrf };
+    }),
+  );
+  app.post(
+    "/staff/api/logout",
+    wrap(async (req, reply) => {
+      await staff.staffLogout(d, await ctxOf(req, true));
+      reply.clearCookie(COOKIE, { path: "/staff" });
+      return { ok: true };
+    }),
+  );
+  app.get(
+    "/staff/api/me",
+    wrap(async (req) => {
+      const s = await ctxOf(req, false);
+      return { staff: { id: s.id, email: s.email, name: s.name, role: s.role }, csrf_token: s.csrf };
+    }),
+  );
+  app.get(
+    "/staff/api/tickets",
+    wrap(async (req) =>
+      staff.listTickets(
+        d,
+        await ctxOf(req, false),
+        z
+          .object({ status: z.enum(["open", "acknowledged", "pending_customer", "resolved"]).optional() })
+          .parse(req.query).status,
+      ),
+    ),
+  );
+  app.get(
+    "/staff/api/tickets/:ref",
+    wrap(async (req) => staff.getTicket(d, await ctxOf(req, false), Ref.parse(req.params).ref)),
+  );
+  app.post(
+    "/staff/api/tickets/:ref/reply",
+    wrap(async (req) => {
+      const s = await ctxOf(req, true);
+      const b = Reply.parse(req.body);
+      await staff.replyTicket(d, s, Ref.parse(req.params).ref, b.body, b.status);
+      return { ok: true };
+    }),
+  );
+  app.get(
+    "/staff/api/orgs/:id/summary",
+    wrap(async (req) =>
+      staff.orgSummary(
+        d,
+        await ctxOf(req, false),
+        z.object({ id: z.string().uuid() }).parse(req.params).id,
+        Reason.parse(req.query).reason,
+      ),
+    ),
+  );
 
   // ---- minimal UI (same-origin script, no inline code: it runs under the strict CSP) ----
   app.get("/staff", async (_req, reply) => reply.type("text/html").send(PAGE));
-  app.get("/staff/app.js", async (_req, reply) => reply.type("application/javascript").header("cache-control", "no-store").send(SCRIPT));
+  app.get("/staff/app.js", async (_req, reply) =>
+    reply.type("application/javascript").header("cache-control", "no-store").send(SCRIPT),
+  );
 }
 
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Orynt support console</title>

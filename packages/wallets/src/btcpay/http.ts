@@ -4,9 +4,17 @@ import { redactSecrets } from "./redact";
 
 /** Transport-level errors that prove no request bytes reached BTCPay (DNS, refused connection, TLS handshake rejected). */
 const NOT_SENT_CODES = new Set([
-  "ECONNREFUSED", "ENOTFOUND", "EAI_AGAIN", "ERR_INVALID_URL",
-  "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN", "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
-  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY", "ERR_TLS_CERT_ALTNAME_INVALID", "ERR_SSL_WRONG_VERSION_NUMBER",
+  "ECONNREFUSED",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ERR_INVALID_URL",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "SELF_SIGNED_CERT_IN_CHAIN",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+  "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "ERR_SSL_WRONG_VERSION_NUMBER",
 ]);
 
 const MAX_BODY_BYTES = 256 * 1024;
@@ -34,8 +42,14 @@ function describe(res: BtcpayResponse): BtcpayResponse {
     if (typeof j["code"] === "string") res.code = j["code"];
     if (typeof j["message"] === "string") res.message = j["message"];
     if (typeof j["missingPermission"] === "string") res.missingPermission = j["missingPermission"];
-  } else if (Array.isArray(j) && j.every((e) => isRecord(e) && typeof e["path"] === "string" && typeof e["message"] === "string")) {
-    res.validation = j.map((e) => ({ path: String((e as Record<string, unknown>)["path"]), message: String((e as Record<string, unknown>)["message"]) }));
+  } else if (
+    Array.isArray(j) &&
+    j.every((e) => isRecord(e) && typeof e["path"] === "string" && typeof e["message"] === "string")
+  ) {
+    res.validation = j.map((e) => ({
+      path: String((e as Record<string, unknown>)["path"]),
+      message: String((e as Record<string, unknown>)["message"]),
+    }));
   }
   return res;
 }
@@ -67,7 +81,11 @@ export class BtcpayHttp {
     return redactSecrets(text, [this.#apiKey]);
   }
 
-  async request(method: "GET" | "POST", path: string, opts: { body?: unknown; timeoutMs: number }): Promise<BtcpayResponse> {
+  async request(
+    method: "GET" | "POST",
+    path: string,
+    opts: { body?: unknown; timeoutMs: number },
+  ): Promise<BtcpayResponse> {
     const url = `${this.baseUrl}${path}`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), opts.timeoutMs);
@@ -94,7 +112,9 @@ export class BtcpayHttp {
         text = await this.readCapped(res, ac.signal);
       } catch (e) {
         if (e instanceof OutcomeUnknownError) throw e;
-        throw new OutcomeUnknownError(`response from BTCPay was cut off: ${this.redact(e instanceof Error ? e.message : String(e))}`);
+        throw new OutcomeUnknownError(
+          `response from BTCPay was cut off: ${this.redact(e instanceof Error ? e.message : String(e))}`,
+        );
       }
       let json: unknown;
       let nonJsonBody = false;
@@ -143,7 +163,10 @@ export class BtcpayHttp {
     const code = errorCode(e);
     const cause = new Error(this.redact(e instanceof Error ? e.message : String(e)));
     if (code && NOT_SENT_CODES.has(code)) return new NotSentError(`could not reach BTCPay: ${code}`, cause);
-    return new OutcomeUnknownError(`transport error talking to BTCPay: ${code ?? this.redact(e instanceof Error ? e.message : String(e))}`, cause);
+    return new OutcomeUnknownError(
+      `transport error talking to BTCPay: ${code ?? this.redact(e instanceof Error ? e.message : String(e))}`,
+      cause,
+    );
   }
 }
 

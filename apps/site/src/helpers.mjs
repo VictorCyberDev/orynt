@@ -6,11 +6,14 @@ export const esc = (s) =>
 /** Render a code sample. Only line comments (// or #) get a span; everything else is plain, escaped text. */
 export function codeBlock(source, { lang = "ts", label = "" } = {}) {
   const marker = lang === "sh" || lang === "bash" ? "#" : "//";
-  const lines = source.replace(/\n+$/, "").split("\n").map((line) => {
-    const idx = findComment(line, marker);
-    if (idx === -1) return esc(line);
-    return esc(line.slice(0, idx)) + `<span class="tok-c">${esc(line.slice(idx))}</span>`;
-  });
+  const lines = source
+    .replace(/\n+$/, "")
+    .split("\n")
+    .map((line) => {
+      const idx = findComment(line, marker);
+      if (idx === -1) return esc(line);
+      return esc(line.slice(0, idx)) + `<span class="tok-c">${esc(line.slice(idx))}</span>`;
+    });
   const cap = label ? `<figcaption class="code__label">${esc(label)}</figcaption>` : "";
   return `<figure class="code">${cap}<pre tabindex="0"><code class="language-${lang}">${lines.join("\n")}</code></pre></figure>`;
 }
@@ -23,7 +26,11 @@ function findComment(line, marker) {
       if (ch === "\\") i++;
       else if (ch === quote) quote = null;
     } else if (ch === '"' || ch === "'" || ch === "`") quote = ch;
-    else if (line.startsWith(marker, i) && (marker === "//" ? line[i - 1] !== ":" : i === 0 || /\s/.test(line[i - 1]))) return i;
+    else if (
+      line.startsWith(marker, i) &&
+      (marker === "//" ? line[i - 1] !== ":" : i === 0 || /\s/.test(line[i - 1]))
+    )
+      return i;
   }
   return -1;
 }
@@ -41,7 +48,11 @@ export function table({ caption, head, rows, className = "" }) {
     .map(
       (r) =>
         `<tr>${r
-          .map((c, i) => (i === 0 ? `<th scope="row" data-label="${esc(strip(head[0]))}">${c}</th>` : `<td data-label="${esc(strip(head[i]))}">${c}</td>`))
+          .map((c, i) =>
+            i === 0
+              ? `<th scope="row" data-label="${esc(strip(head[0]))}">${c}</th>`
+              : `<td data-label="${esc(strip(head[i]))}">${c}</td>`,
+          )
           .join("")}</tr>`,
     )
     .join("");
