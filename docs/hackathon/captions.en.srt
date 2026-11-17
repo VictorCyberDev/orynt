@@ -1,0 +1,139 @@
+1
+00:00:00,000 --> 00:00:05,600
+Organisations that pay people in bitcoin often approve in a chat message,
+
+2
+00:00:05,600 --> 00:00:10,000
+pay from a wallet screen, and keep a screenshot as proof.
+
+3
+00:00:10,000 --> 00:00:15,400
+When the wallet's answer is lost mid-payment, nobody knows whether the money moved.
+
+4
+00:00:15,400 --> 00:00:20,000
+So people retry and risk paying twice, or wait and leave someone unpaid.
+
+5
+00:00:20,000 --> 00:00:26,800
+Orynt sits in front of a Lightning wallet you already run. It never holds your funds.
+
+6
+00:00:26,800 --> 00:00:32,000
+It decides who may pay, sends exactly once, and keeps the proof.
+
+7
+00:00:32,000 --> 00:00:38,000
+The payments you will see run on Bitcoin regtest: a local test chain with worthless coins.
+
+8
+00:00:38,000 --> 00:00:41,100
+An operator pastes Bob's invoice.
+
+9
+00:00:41,100 --> 00:00:48,000
+Orynt decodes it and shows amount, network, expiry and the issuing node.
+
+10
+00:00:48,000 --> 00:00:51,800
+Default policy: one approver up to 100,000 sats, two above.
+
+11
+00:00:51,800 --> 00:00:57,000
+The maker cannot approve their own payout. Operators and API keys cannot approve.
+
+12
+00:00:57,000 --> 00:01:02,400
+The approver signs the exact payment with a key created in their browser.
+
+13
+00:01:02,400 --> 00:01:07,000
+Change any field afterwards and the signature stops counting.
+
+14
+00:01:07,000 --> 00:01:12,200
+Execute: Orynt first reserves a single-use send in PostgreSQL,
+
+15
+00:01:12,200 --> 00:01:15,000
+then asks Alice's LND node to pay.
+
+16
+00:01:15,000 --> 00:01:22,000
+Settled with proof in hand: the preimage matches the invoice's payment hash.
+
+17
+00:01:22,000 --> 00:01:26,000
+Only then does Orynt call a payout settled.
+
+18
+00:01:26,000 --> 00:01:33,200
+Bob's node independently shows the invoice paid, with the same preimage.
+
+19
+00:01:33,200 --> 00:01:37,000
+Excerpt of the recorded demo:full run.
+
+20
+00:01:37,000 --> 00:01:40,500
+Now the failure that causes double payments.
+
+21
+00:01:40,500 --> 00:01:47,000
+In this run we inject a fault: the answer is lost after LND accepted the payment.
+
+22
+00:01:47,000 --> 00:01:52,800
+Orynt does not call it failed. The state is unknown, and Send is switched off
+
+23
+00:01:52,800 --> 00:01:56,000
+with the reason written out in plain words.
+
+24
+00:01:56,000 --> 00:02:01,800
+A second send is refused with HTTP 409: the first attempt may already have paid.
+
+25
+00:02:01,800 --> 00:02:07,000
+Reconciling by payment hash finds LND's own record: settled, one payment.
+
+26
+00:02:07,000 --> 00:02:11,100
+The payout settles from the wallet's own record.
+
+27
+00:02:11,100 --> 00:02:16,000
+The receipt says it was settled after an uncertain moment.
+
+28
+00:02:16,000 --> 00:02:22,200
+We also killed the API process with SIGKILL right after LND accepted a payment.
+
+29
+00:02:22,200 --> 00:02:28,000
+After restart: unknown, never failed. Reconciled to settled. One payment.
+
+30
+00:02:28,000 --> 00:02:34,900
+A standalone command verifies the receipt offline: approvals, preimage, audit chain.
+
+31
+00:02:34,900 --> 00:02:41,000
+Verified, exit code 0, and --require-real would refuse a simulator receipt.
+
+32
+00:02:41,000 --> 00:02:47,500
+Change a single character of the receipt.
+
+33
+00:02:47,500 --> 00:02:51,000
+Rejected, exit code 1.
+
+34
+00:02:51,000 --> 00:02:55,100
+Limits today: regtest only, LND only, application-level enforcement,
+
+35
+00:02:55,100 --> 00:02:59,000
+no human audit, no users. Working title, not a launched product.

@@ -1,0 +1,27 @@
+import { OryntClient } from "@orynt/sdk";
+
+const orynt = new OryntClient({ baseUrl: "http://127.0.0.1:8787", apiKey: process.env.ORYNT_API_KEY });
+
+// A schedule NEVER pays by itself. A Lightning invoice is single-use, so each cycle opens an
+// "invoice needed" task. You supply the invoice; it becomes a normal draft payout.
+const { data: schedule } = await orynt.request<{ id: string }>("POST", "/v1/schedules", {
+  body: {
+    counterparty_id: "<counterparty uuid>",
+    amount_sats: "50000",
+    memo: "Monthly stipend",
+    cadence: "monthly",          // "weekly" | "monthly"
+    first_due: "2026-12-01",     // YYYY-MM-DD
+  },
+});
+
+// Opens a task for every schedule that is due (at most one per schedule per cycle).
+await orynt.request("POST", "/v1/schedules/run-due");
+
+const { data: cycles } = await orynt.request<{ data: Array<{ id: string; cycle: string; status: string }> }>("GET", "/v1/schedule-cycles");
+const waiting = cycles.data.find((c) => c.status === "awaiting_invoice");
+if (waiting) {
+  // The payee sends a fresh invoice; the result is an ordinary draft that still needs approval.
+  await orynt.request("POST", `/v1/schedule-cycles/${waiting.id}/invoice`, { body: { invoice: "<bolt11 invoice>" } });
+}
+
+await orynt.request("POST", `/v1/schedules/${schedule.id}/pause`); // pause | resume | cancel

@@ -1,0 +1,19 @@
+import { createHmac } from "node:crypto";
+
+// How the billing webhook at POST /v1/billing/webhook/:provider is authenticated.
+// You normally never send this yourself: the billing provider does. This shows the scheme, e.g. for tests.
+
+const secret = process.env.ORYNT_BILLING_WEBHOOK_SECRET!; // server-side secret
+const raw = JSON.stringify({ id: "evt_123", type: "checkout.session.completed", created: Math.floor(Date.now() / 1000) /* … */ });
+
+// :provider = "stripe" or "sandbox": header  Stripe-Signature: t=<unix seconds>,v1=<hex>
+//   v1 = HMAC-SHA256(secret, `${t}.${rawBody}`), and the timestamp must be within 5 minutes.
+const t = Math.floor(Date.now() / 1000);
+const stripeStyle = `t=${t},v1=${createHmac("sha256", secret).update(`${t}.${raw}`).digest("hex")}`;
+
+// :provider = "paystack": header  x-paystack-signature: <hex>
+//   HMAC-SHA512(secret, rawBody)
+const paystackStyle = createHmac("sha512", secret).update(raw).digest("hex");
+
+console.log(stripeStyle, paystackStyle);
+// A valid, repeated event is acknowledged with 200 {"received":true,"result":"duplicate"}; it can never grant an entitlement twice.

@@ -1,0 +1,24 @@
+
+ RUN  v3.2.7 /home/user/orynt/apps/api
+
+ ✓ test/lnd.itest.ts > LND REST adapter against a real regtest node > reports regtest and discovers capabilities of the least-privilege macaroon 76ms
+ ✓ test/lnd.itest.ts > LND REST adapter against a real regtest node > a read-only macaroon is discovered as unable to send 13ms
+ ✓ test/lnd.itest.ts > LND REST adapter against a real regtest node > my independent BOLT11 decoder agrees with a real LND-issued invoice (payee key, amount, hash, network) 29ms
+ ✓ test/lnd.itest.ts > LND REST adapter against a real regtest node > pays a real invoice; preimage hashes to the payment hash; the payee's node shows the invoice SETTLED; a second send is refused by the wallet; lookup is stable 133ms
+ ✓ test/lnd.itest.ts > LND REST adapter against a real regtest node > lookup of a never-sent hash is NOT_FOUND; bad credential and unreachable node are classified correctly 13ms
+ ✓ test/lnd.itest.ts > Orynt end-to-end on a REAL Lightning payment (regtest) > settles as REAL (not simulated), and the receipt passes the standalone verifier with --require-real 465ms
+ ✓ test/lnd.itest.ts > Orynt end-to-end on a REAL Lightning payment (regtest) > response lost AFTER LND accepted the payment → UNKNOWN → second send refused → reconcile settles; LND shows exactly ONE payment 353ms
+ ✓ test/lnd.itest.ts > Orynt end-to-end on a REAL Lightning payment (regtest) > insufficient liquidity is a PROVEN failure reported by LND, not a guess 194ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > a READ-ONLY credential is discovered as unable to send: payouts cannot even be submitted 100ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > a real invoice that has expired is refused before anything is sent 2520ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > destination substitution and wrong-network invoices are refused (real LND-issued invoice vs bound payee) 68ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > 10 concurrent executes against the REAL wallet: exactly one payment reaches LND 354ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > OUR node restarts while a payment is uncertain: reconciliation errors, stays blocked, then settles after the node returns 4138ms
+ ✓ test/lnd.itest.ts > Real-node failure modes (regtest) > PAYEE node offline: the payment fails as PROVEN (wallet-reported), and a retry after it returns settles for real — one payment total 6101ms
+ ✓ test/lnd.itest.ts > Lightning Address (LNURL-pay) with a REAL LND invoice > resolves a Lightning address to a real LND invoice whose description hash matches, then pays it for real 288ms
+
+ Test Files  1 passed (1)
+      Tests  15 passed (15)
+   Start at  10:32:19
+   Duration  21.71s (transform 936ms, setup 0ms, collect 1.68s, tests 19.67s, environment 0ms, prepare 113ms)
+

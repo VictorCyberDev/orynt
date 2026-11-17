@@ -1,0 +1,54 @@
+{
+  "mode": "real-regtest",
+  "simulated": false,
+  "startedAt": "2026-11-11T10:26:25.121Z",
+  "commit": "c0849fb5b7b57e86bbc2add8c8f45a6d598ac0dc",
+  "wallet": {
+    "kind": "lnd",
+    "network": "regtest",
+    "node_pubkey": "03eafc76a549b65b3c7e5e19964bc3ec9f0fc0b06dcd9771b8b7c7ce8db5ded7d9",
+    "capabilities": {
+      "can_send": "true",
+      "can_lookup": "true",
+      "can_read_info": "true",
+      "notes": [],
+      "discovered_at": "2026-11-11T10:26:29.471Z"
+    }
+  },
+  "A": {
+    "ref": "PO-0001",
+    "payment_hash": "7c82eda6c88989664df1ccb797a010584cccb2470b7d6b67e4fbc7dd0e4439d8",
+    "state": "SETTLED",
+    "preimage": "e1fdba468d5584bba6af48e7665057d68188eb116b20b92c2879bf0a0eb8ae94"
+  },
+  "B": {
+    "payment_hash": "359a13d546daee529de5587ada73803478f152c1874abf44741486b5baa7c9b9",
+    "first_response": "UNKNOWN",
+    "duplicate_refused": "send_blocked_unresolved",
+    "final": "SETTLED"
+  },
+  "C": {
+    "payment_hash": "cfa564fbfaab5fa215765d51d3b1ec26287f6debfe2eaa33c64b75284cbe5955",
+    "after_restart": "UNKNOWN",
+    "final": "SETTLED"
+  },
+  "receipts": {
+    "A": "/home/user/orynt/docs/evidence/receipt-real-regtest-2026-11-11T10-26-29-483Z-A.json",
+    "B": "/home/user/orynt/docs/evidence/receipt-real-regtest-2026-11-11T10-26-29-483Z-B.json"
+  },
+  "verifier": {
+    "A": 0,
+    "B": 0,
+    "tampered": 1,
+    "no_trust_root": 3,
+    "replay": 1
+  },
+  "audit": {
+    "ok": true,
+    "streams": 4,
+    "entries": 42,
+    "broken": [],
+    "note": "Hash chains detect edits and deletions. They do not stop someone with database administrator rights AND the ability to recompute every hash; only signed checkpoints stored elsewhere (receipts) can expose that."
+  },
+  "finishedAt": "2026-11-11T10:26:34.909Z"
+}

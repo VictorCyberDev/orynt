@@ -1,0 +1,46 @@
+# Evidence index: every public claim -> file or command
+
+Refreshed 2026-11-11. "Real regtest" = real Lightning payments between two LND v0.20.1-beta nodes on a local Bitcoin Core 29.5 regtest chain (test coins). "Practice" = the labelled simulator wallet. Counts marked *(register 2026-11-10)* come from `docs/EXECUTION-REGISTER.md`; items marked *(re-run 2026-11-11)* were re-run for this refresh. If a claim is not in this table it must not appear in the Devpost text, deck, video or README. Nothing here is a claim about testnet, mainnet, other wallets, a human audit, customers or hosting; those are listed at the end as **not verified**.
+
+## A. Claims that are verified
+
+| # | Public claim | Evidence (file / command) | Kind |
+|---|---|---|---|
+| 1 | Orynt does not hold funds or wallet keys; it is not a wallet | `docs/product/PRODUCT-BRIEF.md`; `packages/wallets/src/lnd.ts` (adapter only); `docs/architecture/ARCHITECTURE.md` | design / code |
+| 2 | A real 30,000-sat payment between two LND nodes was approved by someone other than its author and settled once; the payee's node showed the same preimage; sha256(preimage) = payment hash | `docs/evidence/demo-real-regtest-2026-11-11T10-26-29-483Z.md` stage A; command `pnpm demo:full` *(re-run 2026-11-11)*; earlier run `...2026-11-10T13-04-03-706Z.md` | real regtest |
+| 3 | A lost wallet response (injected fault after LND accepted) gives UNKNOWN, not FAILED; a second send is refused (HTTP 409 `send_blocked_unresolved`); reconcile by payment hash settles; LND shows exactly one payment | same file, stage B; test `lnd.itest.ts` "response lost AFTER LND accepted the payment" | real regtest (fault injected) |
+| 4 | The API process was SIGKILLed (by a failpoint that signals the process itself) right after LND accepted a payment; after restart the payout was UNKNOWN (never FAILED, never retryable) and reconciled to SETTLED | same file, stage C; `docs/evidence/demo-real-regtest-2026-11-11T10-26-29-483Z.transcript.txt` (`[failpoint] ... killing process`) | real regtest |
+| 5 | Real receipts verify offline with `--require-real` (exit 0); one changed character is REJECTED (exit 1); without a trust root the result is INTEGRITY_ONLY (exit 3); a simulator receipt is refused under `--require-real` (exit 1); replay and wrong-payment receipts are rejected | `docs/evidence/verifier-real-2026-11-11.txt`; receipts `docs/evidence/receipt-real-regtest-2026-11-11T10-26-29-483Z-{A,B,A-TAMPERED}.json`; commands in `docs/hackathon/demo-runbook.md` section 3; replay/wrong-payment: demo stage D | real regtest |
+| 6 | 15 real-LND tests pass (decoder == LND invoices, real payment, duplicate refused by the wallet, NOT_FOUND, bad credential, insufficient liquidity, read-only credential, expired invoice, destination/network substitution, 10 concurrent executes -> 1 payment, our node restarts mid-uncertainty, payee offline then retry, real LNURL-pay) | `docs/evidence/real-lightning-test-2026-11-11.txt`; command `pnpm test:real-lightning` *(re-run 2026-11-11, exit 0, 15/15)* | real regtest |
+| 7 | The same real payments driven through the browser app: BOLT11 decode, in-browser approval signature, send, UNKNOWN screen with "Send" disabled and the reason written out, "Check the wallet's record", receipt, in-browser verifier VERIFIED then REJECTED | `docs/hackathon/video/frames/ui/*.png`, `receipt-A.json`, `receipt-B.json`; command `pnpm exec tsx docs/hackathon/video/tools/capture-real-ui.mts` *(2026-11-11)* | real regtest (fault injected) |
+| 8 | 102 integration tests pass, 0 skipped, on real PostgreSQL 16 when the regtest env is set; 51 unit tests (core 24, verifier 26, contract 1) | `docs/EXECUTION-REGISTER.md` test matrix; `pnpm test:integration`, `pnpm test` *(register 2026-11-10)* | tests |
+| 9 | 138 browser checks pass, axe serious/critical = 0, no horizontal overflow at 375/768/1440 px (practice wallet) | `docs/evidence/e2e-results.json`; `docs/evidence/screenshots/`; `node apps/web/e2e/run.cjs` *(register 2026-11-10)* | practice mode, automated only |
+| 10 | Hosted CI is green: 6 jobs including "real Lightning on regtest" and "browser E2E" | GitHub Actions on PR #1: runs 42829777494 (97a0951), 43003470141, 43003477584 (`gh run list --repo VictorCyberDev/orynt`) | hosted CI |
+| 11 | 20 concurrent / 10 concurrent execute requests produce one wallet send | simulator: `adversarial.itest` "20 concurrent execute requests"; real LND: `lnd.itest` "10 concurrent executes against the REAL wallet" | tests |
+| 12 | Maker cannot approve their own payout; operators, viewers and API keys cannot approve | `adversarial.itest` "operators, viewers, API keys and the maker cannot approve" (passes, run 2026-11-11, practice wallet) | test (practice) |
+| 13 | Load check: 100 payouts x 3 concurrent executes -> 100 sends, 200 refusals, 0 doubles (not a capacity claim) | `docs/evidence/load-check.json` | practice, single machine |
+| 14 | The simulator can only yield `SIMULATED_SETTLED` and receipts say SIMULATOR; the verifier refuses them under `--require-real` | `docs/evidence/receipt-simulator-2026-11-09T15-28-43-507Z-A.json`; `verifier-real-2026-11-11.txt` last block; `packages/core` `assertTransition` | tests + evidence |
+| 15 | Default policy: one approver up to 100,000 sats, two above; the creator cannot approve by default | `packages/core/src/policy.ts` (`DEFAULT_POLICY_RULES`); `adversarial.itest` | code + test |
+| 16 | Approvals are Ed25519 signatures over an intent digest binding revision, amount, network, payment hash, payee key, expiry, policy and wallet; any change voids them | `packages/core/src/intent.ts`; `packages/core/test/core.test.ts` "changes when ANY bound field changes"; `adversarial.itest` "terms changed after approval" | tests |
+| 17 | Verifier rejects a receipt mutated at ~400 positions (0 accepted) | `packages/verifier/test` (26 tests) | tests |
+| 18 | Audit hash chains verify (42 entries, 4 streams in the demo) and an out-of-band edit is detected | demo stage D; `flow.itest` "audit hash chains verify, and an out-of-band edit is detected" | real regtest + tests |
+| 19 | Three adapter defects were found only by real execution and fixed (padded-base64 payment-hash path, `checkpermissions` scope, startup recovery latency); Core 32.1 was rejected by LND v0.20.1, so Core 29.5 is pinned | `docs/EXECUTION-REGISTER.md` rows M2 and M4; `infra/regtest/versions.env` | register |
+| 20 | Least-privilege and read-only macaroons are baked and discovered; a read-only credential cannot submit payouts | `infra/regtest/up.mjs`; `lnd.itest` "a READ-ONLY credential is discovered as unable to send" | real regtest |
+| 21 | Architecture and component status (what is verified vs not commissioned) | `docs/architecture/ARCHITECTURE.md`; `docs/architecture/orynt-architecture.svg` | doc |
+| 22 | Threat model: STRIDE + independent AI review, 15 findings fixed with regression tests; R2 surfaces delta | `docs/security/threat-model.md`, `threat-model-r2-delta.md`; `security.itest` | doc + tests |
+| 23 | Product site: 18 pages, 0 broken links, privacy checks (no third-party requests/cookies) | `pnpm --filter @orynt/site verify` exit 0 *(register 2026-11-10)*; `docs/EXECUTION-REGISTER.md` R2-P7/8 | automated |
+| 24 | Dakar rules, deadline and the eligibility/wallet conflict as found on the official pages | `docs/hackathon/rules-checklist.md` (retrieved 2026-11-11 via Firecrawl); URLs listed there | external pages |
+| 25 | Quickstart B works with `ORYNT_DEFAULT_PLAN=enterprise`, `ORYNT_WEB_DIST`, `ORYNT_SITE_DIST` (and fails without them) | tested 2026-11-11, `docs/hackathon/demo-runbook.md` section 5 | manual test |
+
+## B. Claims we deliberately label as hypotheses or plans
+
+| Statement | Why it is not evidence |
+|---|---|
+| African teams that pay contributors across borders suffer double payments or stalled payouts | desk research only; no interview, pilot or user exists (`docs/business/README.md`, `thesis-and-falsification.md`) |
+| Orynt's differentiators (signed intent digest, UNKNOWN discipline, offline verifier) matter to users | untested; BTCPay already has revision-bound approval (`docs/research/competitor-reverification-2026-11.md`, documentation only) |
+| Plans (Developer free, Startup $29, Growth $99, Business $299, Enterprise custom) | pricing hypotheses, no customer, no charge |
+| More wallet adapters, mobile approvals, interviews, hardware-backed keys | roadmap, none shipped |
+
+## C. Not verified (never claim these)
+
+Mainnet or testnet operation; any wallet other than LND against a real node (NWC and BTCPay adapters are contract-tested against local fakes only and not wired into the API, see `docs/product/nwc-adapter.md`, `docs/product/btcpay-adapter.md`; Core Lightning not started); other LND versions or remote/hosted LND; a human security audit or pen test; legal or compliance review; real e-mail delivery; live billing (no provider account, webhook or charge); hosting, staging, backups/PITR, TLS, monitoring; Docker run locally (CI builds and starts the image); low-bandwidth or mid-range-phone measurements; manual screen-reader or usability testing; customers, users, revenue, traction, partners, endorsements; any reach estimate; any submission to Devpost.

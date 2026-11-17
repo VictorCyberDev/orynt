@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" width="1200" height="820" role="img" aria-labelledby="t d" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title id="t">Orynt architecture and verification status</title>
+  <desc id="d">Browser and developer systems call the Orynt API. The server holds services, a worker and PostgreSQL. Services call a wallet provider contract with an LND adapter verified on regtest, a labelled simulator, and NWC or BTCPay adapters that are contract-tested only. Receipts are verified offline by orynt-verify. Webhooks go to customer receivers. Billing and e-mail providers are not commissioned.</desc>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0f1b2d"/></marker>
+    <marker id="arg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b7280"/></marker>
+    <style>
+      .t{font-size:15px;fill:#0f1b2d}.s{font-size:12.5px;fill:#334155}.h{font-size:13px;font-weight:700;fill:#0f1b2d}.sm{font-size:11.5px;fill:#475569}
+      .box{fill:#ffffff;stroke:#0f1b2d;stroke-width:1.6}.ok{fill:#e3f1ee;stroke:#0e7c73;stroke-width:2}.sim{fill:#efe8f7;stroke:#6b3fa0;stroke-width:1.6}
+      .nc{fill:#f1f1f1;stroke:#6b7280;stroke-width:1.6;stroke-dasharray:6 4}.grp{fill:none;stroke:#0e7c73;stroke-width:1.6;stroke-dasharray:3 5}
+      .ln{stroke:#0f1b2d;stroke-width:1.6;fill:none}.lg{stroke:#6b7280;stroke-width:1.6;fill:none;stroke-dasharray:6 4}
+    </style>
+  </defs>
+  <rect width="1200" height="820" fill="#f6f4ee"/>
+  <text x="40" y="44" font-size="22" font-weight="700" fill="#0f1b2d">Orynt: authorization-to-settlement layer in front of your Lightning wallet</text>
+  <text x="40" y="68" class="s">Never holds funds or wallet keys. Status labels reflect what was actually run (regtest only; no testnet, no mainnet).</text>
+
+  <!-- left column -->
+  <rect class="box" x="40" y="110" width="260" height="112" rx="10"/>
+  <text class="h" x="56" y="136">Browser: operations app</text>
+  <text class="s" x="56" y="158">apps/web, served at /app/</text>
+  <text class="s" x="56" y="178">Approver key (Ed25519) is made and</text>
+  <text class="s" x="56" y="196">kept in the browser; signs the intent</text>
+  <text class="s" x="56" y="214">digest (localStorage, not hardware)</text>
+  <rect class="box" x="40" y="250" width="260" height="92" rx="10"/>
+  <text class="h" x="56" y="276">Developer systems</text>
+  <text class="s" x="56" y="298">@orynt/sdk, OpenAPI 3.1, API keys</text>
+  <text class="s" x="56" y="316">(API keys can never approve)</text>
+
+  <!-- server group -->
+  <rect class="grp" x="336" y="92" width="536" height="436" rx="14"/>
+  <text class="h" x="352" y="114" fill="#0e7c73" style="fill:#0e7c73">Orynt server (one Node process, Docker image built on CI)</text>
+  <rect class="box" x="356" y="128" width="496" height="62" rx="8"/>
+  <text class="h" x="370" y="152">Fastify API (apps/api)</text>
+  <text class="s" x="370" y="173">contract-first routes · roles · policy · idempotency keys · CSRF · rate limits</text>
+  <rect class="box" x="356" y="210" width="496" height="82" rx="8"/>
+  <text class="h" x="370" y="234">Services</text>
+  <text class="s" x="370" y="255">obligations · signed approvals · execution (reserve → DISPATCHING → call)</text>
+  <text class="s" x="370" y="274">reconcile by payment hash · receipts · audit hash chain · entitlements</text>
+  <rect class="box" x="356" y="312" width="240" height="108" rx="8"/>
+  <text class="h" x="370" y="336">Worker (in-process)</text>
+  <text class="s" x="370" y="358">reconcile (lease, backoff)</text>
+  <text class="s" x="370" y="376">crash recovery · webhooks · mail</text>
+  <text class="sm" x="370" y="400">real SIGKILL recovery shown in demo:full</text>
+  <rect class="box" x="616" y="312" width="236" height="108" rx="8"/>
+  <text class="h" x="630" y="336">PostgreSQL 16</text>
+  <text class="s" x="630" y="356">state (CAS), 1 open attempt each</text>
+  <text class="s" x="630" y="374">audit hash chains · outbox · leases</text>
+  <text class="s" x="630" y="392">money = bigint msat, never a float</text>
+  <text class="sm" x="630" y="410">integration suite: 102 pass (2026-11-10)</text>
+  <rect class="box" x="356" y="436" width="496" height="64" rx="8"/>
+  <text class="h" x="370" y="460">Wallet provider contract (packages/wallets)</text>
+  <text class="s" x="370" y="481">sendPayment · lookupPayment by payment hash · capability discovery</text>
+
+  <!-- right column: wallets -->
+  <rect class="ok" x="912" y="110" width="252" height="96" rx="10"/>
+  <text class="h" x="926" y="134">LND REST adapter</text>
+  <text class="s" x="926" y="154">VERIFIED on regtest</text>
+  <text class="s" x="926" y="172">LND v0.20.1-beta, Bitcoin Core 29.5</text>
+  <text class="s" x="926" y="190">15 real-LND tests · demo:full</text>
+  <rect class="sim" x="912" y="222" width="252" height="66" rx="10"/>
+  <text class="h" x="926" y="246">Simulator (practice mode)</text>
+  <text class="s" x="926" y="266">labelled; can only yield</text>
+  <text class="s" x="926" y="282" style="font-size:12.5px">SIMULATED_SETTLED, never "real"</text>
+  <rect class="nc" x="912" y="304" width="252" height="84" rx="10"/>
+  <text class="h" x="926" y="328">NWC · BTCPay</text>
+  <text class="s" x="926" y="348">packages, contract-tested</text>
+  <text class="s" x="926" y="366">vs fakes only; not wired in; never real</text>
+  <text class="sm" x="926" y="382">Core Lightning: not started</text>
+  <rect class="nc" x="912" y="408" width="252" height="100" rx="10" style="stroke:#0e7c73"/>
+  <text class="h" x="926" y="432">Your Lightning node(s)</text>
+  <text class="s" x="926" y="452">Funds and wallet keys stay here.</text>
+  <text class="s" x="926" y="470">Regtest only: alice pays bob.</text>
+  <text class="s" x="926" y="488">Testnet / mainnet: never run</text>
+
+  <!-- bottom row -->
+  <rect class="box" x="40" y="584" width="260" height="84" rx="10"/>
+  <text class="h" x="56" y="608">Customer webhook receiver</text>
+  <text class="s" x="56" y="629">HMAC-signed, at-least-once,</text>
+  <text class="s" x="56" y="647">SSRF-checked targets (ops.itest)</text>
+  <rect class="box" x="336" y="584" width="200" height="84" rx="10"/>
+  <text class="h" x="352" y="608">Signed receipt (JSON)</text>
+  <text class="s" x="352" y="629">agreement · approvals ·</text>
+  <text class="s" x="352" y="647">preimage · audit segment</text>
+  <rect class="ok" x="590" y="584" width="282" height="84" rx="10"/>
+  <text class="h" x="606" y="608">orynt-verify (CLI + library)</text>
+  <text class="s" x="606" y="629">offline · explicit trust roots · replay</text>
+  <text class="s" x="606" y="647">ledger · --require-real · exit 0/1/2/3/4</text>
+
+  <!-- not commissioned -->
+  <rect class="nc" x="912" y="560" width="252" height="92" rx="10"/>
+  <text class="h" x="926" y="584">Billing provider</text>
+  <text class="s" x="926" y="604">Stripe / Paystack parsers + sandbox</text>
+  <text class="s" x="926" y="622" style="font-weight:700">NOT COMMISSIONED</text>
+  <text class="sm" x="926" y="640">never run against a live provider</text>
+  <rect class="nc" x="912" y="668" width="252" height="92" rx="10"/>
+  <text class="h" x="926" y="692">E-mail provider</text>
+  <text class="s" x="926" y="712">outbox + Resend client</text>
+  <text class="s" x="926" y="730" style="font-weight:700">NOT COMMISSIONED</text>
+  <text class="sm" x="926" y="748">no sending domain, no key, no real mail</text>
+
+  <!-- arrows -->
+  <path class="ln" d="M300 166 H356" marker-end="url(#ar)"/>
+  <path class="ln" d="M300 296 H328 V170 H356" marker-end="url(#ar)"/>
+  <path class="ln" d="M604 190 V210" marker-end="url(#ar)"/>
+  <path class="ln" d="M476 292 V312" marker-end="url(#ar)"/>
+  <path class="ln" d="M734 292 V312" marker-end="url(#ar)"/>
+  <path class="ln" d="M476 420 V436" marker-end="url(#ar)"/>
+  <path class="ln" d="M852 468 H890"/>
+  <path class="ln" d="M890 468 V158 H912" marker-end="url(#ar)"/>
+  <path class="ln" d="M890 255 H912" marker-end="url(#ar)"/>
+  <path class="lg" d="M890 346 H912" marker-end="url(#arg)"/>
+  <path class="ln" d="M1164 158 H1186 V458 H1164" marker-end="url(#ar)"/>
+  <path class="ln" d="M446 528 V584" marker-end="url(#ar)"/>
+  <text class="sm" x="454" y="556">services issue receipts</text>
+  <path class="ln" d="M536 626 H590" marker-end="url(#ar)"/>
+  <path class="ln" d="M336 470 H170 V584" marker-end="url(#ar)"/>
+  <text class="sm" x="178" y="560">signed webhooks</text>
+  <path class="lg" d="M872 490 H900 V606 H912" marker-end="url(#arg)"/>
+  <path class="lg" d="M900 606 V714 H912" marker-end="url(#arg)"/>
+
+  <!-- legend -->
+  <rect x="40" y="700" width="14" height="14" fill="#e3f1ee" stroke="#0e7c73" stroke-width="2"/><text class="s" x="62" y="712">verified by running it (regtest / local)</text>
+  <rect x="40" y="722" width="14" height="14" fill="#efe8f7" stroke="#6b3fa0" stroke-width="1.6"/><text class="s" x="62" y="734">labelled practice mode (simulator)</text>
+  <rect x="40" y="744" width="14" height="14" fill="#f1f1f1" stroke="#6b7280" stroke-width="1.6" stroke-dasharray="3 2"/><text class="s" x="62" y="756">not commissioned / not verified against the real thing</text>
+  <text class="sm" x="40" y="790">Not shown because they do not exist: hosting/staging, backups and PITR, monitoring, human security audit, customers. Mermaid source: docs/architecture/ARCHITECTURE.md</text>
+</svg>

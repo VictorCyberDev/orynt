@@ -1,0 +1,14 @@
+import { OryntClient, OryntApiError } from "@orynt/sdk";
+
+const orynt = new OryntClient({ baseUrl: "http://127.0.0.1:8787", apiKey: process.env.ORYNT_API_KEY });
+
+try {
+  await orynt.webhooks.create({ url: "https://example.com/orynt-hook", events: ["*"] });
+} catch (err) {
+  if (err instanceof OryntApiError && err.code === "entitlement_exceeded") {
+    // HTTP 402. The problem body says which limit, on which plan, and how much is used.
+    const p = err.problem as unknown as { entitlement?: string; plan?: string; limit?: number; used?: number };
+    console.log(err.httpStatus, p.entitlement, p.plan, p.limit, p.used);
+    // Free a resource or change plan in the app (/app/billing). Retrying the same call will not help.
+  } else throw err;
+}

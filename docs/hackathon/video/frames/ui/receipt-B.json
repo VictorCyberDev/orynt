@@ -1,0 +1,321 @@
+{
+  "schema": "orynt.receipt/1",
+  "receipt_id": "a540c7f0-ee60-4d7d-9e2d-c654d6e734b5",
+  "issued_at": "2026-11-11T10:39:27Z",
+  "issuer": {
+    "key_id": "orynt-a5fafc97",
+    "public_key": "a5fafc977830e85e5d5415656f03cfd58d1aba70aa7e1466e74d04faaab9a1f3"
+  },
+  "network": "regtest",
+  "environment": "REAL_PROVIDER",
+  "provider": {
+    "kind": "lnd",
+    "node_pubkey": "03eafc76a549b65b3c7e5e19964bc3ec9f0fc0b06dcd9771b8b7c7ce8db5ded7d9",
+    "label": "alice (regtest LND)"
+  },
+  "workspace": {
+    "id": "7ade5486-38ba-4735-a92e-e49463835eda",
+    "name": "Dakar Community Fund (regtest demo)"
+  },
+  "agreement": {
+    "obligation_id": "c58b3052-69cd-4a98-b07e-2a87683e9490",
+    "revision": 1,
+    "revision_hash": "1b02f3c0e7ead183049b4fdff2b842455c9dc2af174cfd6d46c761706ebb1cb3",
+    "counterparty": {
+      "id": "3a19f7f2-0238-4c3c-a291-7b6f29cd8713",
+      "name": "Chidi Contributions",
+      "bound_payee_pubkey": ""
+    },
+    "amount_msat": "31000000",
+    "memo": "Contribution, regtest demo",
+    "external_ref": "",
+    "invoice": "lnbcrt310u1p40g3wmpp5fsm79328l4nn5um8azv3eeuehnh2h6wmvk9nd6hyn60tj9j9ah7qdp2gdhkuarjd9382arfdahzcgrjv4nhgetnwssxgetdducqzzsxqrrsssp53s6xt5hf54ylcuzrnlanpdnm7m9pp6yqgxjmxhdufg9u5ytmxh2q9qxpqysgqkzgjnw873wmzpxns4ff907wmmcmd37t2s0tmn4rxfrl6h9fwsjcjgsvw5ydq7pr39zeadwww7vheu3xvvzww9strdv3e6pumvlxky0qqj76cg4",
+    "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc",
+    "payee_pubkey": "03c1cb1bb727a537d924de6d1d4f1a46dc51b62237f178dffda46e73442b4d5a7f",
+    "invoice_expires_at": 1794397163,
+    "created_by": {
+      "user_id": "1938bfd3-5c53-4562-b81f-b4aece09e55f",
+      "name": "Operator Ngozi"
+    }
+  },
+  "policy": {
+    "id": "688fd600-329f-44b8-b29e-795f533a4c11",
+    "revision": 1,
+    "digest": "e457ff1acb30093c851553080b19741a2e5e5d9bd9957a1acfda2664b80ea8e9",
+    "required_approvals": 1,
+    "require_distinct_maker": true
+  },
+  "intent": {
+    "id": "a9923da1-eb5d-49e6-9382-e21cd66435ab",
+    "digest": "502261ec9860b362bc6872423d1b46df2ee247904f816b837a17b75b43d7532b",
+    "wallet_connection_id": "7a8e7f5b-af49-41b2-94b5-74f61f47bf56",
+    "binding": {
+      "v": 1,
+      "network": "regtest",
+      "revision": 1,
+      "policy_id": "688fd600-329f-44b8-b29e-795f533a4c11",
+      "amount_msat": "31000000",
+      "payee_pubkey": "03c1cb1bb727a537d924de6d1d4f1a46dc51b62237f178dffda46e73442b4d5a7f",
+      "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc",
+      "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+      "obligation_id": "c58b3052-69cd-4a98-b07e-2a87683e9490",
+      "policy_digest": "e457ff1acb30093c851553080b19741a2e5e5d9bd9957a1acfda2664b80ea8e9",
+      "revision_hash": "1b02f3c0e7ead183049b4fdff2b842455c9dc2af174cfd6d46c761706ebb1cb3",
+      "policy_revision": 1,
+      "invoice_expires_at": 1794397163,
+      "wallet_connection_id": "7a8e7f5b-af49-41b2-94b5-74f61f47bf56"
+    }
+  },
+  "approvals": [
+    {
+      "approver": {
+        "user_id": "973c1342-ca23-437b-bdf7-824dde35919d",
+        "name": "Approver Moussa",
+        "role": "approver"
+      },
+      "public_key": "5d41eed05cc7cb7a301606025504ccb4f1f0f08cedbb356369df577f1c4f3f69",
+      "payload": {
+        "v": 1,
+        "type": "approval",
+        "signed_at": "2026-11-11T10:39:24Z",
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "intent_digest": "502261ec9860b362bc6872423d1b46df2ee247904f816b837a17b75b43d7532b",
+        "approver_user_id": "973c1342-ca23-437b-bdf7-824dde35919d"
+      },
+      "signature": "2eaefa4ea9d5ef77f4f6fea2f095e10114299fb04bee13484fd93c1d3cf8bbb786fe468ef4c86b3ba6d7524c069cd899dcb9943f2fc3367c9caf29a5aa6c6b0e"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_no": 1,
+      "started_at": "2026-11-11T10:39:24Z",
+      "outcome": "SUCCEEDED",
+      "note": "Settled after reconciliation of an uncertain outcome."
+    }
+  ],
+  "settlement": {
+    "state": "SETTLED",
+    "preimage": "ff0062657af8f8f11c7a2963caa58daa6bb7a49b3d57a3e658c16fe4b4217356",
+    "amount_msat": "31000000",
+    "fee_msat": "0",
+    "settled_at": "2026-11-11T10:39:24Z",
+    "provider_payment_ref": "2005",
+    "source": "provider_lookup",
+    "reconciled_after_uncertainty": true
+  },
+  "audit": {
+    "segment": [
+      {
+        "seq": 1,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:23Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "obligation.created",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "network": "regtest",
+          "batch_id": null,
+          "revision": 1,
+          "amount_msat": "31000000",
+          "counterparty": "Chidi Contributions",
+          "payee_pubkey": "03c1cb1bb727a537d924de6d1d4f1a46dc51b62237f178dffda46e73442b4d5a7f",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc"
+        },
+        "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "hash": "55e754f4935ab0ebd87078bdce7665554314b52167698875dd78fc08d70ad3fe"
+      },
+      {
+        "seq": 2,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:23Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "obligation.submitted",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "revision": 1,
+          "policy_id": "688fd600-329f-44b8-b29e-795f533a4c11",
+          "intent_digest": "502261ec9860b362bc6872423d1b46df2ee247904f816b837a17b75b43d7532b",
+          "policy_revision": 1,
+          "required_approvals": 1
+        },
+        "prev_hash": "55e754f4935ab0ebd87078bdce7665554314b52167698875dd78fc08d70ad3fe",
+        "hash": "bcc142dbf5676d1dd5698c5b591460f2c6efb2557d156f928eb32efa22d797ff"
+      },
+      {
+        "seq": 3,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "user:973c1342-ca23-437b-bdf7-824dde35919d",
+        "type": "obligation.approval_signed",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "revision": 1,
+          "public_key": "5d41eed05cc7cb7a301606025504ccb4f1f0f08cedbb356369df577f1c4f3f69",
+          "approver_role": "approver",
+          "intent_digest": "502261ec9860b362bc6872423d1b46df2ee247904f816b837a17b75b43d7532b"
+        },
+        "prev_hash": "bcc142dbf5676d1dd5698c5b591460f2c6efb2557d156f928eb32efa22d797ff",
+        "hash": "1e045ab05360d6b2b63191a3a2d70cb9a1790574e64e10aafd3cf58d3b5321f9"
+      },
+      {
+        "seq": 4,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "system:policy",
+        "type": "obligation.approved",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "required": 1,
+          "revision": 1,
+          "approvals": 1
+        },
+        "prev_hash": "1e045ab05360d6b2b63191a3a2d70cb9a1790574e64e10aafd3cf58d3b5321f9",
+        "hash": "9a4b935cf504b2c33e64fb36e7ecd9f765fc1ead638601a8b3fef8bb878baf91"
+      },
+      {
+        "seq": 5,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "payment.reserved",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "mode": "execute",
+          "provider": "lnd",
+          "intent_id": "a9923da1-eb5d-49e6-9382-e21cd66435ab",
+          "attempt_no": 1,
+          "amount_msat": "31000000",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc",
+          "intent_digest": "502261ec9860b362bc6872423d1b46df2ee247904f816b837a17b75b43d7532b",
+          "wallet_connection_id": "7a8e7f5b-af49-41b2-94b5-74f61f47bf56"
+        },
+        "prev_hash": "9a4b935cf504b2c33e64fb36e7ecd9f765fc1ead638601a8b3fef8bb878baf91",
+        "hash": "a2fbb5acfe4e6849de0da89d7c8af4912b11b4c0b80593d44401493a7a958d13"
+      },
+      {
+        "seq": 6,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "payment.dispatching",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "intent_id": "a9923da1-eb5d-49e6-9382-e21cd66435ab",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc"
+        },
+        "prev_hash": "a2fbb5acfe4e6849de0da89d7c8af4912b11b4c0b80593d44401493a7a958d13",
+        "hash": "1632ea9f213a602d81626f76d573680c5d52a7cb771461caf30cb67c5eaa75df"
+      },
+      {
+        "seq": 7,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "payment.unknown",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "reason": "failpoint triggered: execute.after_provider_response",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc",
+          "second_send_blocked": true
+        },
+        "prev_hash": "1632ea9f213a602d81626f76d573680c5d52a7cb771461caf30cb67c5eaa75df",
+        "hash": "2c63086c6dc9a42845242b165f3bd64458af86dd73fb2da29fb0dfc1da12be7d"
+      },
+      {
+        "seq": 8,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:24Z",
+        "actor": "system:incidents",
+        "type": "incident.opened",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "kind": "unknown_outcome",
+          "summary": "The wallet's answer was lost. Orynt blocked a second send and is checking the wallet's own record.",
+          "incident_id": "b8f18b8f-4609-4656-b8e2-0a087330c1c8"
+        },
+        "prev_hash": "2c63086c6dc9a42845242b165f3bd64458af86dd73fb2da29fb0dfc1da12be7d",
+        "hash": "5a9c4b229ffcef96e443fff4fd5a4d35097270a472fcbb9a53ea5eb9f08d8b4a"
+      },
+      {
+        "seq": 9,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:26Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "payment.reconciling",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "trigger": "operator",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc"
+        },
+        "prev_hash": "5a9c4b229ffcef96e443fff4fd5a4d35097270a472fcbb9a53ea5eb9f08d8b4a",
+        "hash": "3ebea69c499075d359fdc9527e3bc744acfa92ffd54b7ae66ae65b144d7ce298"
+      },
+      {
+        "seq": 10,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:26Z",
+        "actor": "user:1938bfd3-5c53-4562-b81f-b4aece09e55f",
+        "type": "payment.settled",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "fee_msat": "0",
+          "preimage": "ff0062657af8f8f11c7a2963caa58daa6bb7a49b3d57a3e658c16fe4b4217356",
+          "simulated": false,
+          "amount_msat": "31000000",
+          "payment_hash": "4c37e2c547fd673a7367e8991ce799bceeabe9db658b36eae49e9eb91645edfc",
+          "reconciled_after_uncertainty": true
+        },
+        "prev_hash": "3ebea69c499075d359fdc9527e3bc744acfa92ffd54b7ae66ae65b144d7ce298",
+        "hash": "e1896940585cac675ceda6c5caa0a6b26931aa299983de80ea49ec827a56ac66"
+      },
+      {
+        "seq": 11,
+        "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+        "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "at": "2026-11-11T10:39:26Z",
+        "actor": "system:reconciler",
+        "type": "incident.resolved",
+        "subject": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+        "data": {
+          "kind": "unknown_outcome",
+          "resolution": "Wallet record found; payment settled with verified preimage.",
+          "incident_id": "b8f18b8f-4609-4656-b8e2-0a087330c1c8"
+        },
+        "prev_hash": "e1896940585cac675ceda6c5caa0a6b26931aa299983de80ea49ec827a56ac66",
+        "hash": "9763b278ef6f5f5cc662b4ad48a0ef5aea29e0ac5880bbfd964153f209de2f46"
+      }
+    ],
+    "checkpoint": {
+      "workspace_id": "7ade5486-38ba-4735-a92e-e49463835eda",
+      "stream": "obligation:c58b3052-69cd-4a98-b07e-2a87683e9490",
+      "seq": 11,
+      "head_hash": "9763b278ef6f5f5cc662b4ad48a0ef5aea29e0ac5880bbfd964153f209de2f46",
+      "at": "2026-11-11T10:39:27Z"
+    },
+    "checkpoint_signature": "c615ad85db6b415fe0aaa4d6d58c8973252b895b62ca5a98759d1139920e350e88859ad570bbf1e9a3258f9691a366892338695be4481a2b71f44bbfc4b7a700"
+  },
+  "limitations": [
+    "Proves that a payment with this hash was settled with the stated preimage; it does not prove the work, goods or services were delivered or of any quality.",
+    "Does not prove the payee is the person or organisation named; payee binding is a claim by the issuing workspace.",
+    "Does not prove the absence of other, conflicting payments for the same obligation outside Orynt.",
+    "Is not legal evidence of a contract and is not an escrow: no funds were held back or conditionally released.",
+    "The issuer attestation proves only that the holder of the issuer key signed this record; trust in that key is the verifier's decision.",
+    "A preimage proves the node that issued the invoice released it. If the payer also controls that node (self-payment, or a fake wallet endpoint), the receipt proves nothing to a third party about who was really paid; payee binding and wallet trust are the workspace's claims.",
+    "The audit segment is tamper-evident, not immutable: whoever controls the issuer database and key could have produced an alternative history."
+  ],
+  "attestation": {
+    "alg": "ed25519",
+    "key_id": "orynt-a5fafc97",
+    "signature": "9c863618e52b991d41826f072fa98931dfe06f1993933ba58118b30d7b0c291207e39b051b4943bf20d5d3854366dc4c0fc15ee8047c39d19f0ed2d183c98507"
+  }
+}

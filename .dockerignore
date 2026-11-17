@@ -1,0 +1,14 @@
+# Keep local state, secrets and build output out of the image build context.
+.git
+.env
+.env.*
+!.env.example
+node_modules
+**/node_modules
+.regtest
+**/dist
+docs/evidence
+docs/hackathon/video
+docs/hackathon/deck
+apps/web/e2e
+*.log
