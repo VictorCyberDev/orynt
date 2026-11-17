@@ -411,9 +411,7 @@ describe("billing, webhooks and server-enforced entitlements", () => {
     });
     const psig = createHmac("sha512", SECRET).update(pay).digest("hex");
     expect(parsePaystack(pay, psig, SECRET)).toMatchObject({ kind: "canceled", subscriptionId: "SUB_1" });
-    expect(() =>
-      parsePaystack(pay, psig.slice(0, -1) + (psig.endsWith("0") ? "1" : "0"), SECRET),
-    ).toThrow();
+    expect(() => parsePaystack(pay, psig.slice(0, -1) + (psig.endsWith("0") ? "1" : "0"), SECRET)).toThrow();
     expect(() => parsePaystack(pay + " ", psig, SECRET)).toThrow();
     void applyBillingEvent;
   });
