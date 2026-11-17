@@ -1,0 +1,31 @@
+name: R4 format one-time
+on:
+  push:
+    branches: ["claude/busy-goodall-ajeb0p"]
+    paths: [".github/workflows/r4-format-once.yml"]
+permissions:
+  contents: write
+jobs:
+  apply-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format only new customer administration screens
+        run: pnpm exec prettier --write apps/web/src/pages/OrgAdmin.tsx apps/web/src/pages/Settings.tsx
+      - name: Commit formatted result, if required
+        run: |
+          if ! git diff --quiet -- apps/web/src/pages/OrgAdmin.tsx apps/web/src/pages/Settings.tsx; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add apps/web/src/pages/OrgAdmin.tsx apps/web/src/pages/Settings.tsx
+            git commit -m "style(web): apply Prettier to workspace administration"
+            git push origin HEAD:claude/busy-goodall-ajeb0p
+          fi
