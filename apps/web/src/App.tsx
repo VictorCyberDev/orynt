@@ -22,6 +22,7 @@ import { VerifyReceipt } from "./pages/VerifyReceipt";
 import { Guide } from "./pages/Guide";
 import { Billing } from "./pages/Billing";
 import { Start } from "./pages/Start";
+import { OrgAdmin } from "./pages/OrgAdmin";
 import { Batches, Reports, Schedules, Support } from "./pages/Work";
 import { AcceptInvite, Forgot, ResetPassword, SupportPublic, VerifyEmail } from "./pages/Links";
 
@@ -110,6 +111,7 @@ export function App() {
               <Route path="activity" element={<Activity />} />
               <Route path="developers" element={<Developers />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="workspace-security" element={<OrgAdmin />} />
               <Route path="billing" element={<Billing />} />
               <Route path="reports" element={<Reports />} />
               <Route path="batches" element={<Batches />} />
