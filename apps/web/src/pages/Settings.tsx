@@ -117,6 +117,7 @@ export function Settings() {
         ) : null}
       </Card>
       <AccountSecurity />
+      <Card title="Workspace administration" id="admin"><p>Manage device sessions, enforce MFA for privileged roles, transfer ownership or close the organization.</p><a className="btn btn-secondary" href="/app/workspace-security">Open workspace security</a></Card>
       <Card title="This workspace" id="ws">
         <dl className="summary">
           <dt>Name</dt>
